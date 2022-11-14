@@ -1,2 +1,2 @@
 # quoting-bc
-**EXPERIMENTAL** vNext Quoting (Aggreements) Bounded Context
+**EXPERIMENTAL** vNext Quoting (Agreements) Bounded Context
