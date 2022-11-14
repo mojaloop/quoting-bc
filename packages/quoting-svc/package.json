@@ -32,8 +32,8 @@
     "lint": "npm run build && npx eslint ./src",
     "lint:fix": "npm run build && npx eslint ./src --fix",
     "test:unit": "jest --passWithNoTests --testMatch **/test/unit/**/*.test.ts",
-    "dep:check": "npm exec ncu -- -e 2",
-    "dep:update": "npm exec ncu -- -e 2 -u"
+    "dep:check": "ncu -e 2",
+    "dep:update": "ncu -e 2 -u"
   },
   "dependencies": {
     "express": "^4.18.2",

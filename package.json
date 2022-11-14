@@ -31,8 +31,8 @@
     "coverage:gen-report": "nyc report --reporter=lcov --temp-dir=./coverage",
     "audit:check": "npm audit",
     "audit:resolve": "npm audit fix",
-    "dep:check": "npm exec ncu -- -e 2 && npm -ws --parallel run dep:check",
-    "dep:update": "npm exec ncu -- -e 2 -u && npm -ws --parallel run dep:update",
+    "dep:check": "ncu -e 2 && npm -ws --parallel run dep:check",
+    "dep:update": "ncu -e 2 -u && npm -ws --parallel run dep:update",
     "test:integration": "jest --passWithNoTests --testMatch '**/test/integration/**/*.test.ts'"
   },
   "devDependencies": {
