@@ -36,6 +36,10 @@
     "dep:update": "ncu -e 2 -u"
   },
   "dependencies": {
+    "@mojaloop/quoting-bc-client": "*",
+    "@mojaloop/quoting-bc-domain": "*",
+    "@mojaloop/quoting-bc-infrastructure": "*",
+    "@mojaloop/logging-bc-client-lib": "^0.1.16",
     "express": "^4.18.2",
     "semver": "^7.3.8"
   },
