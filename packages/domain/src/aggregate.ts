@@ -78,7 +78,7 @@ export class QuotingAggregate  {
 	}
 
 
-	async handleQuoteEvent(message: IMessage): Promise<void> {
+	async handleQuotingEvent(message: IMessage): Promise<void> {
 		try{
 				const isMessageValid = this.validateMessage(message);
 				if(isMessageValid) {

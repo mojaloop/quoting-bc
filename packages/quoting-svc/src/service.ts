@@ -32,7 +32,7 @@
 
  "use strict";
 
-import {QuotingAggregate, IOracleFinder, IOracleProviderFactory, IParticipantService} from "@mojaloop/quoting-bc-domain";
+import {QuotingAggregate, IParticipantService} from "@mojaloop/quoting-bc-domain";
 import {IMessage, IMessageProducer, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
@@ -68,11 +68,6 @@ const producerOptions : MLKafkaJsonProducerOptions = {
   
 };
 
-//Oracles
-
-let oracleFinder: IOracleFinder;
-let oracleProviderFactory: IOracleProviderFactory;
-
 // Aggregate
 let aggregate: QuotingAggregate;
 
@@ -96,7 +91,7 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
     await messageProducer.connect();
    
     logger.info("Kafka Producer Initialized");    
-    aggregate = aggregateParam ?? new QuotingAggregate(logger, oracleFinder, oracleProviderFactory, messageProducer, participantService);
+    aggregate = aggregateParam ?? new QuotingAggregate(logger, messageProducer, participantService);
     
     await aggregate.init();
     logger.info("Aggregate Initialized");
@@ -124,7 +119,7 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
   if (!loggerParam) {
     await (logger as KafkaLogger).init();
     logger.info("Kafka Logger Initialized");
-  
+  }
 
   messageProducer = messageProducerParam ?? new MLKafkaJsonProducer(producerOptions, logger);
   
