@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@mojaloop/logging-bc-public-types-lib": "^0.1.13",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "^0.2.18",
-    "@mojaloop/platform-shared-lib-public-messages-lib": "^0.1.18"
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "^0.2.19",
+    "@mojaloop/platform-shared-lib-public-messages-lib": "^0.1.19"
   }
 }

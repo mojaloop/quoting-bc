@@ -48,8 +48,8 @@ import {
 	QuotingErrorEvt,
 	QuotingErrorEvtPayload,
 	QuotingRequestReceivedEvt,
-	QuotingRequestCreatedCreatedEvt,
-	QuotingRequestCreatedCreatedEvtPayload
+	QuotingRequestCreatedEvt,
+	QuotingRequestCreatedEvtPayload
 	} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
@@ -93,11 +93,10 @@ export class QuotingAggregate  {
 
 				const errorPayload: QuotingErrorEvtPayload = {
 					errorMsg: errorMessage,
-					partyId: message.payload?.partyId ?? "N/A",
+					quoteId: message.payload?.quoteId ?? "N/A",
 					sourceEvent: message.msgName,
-					partyType: message.payload?.partyType ?? "N/A",
-					partySubType: message.payload?.partySubType ?? "N/A",
 					requesterFspId: message.payload?.requesterFspId ?? "N/A",
+					destinationFspId: message.payload?.destinationFspId ?? "N/A",
 
 				};
 				const messageToPublish = new QuotingErrorEvt(errorPayload);
@@ -139,18 +138,30 @@ export class QuotingAggregate  {
 
 	}
 
-	private async handleQuotingRequestReceivedEvt(msg: QuotingRequestReceivedEvt):Promise<QuotingRequestCreatedCreatedEvt>{
-		this._logger.debug(`Got participantAssociationEvent msg for ownerFspId: ${msg.payload.ownerFspId} partyType: ${msg.payload.partyType} partySubType: ${msg.payload.partySubType} and partyId: ${msg.payload.partyId}`);
-		await this.validateParticipant(msg.payload.ownerFspId);
+	private async handleQuotingRequestReceivedEvt(msg: QuotingRequestReceivedEvt):Promise<QuotingRequestCreatedEvt>{
+		this._logger.debug(`Got participantAssociationEvent msg for requesterFspId: ${msg.payload.requesterFspId} destinationFspId: ${msg.payload.destinationFspId} quoteId: ${msg.payload.quoteId} and quoteId: ${msg.payload.quoteId}`);
+		await this.validateParticipant(msg.payload.requesterFspId);
+		await this.validateParticipant(msg.payload.destinationFspId);
 
-		const payload : QuotingRequestCreatedCreatedEvtPayload = {
-			partyId: msg.payload.partyId,
-			ownerFspId: msg.payload.ownerFspId,
-			partyType: msg.payload.partyType,
-			partySubType: msg.payload.partySubType
+		const payload : QuotingRequestCreatedEvtPayload = {
+			requesterFspId: msg.payload.requesterFspId,
+			destinationFspId: msg.payload.destinationFspId,
+			quoteId: msg.payload.quoteId,
+			transactionId: msg.payload.transactionId,
+			transactionRequestId: msg.payload.transactionRequestId,
+			payee: msg.payload.payee,
+			payer: msg.payload.payer,
+			amountType: msg.payload.amountType,
+			amount: msg.payload.amount,
+			fees: msg.payload.fees,
+			transactionType: msg.payload.transactionType,
+			geoCode: msg.payload.geoCode,
+			note: msg.payload.note,
+			expiration: msg.payload.expiration,
+			extensionList: msg.payload.extensionList
 		};
 
-		const event = new QuotingRequestCreatedCreatedEvt(payload);
+		const event = new QuotingRequestCreatedEvt(payload);
 
 		event.fspiopOpaqueState = msg.fspiopOpaqueState;
 
