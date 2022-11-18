@@ -23,7 +23,7 @@
 
   "scripts": {
     "start": "tsc && npm run service",
-    "service": "node dist/application/index.js",
+    "service": "node dist/index.js",
     "build": "tsc",
     "watch": "tsc -w --pretty",
     "clean": "rm -Rf dist",

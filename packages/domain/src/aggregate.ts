@@ -45,11 +45,12 @@ import {
 } from "./errors";
 import { IParticipantService} from "./interfaces/infrastructure";
 import {
-	QuotingErrorEvt,
-	QuotingErrorEvtPayload,
-	QuotingRequestReceivedEvt,
-	QuotingRequestCreatedEvt,
-	QuotingRequestCreatedEvtPayload
+	QuoteErrorEvt,
+	QuoteErrorEvtPayload,
+	QuoteRequestAcceptedEvt,
+	QuoteRequestAcceptedEvtPayload,
+	QuoteRequestReceivedEvt,
+	QuoteRequestReceivedEvtPayload,
 	} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
@@ -91,7 +92,7 @@ export class QuotingAggregate  {
 
 				// TODO: find a way to publish the correct error event type
 
-				const errorPayload: QuotingErrorEvtPayload = {
+				const errorPayload: QuoteErrorEvtPayload = {
 					errorMsg: errorMessage,
 					quoteId: message.payload?.quoteId ?? "N/A",
 					sourceEvent: message.msgName,
@@ -99,7 +100,7 @@ export class QuotingAggregate  {
 					destinationFspId: message.payload?.destinationFspId ?? "N/A",
 
 				};
-				const messageToPublish = new QuotingErrorEvt(errorPayload);
+				const messageToPublish = new QuoteErrorEvt(errorPayload);
 				messageToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
 				await this._messageProducer.send(messageToPublish);
 			}
@@ -123,8 +124,8 @@ export class QuotingAggregate  {
 		const {payload, fspiopOpaqueState} = message;
 		let eventToPublish = null;
 		switch(message.msgName){
-			case QuotingRequestReceivedEvt.name:
-				eventToPublish = await this.handleQuotingRequestReceivedEvt(message as QuotingRequestReceivedEvt);
+			case QuoteRequestReceivedEvt.name:
+				eventToPublish = await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
 				break;
 			default:
 				this._logger.error(`message type has invalid format or value ${message.msgName}`);
@@ -138,12 +139,12 @@ export class QuotingAggregate  {
 
 	}
 
-	private async handleQuotingRequestReceivedEvt(msg: QuotingRequestReceivedEvt):Promise<QuotingRequestCreatedEvt>{
+	private async handleQuoteRequestReceivedEvt(msg: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt>{
 		this._logger.debug(`Got participantAssociationEvent msg for requesterFspId: ${msg.payload.requesterFspId} destinationFspId: ${msg.payload.destinationFspId} quoteId: ${msg.payload.quoteId} and quoteId: ${msg.payload.quoteId}`);
 		await this.validateParticipant(msg.payload.requesterFspId);
 		await this.validateParticipant(msg.payload.destinationFspId);
 
-		const payload : QuotingRequestCreatedEvtPayload = {
+		const payload : QuoteRequestAcceptedEvtPayload = {
 			requesterFspId: msg.payload.requesterFspId,
 			destinationFspId: msg.payload.destinationFspId,
 			quoteId: msg.payload.quoteId,
@@ -161,7 +162,7 @@ export class QuotingAggregate  {
 			extensionList: msg.payload.extensionList
 		};
 
-		const event = new QuotingRequestCreatedEvt(payload);
+		const event = new QuoteRequestAcceptedEvt(payload);
 
 		event.fspiopOpaqueState = msg.fspiopOpaqueState;
 
