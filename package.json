@@ -50,8 +50,7 @@
   },
   "workspaces": [
     "packages/domain",
-    "packages/infrastructure",
-    "packages/client",
+    "packages/implementations",
     "packages/quoting-svc",
     "packages/*"
   ],

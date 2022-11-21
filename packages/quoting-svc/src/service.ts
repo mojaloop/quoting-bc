@@ -32,13 +32,13 @@
 
  "use strict";
 
-import {QuotingAggregate, IParticipantService} from "@mojaloop/quoting-bc-domain";
-import {IMessage, IMessageProducer, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { QuotingAggregate, IQuoteRegistry, IParticipantService}  from "@mojaloop/quoting-bc-domain";
+import { IMessage, IMessageProducer, IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
-import { ParticipantClient } from "@mojaloop/quoting-bc-client";
 import { QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { MongoQuoteRegistryRepo, ParticipantClient } from "@mojaloop/quoting-bc-implementations";
 
 // Global vars
 const BC_NAME = "quoting-bc";
@@ -52,7 +52,6 @@ const DEFAULT_LOGLEVEL = LogLevel.DEBUG;
 // Message Consumer/Publisher 
 const KAFKA_LOGS_TOPIC = process.env["QUOTING_KAFKA_LOG_TOPIC"] || "logs";
 const KAFKA_URL = process.env["QUOTING_KAFKA_URL"] || "localhost:9092";
-
 
 let messageConsumer: IMessageConsumer;
 const consumerOptions: MLKafkaJsonConsumerOptions = {
@@ -68,20 +67,28 @@ const producerOptions : MLKafkaJsonProducerOptions = {
   
 };
 
+//Quotes
+const DB_NAME = process.env.QUOTING_DB_NAME ?? "quoting";
+const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
+
+let quoteRegistry: IQuoteRegistry;
+
 // Aggregate
 let aggregate: QuotingAggregate;
 
-// Participant routes
+// Participant service
+const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://127.0.0.1:3010";
+const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVVbFFjbkpJUk93dDIxYXFJRGpRdnVnZERvUlYzMzEzcTJtVllEQndDbWMifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJwYXJ0aWNpcGFudHMtc3ZjIiwicm9sZXMiOlsiNTI0YTQ1Y2QtNGIwOS00NmVjLThlNGEtMzMxYTVkOTcyNmVhIl0sImlhdCI6MTY2Njc3MTgyOSwiZXhwIjoxNjY3Mzc2NjI5LCJhdWQiOiJtb2phbG9vcC52bmV4dC5kZWZhdWx0X2F1ZGllbmNlIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDozMjAxLyIsInN1YiI6ImFwcDo6cGFydGljaXBhbnRzLXN2YyIsImp0aSI6IjMzNDUyODFiLThlYzktNDcyOC1hZGVkLTdlNGJmMzkyMGZjMSJ9.s2US9fEAE3SDdAtxxttkPIyxmNcACexW3Z-8T61w96iji9muF_Zdj2koKvf9tICd25rhtCkolI03hBky3mFNe4c7U1sV4YUtCNNRgReMZ69rS9xdfquO_gIaABIQFsu1WTc7xLkAccPhTHorartdQe7jvGp-tOSkqA-azj0yGjwUccFhX3Bgg3rWasmJDbbblIMih4SJuWE7MGHQxMzhX6c9l1TI-NpFRRFDTYTg1H6gXhBvtHMXnC9PPbc9x_RxAPBqmMcleIJZiMZ8Cn805OL9Wt_sMFfGPdAQm0l4cdjdesgfQahsrtCOAcp5l7NKmehY0pbLmjvP6zlrDM_D3A";
 let participantService: IParticipantService;
 
 export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer,
-    participantServiceParam?:IParticipantService, aggregateParam?:QuotingAggregate,
+    quoteRegistryParam?:IQuoteRegistry, participantServiceParam?:IParticipantService, aggregateParam?:QuotingAggregate,
   ):Promise<void> {
   console.log(`Quoting-svc - service starting with PID: ${process.pid}`);
 
   try{
     
-    await initExternalDependencies(loggerParam, messageConsumerParam, messageProducerParam, participantServiceParam);
+    await initExternalDependencies(loggerParam, messageConsumerParam, messageProducerParam, quoteRegistryParam, participantServiceParam);
 
     messageConsumer.setTopics([QuotingBCTopics.DomainRequests]);
     await messageConsumer.connect();
@@ -112,7 +119,7 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
 }
 
 async function initExternalDependencies(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer, 
-  participantServiceParam?: IParticipantService):Promise<void>  {
+  quoteRegistryParam?:IQuoteRegistry, participantServiceParam?: IParticipantService):Promise<void>  {
 
   logger = loggerParam ?? new KafkaLogger(BC_NAME, APP_NAME, APP_VERSION,{kafkaBrokerList: KAFKA_URL}, KAFKA_LOGS_TOPIC,DEFAULT_LOGLEVEL);
   
@@ -121,11 +128,13 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
     logger.info("Kafka Logger Initialized");
   }
 
+  quoteRegistry = quoteRegistryParam ?? new MongoQuoteRegistryRepo(logger,MONGO_URL, DB_NAME);
+
   messageProducer = messageProducerParam ?? new MLKafkaJsonProducer(producerOptions, logger);
   
   messageConsumer = messageConsumerParam ?? new MLKafkaJsonConsumer(consumerOptions, logger);
 
-  participantService = participantServiceParam ?? new ParticipantClient(logger);
+  participantService = participantServiceParam ?? new ParticipantClient(logger,PARTICIPANT_SVC_BASEURL, fixedToken);
 }
 
 

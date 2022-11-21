@@ -40,6 +40,52 @@
 
  "use strict";
 
-export * from "./localcache";
-export * from "./errors";
+
+export class QuoteTypeNotSupportedError extends Error {
+  constructor(message?: string) {
+    super(message || "Quote type not supported");
+  }
+}
+export class UnableToAddQuoteError extends Error {
+    constructor(message?: string) {
+        super(message || "Unable to add quote");
+    }
+}
+export class NoSuchQuoteError extends Error {
+    constructor(message?: string) {
+        super(message||"No such quote");
+    }
+}
+export class UnableToGetQuoteError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to get quote');
+    }
+}   
+export class QuoteAlreadyExistsError extends Error {
+    constructor(message?:string) {
+        super(message || 'Quote already registered');
+    }
+}
+export class UnableToDeleteQuoteError extends Error {
+    constructor(message?:string) {
+        super(message || 'Unable to delete quote');
+    }
+
+}
+export class LocalCacheError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to get local cache');
+    }
+}
+export class UnableToCloseDatabaseConnectionError extends Error{
+    constructor(message?: string) {
+        super(message || 'Unable to close database connection');
+    }
+}
+
+export class UnableToInitQuoteRegistryError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to initialize quote registry');
+    }
+}
 

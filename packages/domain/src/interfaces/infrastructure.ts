@@ -22,14 +22,6 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
-
- * Coil
- - Jason Bruwer <jason.bruwer@coil.com>
-
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
-
- * Gonçalo Garcia <goncalogarcia99@gmail.com>
  
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
@@ -41,12 +33,26 @@
  "use strict";
 
 
-import { IParticipant } from "../types";
+import { Participant } from "@mojaloop/participant-bc-public-types-lib";
  
 /* infrastructure interfaces */
 
 export interface IParticipantService {
-    getParticipantInfo(fspId: string):Promise<IParticipant|null>;
-    getParticipantsInfo(fspIds: string[]):Promise<IParticipant[]>;
+    getParticipantInfo(fspId: string): Promise<Participant| null>;
+    getParticipantsInfo(fspIds: string[]): Promise<Participant[]|null>;
 }
 
+export type Quote = {
+    id: string;
+    transactionId: string,
+}
+
+export interface IQuoteRegistry {
+	init(): Promise<void>;
+	destroy(): Promise<void>;
+    addQuote(quote: Quote):Promise<void>;
+    removeQuote(id: string):Promise<void>;
+    getAllQuotes():Promise<Quote[]>;
+    getQuoteById(id:string):Promise<Quote|null>;
+    getQuote(quoteId:string, transactionId: string | null):Promise<Quote | null>;
+}
