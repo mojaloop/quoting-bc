@@ -39,20 +39,20 @@
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError } from '../errors';
-import { IQuoteRegistry, Quote } from "@mojaloop/quoting-bc-domain";
+import { IQuoteRegistry, Quote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
 
 export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 	private readonly _logger: ILogger;
 	private readonly _connectionString: string;
 	private readonly _dbName;
-	private readonly _collectionName = "registries";
+	private readonly _collectionName = "quotes";
 	private mongoClient: MongoClient;
 	private quotes: Collection;
 
 	constructor(
 		logger: ILogger,
         connectionString: string,
-		dbName:string
+		dbName: string
 	) {
 		this._logger = logger.createChild(this.constructor.name);
         this._connectionString = connectionString;
@@ -95,6 +95,8 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 			throw new QuoteAlreadyExistsError();
 		}
 		
+		quote.status = QuoteStatus.PENDING;
+
 		try {
 			await this.quotes.insertOne(quote);
 			
