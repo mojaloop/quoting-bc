@@ -58,6 +58,8 @@ export type Quote = {
 
 export type AddQuoteDTO = {
     id: string | null;
+    requesterFspId: string;
+    destinationFspId: string;
     quoteId: string;
     transactionId: string;
     payee: IParty;
@@ -71,12 +73,32 @@ export type AddQuoteDTO = {
     note: string | null;
     expirationPayer: string | null;
     extensionList: string | null;
+    status: QuoteStatus;
+}
+
+
+export type UpdateQuoteDTO = {
+    id: string | null;
+    requesterFspId: string;
+    destinationFspId: string;
+    quoteId: string;
+    transferAmount: string;
+    expiration: string;
+    ilpPacket: string;
+    condition: string;
+    payeeReceiveAmount: string | null;
+    payeeFspFee: string | null;
+    payeeFspCommission: string | null;
+    geoCode: string | null;
+    extensionList: string | null;
+    status: QuoteStatus;
 }
 
 export interface IQuoteRegistry {
     init(): Promise<void>;
 	destroy(): Promise<void>;
     addQuote(quote: Quote):Promise<void>;
+    updateQuote(quote: Quote):Promise<void>;
     removeQuote(id: string):Promise<void>;
     getAllQuotes():Promise<Quote[]>;
     getQuoteById(id:string):Promise<Quote|null>;

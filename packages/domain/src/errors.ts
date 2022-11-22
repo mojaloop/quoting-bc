@@ -45,6 +45,12 @@ export class DuplicateQuoteError extends Error {
     }
 }
  
+export class NonExistingQuoteError extends Error {
+    constructor(message?: string) {
+        super(message || "Quote doesn't exist");
+    }
+}
+ 
 // Message Producer
 export class InvalidMessagePayloadError extends Error {
     constructor(message?: string) {

@@ -39,20 +39,23 @@ import {
 	InvalidMessagePayloadError,
 	InvalidMessageTypeError,
 	UnableToProcessMessageError,
-	DuplicateQuoteError
+	DuplicateQuoteError,
+	NonExistingQuoteError
 } from "./errors";
-import { AddQuoteDTO, IParticipantService, IQuoteRegistry, Quote} from "./interfaces/infrastructure";
+import { AddQuoteDTO, IParticipantService, IQuoteRegistry, Quote, UpdateQuoteDTO} from "./interfaces/infrastructure";
 import {
 	QuoteErrorEvt,
 	QuoteErrorEvtPayload,
+	QuoteRequestReceivedEvt,
 	QuoteRequestAcceptedEvt,
 	QuoteRequestAcceptedEvtPayload,
-	QuoteRequestReceivedEvt,
-	QuoteRequestReceivedEvtPayload,
-	} from "@mojaloop/platform-shared-lib-public-messages-lib";
+	QuoteResponseReceivedEvt,
+	QuoteResponseAccepted,
+	QuoteResponseAcceptedPayload,
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { randomUUID } from "crypto";
-import { IQuote } from "./types";
+import { IQuote, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -129,6 +132,9 @@ export class QuotingAggregate  {
 			case QuoteRequestReceivedEvt.name:
 				eventToPublish = await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
 				break;
+			case QuoteResponseReceivedEvt.name:
+				eventToPublish = await this.handleQuoteResponseReceivedEvt(message as QuoteResponseReceivedEvt);
+				break;
 			default:
 				this._logger.error(`message type has invalid format or value ${message.msgName}`);
 				throw new InvalidMessageTypeError();
@@ -141,7 +147,7 @@ export class QuotingAggregate  {
 
 	}
 
-	private async handleQuoteRequestReceivedEvt(msg: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt>{
+	private async handleQuoteRequestReceivedEvt(msg: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${msg.payload.quoteId}`);
 		
 		const data = msg.payload as unknown as IQuote
@@ -151,6 +157,8 @@ export class QuotingAggregate  {
 		
 		await this.addQuote({
 			id: null,
+			requesterFspId: data.payee.partyIdInfo.fspId as string,
+			destinationFspId: data.payer.partyIdInfo.fspId as string,
 			quoteId: data.quoteId,
 			transactionId: data.transactionId,
 			payee: data.payee,
@@ -163,7 +171,9 @@ export class QuotingAggregate  {
 			geoCodePayer: data.geoCode,
 			note: data.note,
 			expirationPayer: data.expiration,
-			extensionList: data.extensionList
+			extensionList: data.extensionList,
+			status: QuoteStatus.PENDING // Whenever we create a quote, is always starts with PENDING state
+
 		}).catch(error=>{
 			this._logger.error(`Unable to add quoteId: ${msg.payload.quoteId} ` + error);
 			throw new Error();
@@ -188,6 +198,59 @@ export class QuotingAggregate  {
 		};
 
 		const event = new QuoteRequestAcceptedEvt(payload);
+
+		event.fspiopOpaqueState = msg.fspiopOpaqueState;
+
+		return event;
+
+	}
+
+	private async handleQuoteResponseReceivedEvt(msg: QuoteResponseReceivedEvt):Promise<QuoteResponseAccepted> {
+		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${msg.payload.quoteId}`);
+		
+		await this.validateParticipant(msg.payload.requesterFspId);
+		await this.validateParticipant(msg.payload.destinationFspId);
+		
+		const id = msg.payload as unknown as IQuote
+		
+		await this.updateQuote({
+			id: null,
+            requesterFspId: msg.payload.requesterFspId,
+            destinationFspId: msg.payload.destinationFspId,
+            quoteId: msg.payload.quoteId,
+            transferAmount: msg.payload.transferAmount,
+            expiration: msg.payload.expiration,
+            ilpPacket: msg.payload.ilpPacket,
+            condition: msg.payload.condition,
+            payeeReceiveAmount: msg.payload.payeeReceiveAmount,
+            payeeFspFee: msg.payload.payeeFspFee,
+            payeeFspCommission: msg.payload.payeeFspCommission,
+            geoCode: msg.payload.geoCode,
+            extensionList: msg.payload.extensionList,		
+			// Whenever we update a quote that isn't an error, it is with the ACCEPTED state
+			// since the peer FSP should always be able to create a quote, otherwise something wrong (an error) happened
+			status: QuoteStatus.ACCEPTED
+		}).catch(error=>{
+			this._logger.error(`Unable to add quoteId: ${msg.payload.quoteId} ` + error);
+			throw new Error();
+		});
+
+		const payload : QuoteResponseAcceptedPayload = {
+            requesterFspId: msg.payload.requesterFspId,
+            destinationFspId: msg.payload.destinationFspId,
+            quoteId: msg.payload.quoteId,
+            transferAmount: msg.payload.transferAmount,
+            expiration: msg.payload.expiration,
+            ilpPacket: msg.payload.ilpPacket,
+            condition: msg.payload.condition,
+            payeeReceiveAmount: msg.payload.payeeReceiveAmount,
+            payeeFspFee: msg.payload.payeeFspFee,
+            payeeFspCommission: msg.payload.payeeFspCommission,
+            geoCode: msg.payload.geoCode,
+            extensionList: msg.payload.extensionList
+		};
+
+		const event = new QuoteResponseAccepted(payload);
 
 		event.fspiopOpaqueState = msg.fspiopOpaqueState;
 
@@ -234,6 +297,22 @@ export class QuotingAggregate  {
 		await this._quoteRegistry.addQuote(newQuote);
 
 		return quote.id;
+	}
+
+	public async updateQuote(quote: UpdateQuoteDTO): Promise<string> {
+		const existingQuote = await this._quoteRegistry.getQuoteById(quote.quoteId)
+
+		if(!existingQuote || !existingQuote.id) {
+			throw new NonExistingQuoteError("Quote doesn't exist");
+		}
+
+
+
+		const updatedQuote: Quote = existingQuote as Quote; 
+
+		await this._quoteRegistry.updateQuote(updatedQuote);
+
+		return existingQuote.id;
 	}
 		
 	public async getAllQuotes(): Promise<Quote[]> {

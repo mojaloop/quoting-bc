@@ -38,7 +38,7 @@
 	WithId
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
-import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError } from '../errors';
+import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError } from '../errors';
 import { IQuoteRegistry, Quote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
 
 export class MongoQuoteRegistryRepo implements IQuoteRegistry {
@@ -94,8 +94,6 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		if(quoteAlreadyPresent){
 			throw new QuoteAlreadyExistsError();
 		}
-		
-		quote.status = QuoteStatus.PENDING;
 
 		try {
 			await this.quotes.insertOne(quote);
@@ -105,18 +103,30 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 			throw new UnableToAddQuoteError();
 		}
 	}
+
+	async updateQuote(quote: Quote): Promise<void> {
+		try {
+			await this.quotes.updateOne({
+				id: quote.id,
+				transactionId: quote.transactionId
+			}, quote);
+		} catch (e: any) {
+			this._logger.error(`Unable to insert quote: ${e.message}`);
+			throw new UnableToUpdateQuoteError();
+		}
+	}
+
 	async removeQuote(id: string): Promise<void> {
-		
-			const deleteResult = await this.quotes.deleteOne({id}).catch((e: any) => {
-				this._logger.error(`Unable to delete quote: ${e.message}`);
-				throw new UnableToDeleteQuoteError();
-			});
-			if(deleteResult.deletedCount == 1){
-				return;
-			}
-			else{
-				throw new NoSuchQuoteError();
-			}
+		const deleteResult = await this.quotes.deleteOne({id}).catch((e: any) => {
+			this._logger.error(`Unable to delete quote: ${e.message}`);
+			throw new UnableToDeleteQuoteError();
+		});
+		if(deleteResult.deletedCount == 1){
+			return;
+		}
+		else{
+			throw new NoSuchQuoteError();
+		}
 	}
 	
 	async getAllQuotes(): Promise<Quote[]> {

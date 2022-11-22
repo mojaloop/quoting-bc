@@ -51,6 +51,12 @@ export class UnableToAddQuoteError extends Error {
         super(message || "Unable to add quote");
     }
 }
+
+export class UnableToUpdateQuoteError extends Error {
+    constructor(message?: string) {
+        super(message || "Unable to update quote");
+    }
+}
 export class NoSuchQuoteError extends Error {
     constructor(message?: string) {
         super(message||"No such quote");
