@@ -98,7 +98,7 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
     await messageProducer.connect();
    
     logger.info("Kafka Producer Initialized");    
-    aggregate = aggregateParam ?? new QuotingAggregate(logger, messageProducer, participantService);
+    aggregate = aggregateParam ?? new QuotingAggregate(logger, quoteRegistry,messageProducer, participantService);
     
     await aggregate.init();
     logger.info("Aggregate Initialized");

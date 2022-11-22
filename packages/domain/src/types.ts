@@ -30,23 +30,82 @@
  --------------
  **/
 
- "use strict";
+"use strict";
 
- 
+export enum QuoteStatus {
+    RECEIVED = "RECEIVED",
+    PENDING = "PENDING",
+    REJECTED = "REJECTED",
+    ACCEPTED = "ACCEPTED",
+    EXPIRED = "EXPIRED"
+}
+
+export interface IPartyComplexName {
+    firstName: string;
+    middleName: string;
+    lastName: string;
+}
+  
+export interface IPartyPersonalInfo {
+    complexName: IPartyComplexName,
+    dateOfBirth: string
+}
+
+export interface IPartyIdInfo {
+    partyIdType: string
+    partyIdentifier: string
+    partySubIdOrType: string | null
+    fspId: string | null
+}
+
+
+export interface IParty {
+    partyIdInfo: IPartyIdInfo,
+    merchantClassificationCode: string;
+    name: string
+    personalInfo: IPartyPersonalInfo
+}
+
+export interface IMoney {
+    currency: string;
+    amount: string
+}
+
+export interface ITransactionType {
+    scenario: string;
+    initiator:string;
+    initiatorType: string
+}
+
+export interface IGeoCode {
+    latitude: string;
+    longitude: string; 
+}
+
+export interface IExtension {
+    key: string
+    value: string
+}
+
+export interface IExtensionList {
+    extension: IExtension[]
+}
+
 export interface IQuote {
-	id: string;
-	transactionId: string;
-    transactionRequestId: string;
-	payee: string | null;
-	payer: boolean;
+    quoteId: string;
+    transactionId: string;
+    payee: IParty;
+    payer: IParty;
     amountType: string;
-    amount: string;
-    fees: string;
-    transactionType: string;
-    geoCode: string;
+    amount: IMoney;
+    transactionType: ITransactionType;
+    fees: IMoney | null;
+    transactionRequestId: string | null;
+    geoCode: IGeoCode | null;
     note: string | null;
-    expiration: Date;
-    extensionList: any;
+    expiration: string | null;
+    extensionList: string | null;
+    status: QuoteStatus;
 }
 
 

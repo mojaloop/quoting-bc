@@ -41,7 +41,7 @@ import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError } from '../errors';
 import { IQuoteRegistry, Quote } from "@mojaloop/quoting-bc-domain";
 
-export class MongoQuoteRegistryRepo implements IQuoteRegistry{
+export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 	private readonly _logger: ILogger;
 	private readonly _connectionString: string;
 	private readonly _dbName;
@@ -168,7 +168,20 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry{
 	private mapToQuote(quote: WithId<Document>): Quote {
 		return {
 			id: quote.id,
-			transactionId: quote.transactionId
+			quoteId: quote.quoteId,
+			transactionId: quote.transactionId,
+			payee: quote.payee,
+			payer: quote.payer,
+			amountType: quote.amountType,
+			amount: quote.amount,
+			transactionType: quote.transactionType,
+			feesPayer: quote.feesPayer,
+			transactionRequestId: quote.transactionRequestId,
+			geoCodePayer: quote.geoCodePayer,
+			note: quote.note,
+			expirationPayer: quote.expirationPayer,
+			extensionList: quote.extensionList,
+			status: quote.status
 		};
 	}
 }

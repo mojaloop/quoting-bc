@@ -23,9 +23,6 @@
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
- * Coil
- - Jason Bruwer <jason.bruwer@coil.com>
-
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -41,9 +38,10 @@ import { IMessageProducer, MessageTypes } from "@mojaloop/platform-shared-lib-me
 import {
 	InvalidMessagePayloadError,
 	InvalidMessageTypeError,
-	UnableToProcessMessageError
+	UnableToProcessMessageError,
+	DuplicateQuoteError
 } from "./errors";
-import { IParticipantService} from "./interfaces/infrastructure";
+import { AddQuoteDTO, IParticipantService, IQuoteRegistry, Quote} from "./interfaces/infrastructure";
 import {
 	QuoteErrorEvt,
 	QuoteErrorEvtPayload,
@@ -53,57 +51,60 @@ import {
 	QuoteRequestReceivedEvtPayload,
 	} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { randomUUID } from "crypto";
+import { IQuote } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
+	private readonly _quoteRegistry: IQuoteRegistry;
 	private readonly _messageProducer: IMessageProducer;
 	private readonly _participantService: IParticipantService;
-	
 
 	constructor(
 		logger: ILogger,
+		quoteRegistry:IQuoteRegistry,
 		messageProducer:IMessageProducer,
 		participantService: IParticipantService
 	) {
 		this._logger = logger.createChild(this.constructor.name);
+		this._quoteRegistry = quoteRegistry;
 		this._messageProducer = messageProducer;
 		this._participantService = participantService;
 	}
 
 	async init(): Promise<void> {
-
+		this._quoteRegistry.init();
 	}
 
 	async destroy(): Promise<void> {
-
+		await this._quoteRegistry.destroy();
 	}
 
 
 	async handleQuotingEvent(message: IMessage): Promise<void> {
 		try{
-				const isMessageValid = this.validateMessage(message);
-				if(isMessageValid) {
-					await this.handleEvent(message);
-				}
+			const isMessageValid = this.validateMessage(message);
+			if(isMessageValid) {
+				await this.handleEvent(message);
 			}
-			catch(error:any) {
-				const errorMessage = error.constructor.name;
-				this._logger.error(`Error processing event : ${message.msgName} -> ` + errorMessage);
+		} catch(error:any) {
+			const errorMessage = error.constructor.name;
+			this._logger.error(`Error processing event : ${message.msgName} -> ` + errorMessage);
 
-				// TODO: find a way to publish the correct error event type
+			// TODO: find a way to publish the correct error event type
 
-				const errorPayload: QuoteErrorEvtPayload = {
-					errorMsg: errorMessage,
-					quoteId: message.payload?.quoteId ?? "N/A",
-					sourceEvent: message.msgName,
-					requesterFspId: message.payload?.requesterFspId ?? "N/A",
-					destinationFspId: message.payload?.destinationFspId ?? "N/A",
+			const errorPayload: QuoteErrorEvtPayload = {
+				errorMsg: errorMessage,
+				quoteId: message.payload?.quoteId ?? "N/A",
+				sourceEvent: message.msgName,
+				requesterFspId: message.payload?.requesterFspId ?? "N/A",
+				destinationFspId: message.payload?.destinationFspId ?? "N/A",
 
-				};
-				const messageToPublish = new QuoteErrorEvt(errorPayload);
-				messageToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
-				await this._messageProducer.send(messageToPublish);
-			}
+			};
+			const messageToPublish = new QuoteErrorEvt(errorPayload);
+			messageToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
+			await this._messageProducer.send(messageToPublish);
+		}
 	}
 	
 
@@ -123,6 +124,7 @@ export class QuotingAggregate  {
 	private async handleEvent(message:IMessage):Promise<void> {
 		const {payload, fspiopOpaqueState} = message;
 		let eventToPublish = null;
+		
 		switch(message.msgName){
 			case QuoteRequestReceivedEvt.name:
 				eventToPublish = await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
@@ -140,9 +142,32 @@ export class QuotingAggregate  {
 	}
 
 	private async handleQuoteRequestReceivedEvt(msg: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt>{
-		this._logger.debug(`Got participantAssociationEvent msg for requesterFspId: ${msg.payload.requesterFspId} destinationFspId: ${msg.payload.destinationFspId} quoteId: ${msg.payload.quoteId} and quoteId: ${msg.payload.quoteId}`);
-		await this.validateParticipant(msg.payload.requesterFspId);
-		await this.validateParticipant(msg.payload.destinationFspId);
+		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${msg.payload.quoteId}`);
+		
+		const data = msg.payload as unknown as IQuote
+
+		await this.validateParticipant(data.payee.partyIdInfo.fspId);
+		await this.validateParticipant(data.payer.partyIdInfo.fspId);
+		
+		await this.addQuote({
+			id: null,
+			quoteId: data.quoteId,
+			transactionId: data.transactionId,
+			payee: data.payee,
+			payer: data.payer,
+			amountType: data.amountType,
+			amount: data.amount,
+			transactionType: data.transactionType,
+			feesPayer: data.fees,
+			transactionRequestId: data.transactionRequestId,
+			geoCodePayer: data.geoCode,
+			note: data.note,
+			expirationPayer: data.expiration,
+			extensionList: data.extensionList
+		}).catch(error=>{
+			this._logger.error(`Unable to add quoteId: ${msg.payload.quoteId} ` + error);
+			throw new Error();
+		});
 
 		const payload : QuoteRequestAcceptedEvtPayload = {
 			requesterFspId: msg.payload.requesterFspId,
@@ -193,4 +218,33 @@ export class QuotingAggregate  {
 		// }
 	}
 
+	//#region Quotes
+	public async addQuote(quote: AddQuoteDTO): Promise<string> {
+
+		if(quote.quoteId && await this._quoteRegistry.getQuoteById(quote.quoteId)) {
+			throw new DuplicateQuoteError("Quote with same id already exists");
+		}
+
+		if(!quote.id){
+			quote.id = randomUUID();
+		} 
+
+		const newQuote: Quote = quote as Quote; 
+
+		await this._quoteRegistry.addQuote(newQuote);
+
+		return quote.id;
+	}
+		
+	public async getAllQuotes(): Promise<Quote[]> {
+		const quotes = await this._quoteRegistry.getAllQuotes();
+		return quotes;
+	}
+
+	public async getQuoteById(id:string): Promise<Quote|null> {
+		const quote = await this._quoteRegistry.getQuoteById(id);
+		return quote;
+	}
+
+	//#endregion
 }

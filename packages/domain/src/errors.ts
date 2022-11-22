@@ -38,23 +38,26 @@ export class InvalidIdError extends Error {
         super(message || "Invalid id");
     }
 }
+
+export class DuplicateQuoteError extends Error {
+    constructor(message?: string) {
+        super(message || "Can't duplicate quote");
+    }
+}
  
- // Message Producer
- export class InvalidMessagePayloadError extends Error {
-     constructor(message?: string) {
-         super(message || "Invalid message payload");
-     }
- }
- export class InvalidMessageTypeError extends Error {
-     constructor(message?: string) {
-         super(message || "Invalid message type");
-     }
- }
- export class UnableToProcessMessageError extends Error {
-     constructor(message?: string) {
-         super(message || "Unable to process message");
-     }
- }
- 
- 
- 
+// Message Producer
+export class InvalidMessagePayloadError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid message payload");
+    }
+}
+export class InvalidMessageTypeError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid message type");
+    }
+}
+export class UnableToProcessMessageError extends Error {
+    constructor(message?: string) {
+        super(message || "Unable to process message");
+    }
+}

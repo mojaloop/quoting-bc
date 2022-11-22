@@ -88,4 +88,3 @@ export class UnableToInitQuoteRegistryError extends Error {
         super(message || 'Unable to initialize quote registry');
     }
 }
-

@@ -21,14 +21,6 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
-
- * Coil
- - Jason Bruwer <jason.bruwer@coil.com>
-
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
-
- * Gonçalo Garcia <goncalogarcia99@gmail.com>
  
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
@@ -40,53 +32,67 @@
  "use strict";
 
 import { InvalidIdError } from "../errors";
-import { IQuote } from "../types";
+import { IGeoCode, IMoney, IParty, IQuote, ITransactionType, QuoteStatus } from "../types";
 
-export class Quote implements IQuote{
-	id: string;
-	transactionId: string;
-    transactionRequestId: string;
-	payee: string | null;
-	payer: boolean;
+export class Quote implements IQuote {
+    id: string | null;
+    quoteId: string;
+    transactionId: string;
+    payee: IParty;
+    payer: IParty;
     amountType: string;
-    amount: string;
-    fees: string;
-    transactionType: string;
-    geoCode: string;
+    amount: IMoney;
+    transactionType: ITransactionType;
+    feesPayer: IMoney | null;
+    transactionRequestId: string | null;
+    geoCodePayer: IGeoCode | null;
     note: string | null;
-    expiration: Date;
-    extensionList: any[];
-
+    expirationPayer: string | null;
+    extensionList: string | null;
+    fees: IMoney | null;
+    geoCode: IGeoCode | null;
+    expiration: string | null;
+    status: QuoteStatus;
+    
 	constructor(
-        id: string,
+        id: string | null,
+        quoteId: string,
         transactionId: string,
-        transactionRequestId: string,
-        payee: string | null = null,
-        payer: boolean,
+        payee: IParty,
+        payer: IParty,
         amountType: string,
-        amount: string,
-        fees: string,
-        transactionType: string,
-        geoCode: string,
-        note: string | null = null,
-        expiration: Date,
-        extensionList: any[] = [],
+        amount: IMoney,
+        transactionType: ITransactionType,
+        feesPayer: IMoney | null,
+        transactionRequestId: string | null,
+        geoCodePayer: IGeoCode | null,
+        note: string | null,
+        expirationPayer: string | null,
+        extensionList: string | null,
+        fees: IMoney | null,
+        geoCode: IGeoCode | null,
+        expiration: string | null,
+        status: QuoteStatus
 	) {
         this.id = id;
+        this.quoteId = quoteId;
         this.transactionId = transactionId;
-        this.transactionRequestId = transactionRequestId;
         this.payee = payee;
         this.payer = payer;
         this.amountType = amountType;
         this.amount = amount;
-        this.fees = fees;
         this.transactionType = transactionType;
-        this.geoCode = geoCode;
+        this.feesPayer = feesPayer;
+        this.transactionRequestId = transactionRequestId;
+        this.geoCodePayer = geoCodePayer;
         this.note = note;
-        this.expiration = expiration;
+        this.expirationPayer = expirationPayer;
         this.extensionList = extensionList;
+        this.fees = fees;
+        this.geoCode = geoCode;
+        this.expiration = expiration;
+        this.status = status;
 	}
-
 
     static validateQuote(quote: Quote): void {
 		if (!quote.id) {

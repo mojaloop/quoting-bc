@@ -34,25 +34,56 @@
 
 
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
+import { IParty, IMoney, ITransactionType, IGeoCode, QuoteStatus } from "../types";
  
 /* infrastructure interfaces */
 
-export interface IParticipantService {
-    getParticipantInfo(fspId: string): Promise<Participant| null>;
-    getParticipantsInfo(fspIds: string[]): Promise<Participant[]|null>;
+export type Quote = {
+    id: string | null;
+    quoteId: string;
+    transactionId: string;
+    payee: IParty;
+    payer: IParty;
+    amountType: string;
+    amount: IMoney;
+    transactionType: ITransactionType;
+    feesPayer: IMoney | null;
+    transactionRequestId: string | null;
+    geoCodePayer: IGeoCode | null;
+    note: string | null;
+    expirationPayer: string | null;
+    extensionList: string | null;
+    status: QuoteStatus;
 }
 
-export type Quote = {
-    id: string;
-    transactionId: string,
+export type AddQuoteDTO = {
+    id: string | null;
+    quoteId: string;
+    transactionId: string;
+    payee: IParty;
+    payer: IParty;
+    amountType: string;
+    amount: IMoney;
+    transactionType: ITransactionType;
+    feesPayer: IMoney | null;
+    transactionRequestId: string | null;
+    geoCodePayer: IGeoCode | null;
+    note: string | null;
+    expirationPayer: string | null;
+    extensionList: string | null;
 }
 
 export interface IQuoteRegistry {
-	init(): Promise<void>;
+    init(): Promise<void>;
 	destroy(): Promise<void>;
     addQuote(quote: Quote):Promise<void>;
     removeQuote(id: string):Promise<void>;
     getAllQuotes():Promise<Quote[]>;
     getQuoteById(id:string):Promise<Quote|null>;
     getQuote(quoteId:string, transactionId: string | null):Promise<Quote | null>;
+}
+
+export interface IParticipantService {
+    getParticipantInfo(fspId: string): Promise<Participant| null>;
+    getParticipantsInfo(fspIds: string[]): Promise<Participant[]|null>;
 }
