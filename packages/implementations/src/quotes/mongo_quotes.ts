@@ -107,9 +107,8 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 	async updateQuote(quote: Quote): Promise<void> {
 		try {
 			await this.quotes.updateOne({
-				id: quote.id,
-				transactionId: quote.transactionId
-			}, quote);
+				quoteId: quote.quoteId,
+			}, { $set: quote });
 		} catch (e: any) {
 			this._logger.error(`Unable to insert quote: ${e.message}`);
 			throw new UnableToUpdateQuoteError();
@@ -144,8 +143,8 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		return mappedQuotes;
 	}
 
-	async getQuoteById(id:string):Promise<Quote|null>{
-		const quote = await this.quotes.findOne({id: id }).catch((e: any) => {
+	async getQuoteById(quoteId:string):Promise<Quote|null>{
+		const quote = await this.quotes.findOne({quoteId: quoteId }).catch((e: any) => {
 			this._logger.error(`Unable to get quote by id: ${e.message}`);
 			throw new UnableToGetQuoteError();
 		});

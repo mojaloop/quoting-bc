@@ -308,7 +308,7 @@ export class QuotingAggregate  {
 
 
 
-		const updatedQuote: Quote = existingQuote as Quote; 
+		const updatedQuote: Quote = { existingQuote, ...quote } as unknown as Quote; 
 
 		await this._quoteRegistry.updateQuote(updatedQuote);
 
