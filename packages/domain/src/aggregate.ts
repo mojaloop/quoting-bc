@@ -51,7 +51,7 @@ import {
 	QuoteRequestAcceptedEvtPayload,
 	QuoteResponseReceivedEvt,
 	QuoteResponseAccepted,
-	QuoteResponseAcceptedPayload,
+	QuoteResponseAcceptedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { randomUUID } from "crypto";
@@ -150,38 +150,33 @@ export class QuotingAggregate  {
 	private async handleQuoteRequestReceivedEvt(msg: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${msg.payload.quoteId}`);
 		
-		const data = msg.payload as unknown as IQuote
-
-		await this.validateParticipant(data.payee.partyIdInfo.fspId);
-		await this.validateParticipant(data.payer.partyIdInfo.fspId);
+		await this.validateParticipant(msg.fspiopOpaqueState.requesterFspId);
+		await this.validateParticipant(msg.fspiopOpaqueState.destinationFspId);
 		
 		await this.addQuote({
 			id: null,
-			requesterFspId: data.payee.partyIdInfo.fspId as string,
-			destinationFspId: data.payer.partyIdInfo.fspId as string,
-			quoteId: data.quoteId,
-			transactionId: data.transactionId,
-			payee: data.payee,
-			payer: data.payer,
-			amountType: data.amountType,
-			amount: data.amount,
-			transactionType: data.transactionType,
-			feesPayer: data.fees,
-			transactionRequestId: data.transactionRequestId,
-			geoCodePayer: data.geoCode,
-			note: data.note,
-			expirationPayer: data.expiration,
-			extensionList: data.extensionList,
+            requesterFspId: msg.fspiopOpaqueState.requesterFspId,
+            destinationFspId: msg.fspiopOpaqueState.destinationFspId,
+			quoteId: msg.payload.quoteId,
+			transactionId: msg.payload.transactionId,
+			payee: msg.payload.payee,
+			payer: msg.payload.payer,
+			amountType: msg.payload.amountType,
+			amount: msg.payload.amount,
+			transactionType: msg.payload.transactionType,
+			feesPayer: msg.payload.fees,
+			transactionRequestId: msg.payload.transactionRequestId,
+			geoCodePayer: msg.payload.geoCode,
+			note: msg.payload.note,
+			expirationPayer: msg.payload.expiration,
+			extensionList: msg.payload.extensionList,
 			status: QuoteStatus.PENDING // Whenever we create a quote, is always starts with PENDING state
-
 		}).catch(error=>{
 			this._logger.error(`Unable to add quoteId: ${msg.payload.quoteId} ` + error);
 			throw new Error();
 		});
 
 		const payload : QuoteRequestAcceptedEvtPayload = {
-			requesterFspId: msg.payload.requesterFspId,
-			destinationFspId: msg.payload.destinationFspId,
 			quoteId: msg.payload.quoteId,
 			transactionId: msg.payload.transactionId,
 			transactionRequestId: msg.payload.transactionRequestId,
@@ -208,15 +203,13 @@ export class QuotingAggregate  {
 	private async handleQuoteResponseReceivedEvt(msg: QuoteResponseReceivedEvt):Promise<QuoteResponseAccepted> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${msg.payload.quoteId}`);
 		
-		await this.validateParticipant(msg.payload.requesterFspId);
-		await this.validateParticipant(msg.payload.destinationFspId);
-		
-		const id = msg.payload as unknown as IQuote
+		await this.validateParticipant(msg.fspiopOpaqueState.requesterFspId);
+		await this.validateParticipant(msg.fspiopOpaqueState.destinationFspId);
 		
 		await this.updateQuote({
 			id: null,
-            requesterFspId: msg.payload.requesterFspId,
-            destinationFspId: msg.payload.destinationFspId,
+            requesterFspId: msg.fspiopOpaqueState.requesterFspId,
+            destinationFspId: msg.fspiopOpaqueState.destinationFspId,
             quoteId: msg.payload.quoteId,
             transferAmount: msg.payload.transferAmount,
             expiration: msg.payload.expiration,
@@ -235,9 +228,7 @@ export class QuotingAggregate  {
 			throw new Error();
 		});
 
-		const payload : QuoteResponseAcceptedPayload = {
-            requesterFspId: msg.payload.requesterFspId,
-            destinationFspId: msg.payload.destinationFspId,
+		const payload : QuoteResponseAcceptedEvtPayload = {
             quoteId: msg.payload.quoteId,
             transferAmount: msg.payload.transferAmount,
             expiration: msg.payload.expiration,

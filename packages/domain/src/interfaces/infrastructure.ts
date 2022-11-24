@@ -34,7 +34,7 @@
 
 
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import { IParty, IMoney, ITransactionType, IGeoCode, QuoteStatus } from "../types";
+import { IParty, IMoney, ITransactionType, IGeoCode, QuoteStatus, IExtensionList, IAmountType } from "../types";
  
 /* infrastructure interfaces */
 
@@ -44,7 +44,7 @@ export type Quote = {
     transactionId: string;
     payee: IParty;
     payer: IParty;
-    amountType: string;
+    amountType: IAmountType;
     amount: IMoney;
     transactionType: ITransactionType;
     feesPayer: IMoney | null;
@@ -52,7 +52,7 @@ export type Quote = {
     geoCodePayer: IGeoCode | null;
     note: string | null;
     expirationPayer: string | null;
-    extensionList: string | null;
+    extensionList: IExtensionList | null;
     status: QuoteStatus;
 }
 
@@ -64,7 +64,7 @@ export type AddQuoteDTO = {
     transactionId: string;
     payee: IParty;
     payer: IParty;
-    amountType: string;
+    amountType: IAmountType;
     amount: IMoney;
     transactionType: ITransactionType;
     feesPayer: IMoney | null;
@@ -72,7 +72,7 @@ export type AddQuoteDTO = {
     geoCodePayer: IGeoCode | null;
     note: string | null;
     expirationPayer: string | null;
-    extensionList: string | null;
+    extensionList: IExtensionList | null;
     status: QuoteStatus;
 }
 
@@ -82,15 +82,15 @@ export type UpdateQuoteDTO = {
     requesterFspId: string;
     destinationFspId: string;
     quoteId: string;
-    transferAmount: string;
+    transferAmount: IMoney;
     expiration: string;
     ilpPacket: string;
     condition: string;
-    payeeReceiveAmount: string | null;
-    payeeFspFee: string | null;
-    payeeFspCommission: string | null;
-    geoCode: string | null;
-    extensionList: string | null;
+    payeeReceiveAmount: IMoney | null;
+    payeeFspFee: IMoney | null;
+    payeeFspCommission: IMoney | null;
+    geoCode: IGeoCode | null;
+    extensionList: IExtensionList | null;
     status: QuoteStatus;
 }
 

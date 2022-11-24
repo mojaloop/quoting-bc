@@ -47,8 +47,12 @@ export interface IPartyComplexName {
 }
   
 export interface IPartyPersonalInfo {
-    complexName: IPartyComplexName,
-    dateOfBirth: string
+    complexName: {
+        firstName: string | null;
+        middleName: string | null;
+        lastName: string | null;              
+    } | null,
+    dateOfBirth: string | null
 }
 
 export interface IPartyIdInfo {
@@ -60,11 +64,11 @@ export interface IPartyIdInfo {
 
 
 export interface IParty {
-    partyIdInfo: IPartyIdInfo,
-    merchantClassificationCode: string;
-    name: string
-    personalInfo: IPartyPersonalInfo
-}
+    partyIdInfo: IPartyIdInfo;
+    merchantClassificationCode: string | null;
+    name: string | null;
+    personalInfo: IPartyPersonalInfo | null;
+};
 
 export interface IMoney {
     currency: string;
@@ -72,10 +76,18 @@ export interface IMoney {
 }
 
 export interface ITransactionType {
-    scenario: string;
-    initiator:string;
+    scenario: string
+    subScenario: string | null
+    initiator: string
     initiatorType: string
+    refundInfo: {
+        originalTransactionId: string
+        refundReason: string | null
+    } | null,
+    balanceOfPayments: string | null
 }
+
+export type IAmountType = "SEND" | "RECEIVE";
 
 export interface IGeoCode {
     latitude: string;
@@ -96,7 +108,7 @@ export interface IQuote {
     transactionId: string;
     payee: IParty;
     payer: IParty;
-    amountType: string;
+    amountType: IAmountType;
     amount: IMoney;
     transactionType: ITransactionType;
     fees: IMoney | null;
@@ -104,7 +116,7 @@ export interface IQuote {
     geoCode: IGeoCode | null;
     note: string | null;
     expiration: string | null;
-    extensionList: string | null;
+    extensionList: IExtensionList | null;
     status: QuoteStatus;
 }
 

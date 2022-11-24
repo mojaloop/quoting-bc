@@ -32,7 +32,7 @@
  "use strict";
 
 import { InvalidIdError } from "../errors";
-import { IGeoCode, IMoney, IParty, IQuote, ITransactionType, QuoteStatus } from "../types";
+import { IAmountType, IExtensionList, IGeoCode, IMoney, IParty, IQuote, ITransactionType, QuoteStatus } from "../types";
 
 export class Quote implements IQuote {
     id: string | null;
@@ -40,7 +40,7 @@ export class Quote implements IQuote {
     transactionId: string;
     payee: IParty;
     payer: IParty;
-    amountType: string;
+    amountType: IAmountType;
     amount: IMoney;
     transactionType: ITransactionType;
     feesPayer: IMoney | null;
@@ -48,7 +48,7 @@ export class Quote implements IQuote {
     geoCodePayer: IGeoCode | null;
     note: string | null;
     expirationPayer: string | null;
-    extensionList: string | null;
+    extensionList: IExtensionList | null;
     fees: IMoney | null;
     geoCode: IGeoCode | null;
     expiration: string | null;
@@ -60,7 +60,7 @@ export class Quote implements IQuote {
         transactionId: string,
         payee: IParty,
         payer: IParty,
-        amountType: string,
+        amountType: IAmountType,
         amount: IMoney,
         transactionType: ITransactionType,
         feesPayer: IMoney | null,
@@ -68,7 +68,7 @@ export class Quote implements IQuote {
         geoCodePayer: IGeoCode | null,
         note: string | null,
         expirationPayer: string | null,
-        extensionList: string | null,
+        extensionList: IExtensionList | null,
         fees: IMoney | null,
         geoCode: IGeoCode | null,
         expiration: string | null,

@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@mojaloop/logging-bc-client-lib": "^0.1.16",
-    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.2.19",
+    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.2.21",
     "@mojaloop/quoting-bc-client": "*",
     "@mojaloop/quoting-bc-domain": "*",
     "@mojaloop/quoting-bc-infrastructure": "*",
