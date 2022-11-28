@@ -45,53 +45,56 @@ export class Quote implements IQuote {
     transactionType: ITransactionType;
     feesPayer: IMoney | null;
     transactionRequestId: string | null;
-    geoCodePayer: IGeoCode | null;
+    geoCode: IGeoCode | null;
     note: string | null;
-    expirationPayer: string | null;
+    expiration: string | null;
     extensionList: IExtensionList | null;
     fees: IMoney | null;
-    geoCode: IGeoCode | null;
-    expiration: string | null;
     status: QuoteStatus;
-    
+    transferAmount: IMoney | null;
+    ilpPacket: string | null;
+    condition: string | null;
+
 	constructor(
-        id: string | null,
-        quoteId: string,
-        transactionId: string,
-        payee: IParty,
-        payer: IParty,
-        amountType: IAmountType,
-        amount: IMoney,
-        transactionType: ITransactionType,
-        feesPayer: IMoney | null,
-        transactionRequestId: string | null,
-        geoCodePayer: IGeoCode | null,
-        note: string | null,
-        expirationPayer: string | null,
-        extensionList: IExtensionList | null,
-        fees: IMoney | null,
-        geoCode: IGeoCode | null,
-        expiration: string | null,
-        status: QuoteStatus
+                id: string | null,
+                quoteId: string,
+                transactionId: string,
+                payee: IParty,
+                payer: IParty,
+                amountType: IAmountType,
+                amount: IMoney,
+                transactionType: ITransactionType,
+                feesPayer: IMoney | null,
+                transactionRequestId: string | null,
+                geoCode: IGeoCode | null,
+                note: string | null,
+                expiration: string | null,
+                extensionList: IExtensionList | null,
+                fees: IMoney | null,
+                status: QuoteStatus,
+                transferAmount: IMoney | null,
+                ilpPacket: string | null,
+                condition: string | null,
 	) {
-        this.id = id;
-        this.quoteId = quoteId;
-        this.transactionId = transactionId;
-        this.payee = payee;
-        this.payer = payer;
-        this.amountType = amountType;
-        this.amount = amount;
-        this.transactionType = transactionType;
-        this.feesPayer = feesPayer;
-        this.transactionRequestId = transactionRequestId;
-        this.geoCodePayer = geoCodePayer;
-        this.note = note;
-        this.expirationPayer = expirationPayer;
-        this.extensionList = extensionList;
-        this.fees = fees;
-        this.geoCode = geoCode;
-        this.expiration = expiration;
-        this.status = status;
+                this.id = id;
+                this.quoteId = quoteId;
+                this.transactionId = transactionId;
+                this.payee = payee;
+                this.payer = payer;
+                this.amountType = amountType;
+                this.amount = amount;
+                this.transactionType = transactionType;
+                this.feesPayer = feesPayer;
+                this.transactionRequestId = transactionRequestId;
+                this.geoCode = geoCode;
+                this.note = note;
+                this.expiration = expiration;
+                this.extensionList = extensionList;
+                this.fees = fees;
+                this.status = status;
+                this.transferAmount = transferAmount;
+                this.ilpPacket = ilpPacket;
+                this.condition = condition;
 	}
 
     static validateQuote(quote: Quote): void {

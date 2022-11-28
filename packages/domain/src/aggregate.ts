@@ -52,6 +52,9 @@ import {
 	QuoteResponseReceivedEvt,
 	QuoteResponseAccepted,
 	QuoteResponseAcceptedEvtPayload,
+	QuoteQueryReceivedEvt,
+	QuoteQueryResponseEvt,
+	QuoteQueryResponseEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { randomUUID } from "crypto";
@@ -135,6 +138,12 @@ export class QuotingAggregate  {
 			case QuoteResponseReceivedEvt.name:
 				eventToPublish = await this.handleQuoteResponseReceivedEvt(message as QuoteResponseReceivedEvt);
 				break;
+			case QuoteQueryReceivedEvt.name:
+				eventToPublish = await this.handleQuoteQueryReceivedEvt(message as QuoteQueryReceivedEvt);
+				break;
+			// case QuoteExpireEvt.name:
+			// 	eventToPublish = await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
+			// 	break;
 			default:
 				this._logger.error(`message type has invalid format or value ${message.msgName}`);
 				throw new InvalidMessageTypeError();
@@ -166,9 +175,9 @@ export class QuotingAggregate  {
 			transactionType: msg.payload.transactionType,
 			feesPayer: msg.payload.fees,
 			transactionRequestId: msg.payload.transactionRequestId,
-			geoCodePayer: msg.payload.geoCode,
+			geoCode: msg.payload.geoCode,
 			note: msg.payload.note,
-			expirationPayer: msg.payload.expiration,
+			expiration: msg.payload.expiration,
 			extensionList: msg.payload.extensionList,
 			status: QuoteStatus.PENDING // Whenever we create a quote, is always starts with PENDING state
 		}).catch(error=>{
@@ -207,7 +216,6 @@ export class QuotingAggregate  {
 		await this.validateParticipant(msg.fspiopOpaqueState.destinationFspId);
 		
 		await this.updateQuote({
-			id: null,
             requesterFspId: msg.fspiopOpaqueState.requesterFspId,
             destinationFspId: msg.fspiopOpaqueState.destinationFspId,
             quoteId: msg.payload.quoteId,
@@ -249,6 +257,40 @@ export class QuotingAggregate  {
 
 	}
 
+	private async handleQuoteQueryReceivedEvt(msg: QuoteQueryReceivedEvt):Promise<QuoteQueryResponseEvt> {
+		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${msg.payload.quoteId}`);
+		
+		await this.validateParticipant(msg.fspiopOpaqueState.requesterFspId);
+		await this.validateParticipant(msg.fspiopOpaqueState.destinationFspId);
+		
+		const quote = await this.getQuoteById(msg.payload.quoteId);
+
+		if(!quote) {
+			throw Error()
+		}
+
+		const payload: QuoteQueryResponseEvtPayload = { 
+			quoteId: quote.quoteId,
+			transferAmount: quote.amount,
+			expiration: quote.expiration as string,
+			ilpPacket: quote.ilpPacket as string, 
+			condition:	quote.condition as string,
+			payeeReceiveAmount:	quote.amount,
+			payeeFspFee: 		quote.feesPayer,
+			extensionList:	quote.extensionList,
+			geoCode: 			quote.geoCode,
+			payeeFspCommission:	quote.feesPayer,
+			  
+		};
+
+		const event = new QuoteQueryResponseEvt(payload);
+
+		// carry over
+		event.fspiopOpaqueState = msg.fspiopOpaqueState;
+
+		return event;
+	}
+	
 	private async validateParticipant(participantId: string | null):Promise<void>{
 		// FIXME implement actual participantClient
 		return;
@@ -283,7 +325,7 @@ export class QuotingAggregate  {
 			quote.id = randomUUID();
 		} 
 
-		const newQuote: Quote = quote as Quote; 
+		const newQuote: Quote = quote as unknown as Quote; 
 
 		await this._quoteRegistry.addQuote(newQuote);
 

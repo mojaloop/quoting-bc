@@ -118,8 +118,10 @@ export interface IQuote {
     expiration: string | null;
     extensionList: IExtensionList | null;
     status: QuoteStatus;
+    transferAmount: IMoney | null;
+    ilpPacket: string | null;
+    condition: string | null;
 }
-
 
 export enum CurrencyType {
 	DOLLAR = "dollar",

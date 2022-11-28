@@ -188,11 +188,14 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 			transactionType: quote.transactionType,
 			feesPayer: quote.feesPayer,
 			transactionRequestId: quote.transactionRequestId,
-			geoCodePayer: quote.geoCodePayer,
+			geoCode: quote.geoCode,
 			note: quote.note,
-			expirationPayer: quote.expirationPayer,
+			expiration: quote.expiration,
 			extensionList: quote.extensionList,
-			status: quote.status
+			status: quote.status,
+			transferAmount: quote.transferAmount,
+			ilpPacket: quote.ilpPacket,
+			condition: quote.condition
 		};
 	}
 }

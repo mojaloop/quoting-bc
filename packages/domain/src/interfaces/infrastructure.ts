@@ -49,11 +49,14 @@ export type Quote = {
     transactionType: ITransactionType;
     feesPayer: IMoney | null;
     transactionRequestId: string | null;
-    geoCodePayer: IGeoCode | null;
+    geoCode: IGeoCode | null;
     note: string | null;
-    expirationPayer: string | null;
+    expiration: string | null;
     extensionList: IExtensionList | null;
     status: QuoteStatus;
+    transferAmount: IMoney | null;
+    ilpPacket: string | null;
+    condition: string | null;
 }
 
 export type AddQuoteDTO = {
@@ -69,16 +72,15 @@ export type AddQuoteDTO = {
     transactionType: ITransactionType;
     feesPayer: IMoney | null;
     transactionRequestId: string | null;
-    geoCodePayer: IGeoCode | null;
+    geoCode: IGeoCode | null;
     note: string | null;
-    expirationPayer: string | null;
+    expiration: string | null;
     extensionList: IExtensionList | null;
     status: QuoteStatus;
 }
 
 
 export type UpdateQuoteDTO = {
-    id: string | null;
     requesterFspId: string;
     destinationFspId: string;
     quoteId: string;
@@ -108,4 +110,8 @@ export interface IQuoteRegistry {
 export interface IParticipantService {
     getParticipantInfo(fspId: string): Promise<Participant| null>;
     getParticipantsInfo(fspIds: string[]): Promise<Participant[]|null>;
+}
+
+export interface IAccountLookupService {
+    getAccountFspId(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null>;
 }
