@@ -40,7 +40,10 @@ import {
 	InvalidMessageTypeError,
 	UnableToProcessMessageError,
 	DuplicateQuoteError,
-	NonExistingQuoteError
+	NonExistingQuoteError,
+	NoSuchParticipantError,
+	InvalidParticipantIdError,
+	RequiredParticipantIsNotActive
 } from "./errors";
 import { AddQuoteDTO, IAccountLookupService, IParticipantService, IQuoteRegistry, Quote, UpdateQuoteDTO} from "./interfaces/infrastructure";
 import {
@@ -302,26 +305,26 @@ export class QuotingAggregate  {
 	}
 	
 	private async validateParticipant(participantId: string | null):Promise<void>{
-		// FIXME implement actual participantClient
+		if(participantId){
+			const participant = await this._participantService.getParticipantInfo(participantId);
+
+			if(!participant) {
+				this._logger.debug(`No participant found`);
+				throw new NoSuchParticipantError();
+			}
+		
+			if(participant.id !== participantId){
+				this._logger.debug(`Participant id mismatch ${participant.id} ${participantId}`);
+				throw new InvalidParticipantIdError();
+			}
+		
+			if(!participant.isActive) {
+				this._logger.debug(`${participant.id} is not active`);
+				throw new RequiredParticipantIsNotActive();
+			}
+		}
+
 		return;
-		// if(participantId){
-		// 	const participant = await this._participantService.getParticipantInfo(participantId);
-		//
-		// 	if(!participant) {
-		// 		this._logger.debug(`No participant found`);
-		// 		throw new NoSuchParticipantError();
-		// 	}
-		//
-		// 	if(participant.id !== participantId){
-		// 		this._logger.debug(`Participant id mismatch ${participant.id} ${participantId}`);
-		// 		throw new InvalidParticipantIdError();
-		// 	}
-		//
-		// 	if(!participant.isActive) {
-		// 		this._logger.debug(`${participant.id} is not active`);
-		// 		throw new RequiredParticipantIsNotActive();
-		// 	}
-		// }
 	}
 
 	//#region Quotes

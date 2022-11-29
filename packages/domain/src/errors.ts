@@ -67,3 +67,22 @@ export class UnableToProcessMessageError extends Error {
         super(message || "Unable to process message");
     }
 }
+
+// Participant Service
+export class NoSuchParticipantError extends Error {
+    constructor(message?: string) {
+        super(message || "No participant found");
+    }
+}
+
+export class InvalidParticipantIdError extends Error {
+    constructor(message?: string) {
+        super(message || "Participant id mismatch");
+    }
+}
+
+export class RequiredParticipantIsNotActive extends Error {
+    constructor(message?: string) {
+        super(message || "Participant is not active");
+    }
+}
