@@ -50,13 +50,13 @@ export class AccountLookupClient implements IAccountLookupService {
 		this._logger = logger;
 		this.token = token;
 		this._clientBaseUrl = clientBaseUrl;
-		this._externalAccountClient = new AccountLookupHttpClient(this._logger, this._clientBaseUrl, this.token);
+		this._externalAccountClient = new AccountLookupHttpClient(this._logger, this._clientBaseUrl);
 		this._localCache = localCache ?? new LocalCache(logger);
 	}
 
 	async getAccountFspId(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null> {
 		try {
-			const result = await this._externalAccountClient.getFspIdByTypeAndId(partyId, partyType, partySubIdOrType, currency);
+			const result = partySubIdOrType ? await this._externalAccountClient.getFspIdByTypeAndIdAndSubId(partyId, partyType, partySubIdOrType, currency) : await this._externalAccountClient.getFspIdByTypeAndId(partyId, partyType, currency);
 
 			return result;
 		} catch (e: unknown) {

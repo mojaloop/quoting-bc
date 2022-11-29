@@ -42,7 +42,7 @@ import {
 	DuplicateQuoteError,
 	NonExistingQuoteError
 } from "./errors";
-import { AddQuoteDTO, IParticipantService, IQuoteRegistry, Quote, UpdateQuoteDTO} from "./interfaces/infrastructure";
+import { AddQuoteDTO, IAccountLookupService, IParticipantService, IQuoteRegistry, Quote, UpdateQuoteDTO} from "./interfaces/infrastructure";
 import {
 	QuoteErrorEvt,
 	QuoteErrorEvtPayload,
@@ -65,17 +65,20 @@ export class QuotingAggregate  {
 	private readonly _quoteRegistry: IQuoteRegistry;
 	private readonly _messageProducer: IMessageProducer;
 	private readonly _participantService: IParticipantService;
+	private readonly _accountLookupService: IAccountLookupService;
 
 	constructor(
 		logger: ILogger,
 		quoteRegistry:IQuoteRegistry,
 		messageProducer:IMessageProducer,
-		participantService: IParticipantService
+		participantService: IParticipantService,
+		accountLookupService: IAccountLookupService
 	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._quoteRegistry = quoteRegistry;
 		this._messageProducer = messageProducer;
 		this._participantService = participantService;
+		this._accountLookupService = accountLookupService;
 	}
 
 	async init(): Promise<void> {
@@ -160,7 +163,14 @@ export class QuotingAggregate  {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${msg.payload.quoteId}`);
 		
 		await this.validateParticipant(msg.fspiopOpaqueState.requesterFspId);
-		await this.validateParticipant(msg.fspiopOpaqueState.destinationFspId);
+
+		let destinationFspIdToUse = msg.fspiopOpaqueState.destinationFspId ? msg.fspiopOpaqueState.destinationFspId : msg.payload.payee.partyIdInfo.fspId;
+
+		if(!destinationFspIdToUse){
+			destinationFspIdToUse = await this._accountLookupService.getAccountFspId(msg.payload.payee.partyIdInfo.partyIdentifier, msg.payload.payee.partyIdInfo.partyIdType, msg.payload.payee.partyIdInfo.partySubIdOrType, null);
+		}
+
+		await this.validateParticipant(destinationFspIdToUse);
 		
 		await this.addQuote({
 			id: null,

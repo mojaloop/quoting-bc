@@ -32,13 +32,13 @@
 
  "use strict";
 
-import { QuotingAggregate, IQuoteRegistry, IParticipantService}  from "@mojaloop/quoting-bc-domain";
+import { QuotingAggregate, IQuoteRegistry, IParticipantService, IAccountLookupService}  from "@mojaloop/quoting-bc-domain";
 import { IMessage, IMessageProducer, IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { MongoQuoteRegistryRepo, ParticipantClient } from "@mojaloop/quoting-bc-implementations";
+import { MongoQuoteRegistryRepo, ParticipantClient, AccountLookupClient } from "@mojaloop/quoting-bc-implementations";
 
 // Global vars
 const BC_NAME = "quoting-bc";
@@ -78,17 +78,21 @@ let aggregate: QuotingAggregate;
 
 // Participant service
 const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://127.0.0.1:3010";
-const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVVbFFjbkpJUk93dDIxYXFJRGpRdnVnZERvUlYzMzEzcTJtVllEQndDbWMifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJwYXJ0aWNpcGFudHMtc3ZjIiwicm9sZXMiOlsiNTI0YTQ1Y2QtNGIwOS00NmVjLThlNGEtMzMxYTVkOTcyNmVhIl0sImlhdCI6MTY2Njc3MTgyOSwiZXhwIjoxNjY3Mzc2NjI5LCJhdWQiOiJtb2phbG9vcC52bmV4dC5kZWZhdWx0X2F1ZGllbmNlIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDozMjAxLyIsInN1YiI6ImFwcDo6cGFydGljaXBhbnRzLXN2YyIsImp0aSI6IjMzNDUyODFiLThlYzktNDcyOC1hZGVkLTdlNGJmMzkyMGZjMSJ9.s2US9fEAE3SDdAtxxttkPIyxmNcACexW3Z-8T61w96iji9muF_Zdj2koKvf9tICd25rhtCkolI03hBky3mFNe4c7U1sV4YUtCNNRgReMZ69rS9xdfquO_gIaABIQFsu1WTc7xLkAccPhTHorartdQe7jvGp-tOSkqA-azj0yGjwUccFhX3Bgg3rWasmJDbbblIMih4SJuWE7MGHQxMzhX6c9l1TI-NpFRRFDTYTg1H6gXhBvtHMXnC9PPbc9x_RxAPBqmMcleIJZiMZ8Cn805OL9Wt_sMFfGPdAQm0l4cdjdesgfQahsrtCOAcp5l7NKmehY0pbLmjvP6zlrDM_D3A";
+const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Iml2SC1pVUVDRHdTVnVGS0QtRzdWc0MzS0pnLXN4TFgteWNvSjJpOTFmLTgifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIjI2ODBjYTRhLTRhM2EtNGU5YS1iMWZhLTY1MDAyMjkyMTAwOSJdLCJpYXQiOjE2Njk2ODk3NzEsImV4cCI6MTY3MDI5NDU3MSwiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjp1c2VyIiwianRpIjoiNjE5ZTgxNmYtMDk0YS00MDdhLTk2MzQtZjc4NjE0ZjhkMjRjIn0.PvJzNZ7p2TzWPgVQxyaEgXEpK0Z75aqyAvS2T24DIkvSrBLwmhxXs5Vlr3ErOvmmQcQ5Towl1VuV3lIANTUwPhEZa01L3mWZ_yqKICySm4JcG-vJ6SFzMk_hX21TzaNDbs_U7HDM7bNoF1Ou6nKVE2QQD5_3_Q0DOL36cG-0yEgu3IiIn3BYPYzUHioi4qWQFaZPQ7i-ZKSlFf0Za9ouAvAKtnMBdqx-n8qi6abhSVfJbHWVV0fRo4W4BxBP21IfRw4icpXhwX_bVPwS5YXGvp-z9V2FgsVWiYiOZ3M6Tc7ASbzKNMe-82yOR0nvxwzHBUUFBIgmkNxE22z3mo4Z8A";
 let participantService: IParticipantService;
 
+// Participant service
+const ACCOUNT_LOOKUP_SVC_BASEURL = process.env["ACCOUNT_LOOKUP_SVC_BASEURL"] || "http://127.0.0.1:3030";
+let accountLookupService: IAccountLookupService;
+
 export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer,
-    quoteRegistryParam?:IQuoteRegistry, participantServiceParam?:IParticipantService, aggregateParam?:QuotingAggregate,
+    quoteRegistryParam?:IQuoteRegistry, participantServiceParam?:IParticipantService, accountLookupServiceParam?:IAccountLookupService, aggregateParam?:QuotingAggregate,
   ):Promise<void> {
   console.log(`Quoting-svc - service starting with PID: ${process.pid}`);
 
   try{
     
-    await initExternalDependencies(loggerParam, messageConsumerParam, messageProducerParam, quoteRegistryParam, participantServiceParam);
+    await initExternalDependencies(loggerParam, messageConsumerParam, messageProducerParam, quoteRegistryParam, participantServiceParam, accountLookupServiceParam);
 
     messageConsumer.setTopics([QuotingBCTopics.DomainRequests]);
     await messageConsumer.connect();
@@ -98,7 +102,7 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
     await messageProducer.connect();
    
     logger.info("Kafka Producer Initialized");    
-    aggregate = aggregateParam ?? new QuotingAggregate(logger, quoteRegistry,messageProducer, participantService);
+    aggregate = aggregateParam ?? new QuotingAggregate(logger, quoteRegistry,messageProducer, participantService, accountLookupService);
     
     await aggregate.init();
     logger.info("Aggregate Initialized");
@@ -119,22 +123,24 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
 }
 
 async function initExternalDependencies(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer, 
-  quoteRegistryParam?:IQuoteRegistry, participantServiceParam?: IParticipantService):Promise<void>  {
+    quoteRegistryParam?:IQuoteRegistry, participantServiceParam?: IParticipantService, accountLookupServiceParam?: IAccountLookupService):Promise<void>  {
 
-  logger = loggerParam ?? new KafkaLogger(BC_NAME, APP_NAME, APP_VERSION,{kafkaBrokerList: KAFKA_URL}, KAFKA_LOGS_TOPIC,DEFAULT_LOGLEVEL);
-  
-  if (!loggerParam) {
-    await (logger as KafkaLogger).init();
-    logger.info("Kafka Logger Initialized");
-  }
+    logger = loggerParam ?? new KafkaLogger(BC_NAME, APP_NAME, APP_VERSION,{kafkaBrokerList: KAFKA_URL}, KAFKA_LOGS_TOPIC,DEFAULT_LOGLEVEL);
+    
+    if (!loggerParam) {
+        await (logger as KafkaLogger).init();
+        logger.info("Kafka Logger Initialized");
+    }
 
-  quoteRegistry = quoteRegistryParam ?? new MongoQuoteRegistryRepo(logger,MONGO_URL, DB_NAME);
+    quoteRegistry = quoteRegistryParam ?? new MongoQuoteRegistryRepo(logger,MONGO_URL, DB_NAME);
 
-  messageProducer = messageProducerParam ?? new MLKafkaJsonProducer(producerOptions, logger);
-  
-  messageConsumer = messageConsumerParam ?? new MLKafkaJsonConsumer(consumerOptions, logger);
+    messageProducer = messageProducerParam ?? new MLKafkaJsonProducer(producerOptions, logger);
+    
+    messageConsumer = messageConsumerParam ?? new MLKafkaJsonConsumer(consumerOptions, logger);
 
-  participantService = participantServiceParam ?? new ParticipantClient(logger,PARTICIPANT_SVC_BASEURL, fixedToken);
+    participantService = participantServiceParam ?? new ParticipantClient(logger, PARTICIPANT_SVC_BASEURL, fixedToken);
+
+    accountLookupService = accountLookupServiceParam ?? new AccountLookupClient(logger, ACCOUNT_LOOKUP_SVC_BASEURL, fixedToken);
 }
 
 
