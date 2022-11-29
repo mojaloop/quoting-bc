@@ -59,6 +59,13 @@ export type Quote = {
     condition: string | null;
 }
 
+export type QuoteRegistry = {
+    id: string,
+    quoteId: string,
+    transactionId: string,
+    
+}
+
 export type AddQuoteDTO = {
     id: string | null;
     requesterFspId: string;

@@ -102,11 +102,12 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
     await messageProducer.connect();
    
     logger.info("Kafka Producer Initialized");    
-    aggregate = aggregateParam ?? new QuotingAggregate(logger, quoteRegistry,messageProducer, participantService, accountLookupService);
-    
-    await aggregate.init();
-    logger.info("Aggregate Initialized");
 
+    await quoteRegistry.init();
+    logger.info("Quote Registry Initialized");
+
+    aggregate = aggregateParam ?? new QuotingAggregate(logger, quoteRegistry,messageProducer, participantService, accountLookupService);    
+    logger.info("Aggregate Initialized");
 
     const callbackFunction = async (message:IMessage):Promise<void> => {
       logger.debug(`Got message in handler: ${JSON.stringify(message, null, 2)}`);
@@ -146,8 +147,8 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
 
 
 export async function stop(): Promise<void> {
-  logger.debug("Tearing down aggregate");
-  await aggregate.destroy();
+  logger.debug("Tearing down quote Registry");
+  await quoteRegistry.destroy();
   logger.debug("Tearing down message consumer");
   await messageConsumer.destroy(true);
   logger.debug("Tearing down message producer");

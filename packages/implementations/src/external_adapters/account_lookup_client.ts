@@ -29,7 +29,7 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { AccountLookupHttpClient} from "@mojaloop/account-lookup-bc-client-lib";
+import { AccountLookupHttpClient } from "@mojaloop/account-lookup-bc-client-lib";
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
 import { IAccountLookupService } from "@mojaloop/quoting-bc-domain";
 import { ILocalCache, LocalCache } from "../local_cache";
@@ -57,7 +57,6 @@ export class AccountLookupClient implements IAccountLookupService {
 	async getAccountFspId(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null> {
 		try {
 			const result = partySubIdOrType ? await this._externalAccountClient.getFspIdByTypeAndIdAndSubId(partyId, partyType, partySubIdOrType, currency) : await this._externalAccountClient.getFspIdByTypeAndId(partyId, partyType, currency);
-
 			return result;
 		} catch (e: unknown) {
 			this._logger.error(`getAccountFspId: error getting for partyId: ${partyId}, partyType: ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency} - ${e}`);

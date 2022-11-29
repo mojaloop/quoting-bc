@@ -84,15 +84,6 @@ export class QuotingAggregate  {
 		this._accountLookupService = accountLookupService;
 	}
 
-	async init(): Promise<void> {
-		this._quoteRegistry.init();
-	}
-
-	async destroy(): Promise<void> {
-		await this._quoteRegistry.destroy();
-	}
-
-
 	async handleQuotingEvent(message: IMessage): Promise<void> {
 		try{
 			const isMessageValid = this.validateMessage(message);
@@ -125,6 +116,12 @@ export class QuotingAggregate  {
 			this._logger.error(`QuoteEventHandler: message payload has invalid format or value`);
 			throw new InvalidMessagePayloadError();
 		}
+
+		if(!message.msgName){
+			this._logger.error(`QuoteEventHandler: message name is invalid`);
+			throw new InvalidMessageTypeError();
+		}
+
 		if(message.msgType !== MessageTypes.DOMAIN_EVENT){
 			this._logger.error(`QuoteEventHandler: message type is invalid : ${message.msgType}`);
 			throw new InvalidMessageTypeError();
@@ -134,7 +131,7 @@ export class QuotingAggregate  {
 	}
 
 	private async handleEvent(message:IMessage):Promise<void> {
-		const {payload, fspiopOpaqueState} = message;
+		
 		let eventToPublish = null;
 		
 		switch(message.msgName){
@@ -147,9 +144,6 @@ export class QuotingAggregate  {
 			case QuoteQueryReceivedEvt.name:
 				eventToPublish = await this.handleQuoteQueryReceivedEvt(message as QuoteQueryReceivedEvt);
 				break;
-			// case QuoteExpireEvt.name:
-			// 	eventToPublish = await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
-			// 	break;
 			default:
 				this._logger.error(`message type has invalid format or value ${message.msgName}`);
 				throw new InvalidMessageTypeError();
@@ -276,7 +270,7 @@ export class QuotingAggregate  {
 		await this.validateParticipant(msg.fspiopOpaqueState.requesterFspId);
 		await this.validateParticipant(msg.fspiopOpaqueState.destinationFspId);
 		
-		const quote = await this.getQuoteById(msg.payload.quoteId);
+		const quote = await this._quoteRegistry.getQuoteById(msg.payload.quoteId);
 
 		if(!quote) {
 			throw Error()
@@ -289,11 +283,10 @@ export class QuotingAggregate  {
 			ilpPacket: quote.ilpPacket as string, 
 			condition:	quote.condition as string,
 			payeeReceiveAmount:	quote.amount,
-			payeeFspFee: 		quote.feesPayer,
-			extensionList:	quote.extensionList,
-			geoCode: 			quote.geoCode,
+			payeeFspFee: quote.feesPayer,
+			extensionList: quote.extensionList,
+			geoCode: quote.geoCode,
 			payeeFspCommission:	quote.feesPayer,
-			  
 		};
 
 		const event = new QuoteQueryResponseEvt(payload);
@@ -328,7 +321,7 @@ export class QuotingAggregate  {
 	}
 
 	//#region Quotes
-	public async addQuote(quote: AddQuoteDTO): Promise<string> {
+	private async addQuote(quote: AddQuoteDTO): Promise<string> {
 
 		if(quote.quoteId && await this._quoteRegistry.getQuoteById(quote.quoteId)) {
 			throw new DuplicateQuoteError("Quote with same id already exists");
@@ -345,14 +338,12 @@ export class QuotingAggregate  {
 		return quote.id;
 	}
 
-	public async updateQuote(quote: UpdateQuoteDTO): Promise<string> {
+	private async updateQuote(quote: UpdateQuoteDTO): Promise<string> {
 		const existingQuote = await this._quoteRegistry.getQuoteById(quote.quoteId)
 
 		if(!existingQuote || !existingQuote.id) {
 			throw new NonExistingQuoteError("Quote doesn't exist");
 		}
-
-
 
 		const updatedQuote: Quote = { existingQuote, ...quote } as unknown as Quote; 
 
@@ -361,15 +352,5 @@ export class QuotingAggregate  {
 		return existingQuote.id;
 	}
 		
-	public async getAllQuotes(): Promise<Quote[]> {
-		const quotes = await this._quoteRegistry.getAllQuotes();
-		return quotes;
-	}
-
-	public async getQuoteById(id:string): Promise<Quote|null> {
-		const quote = await this._quoteRegistry.getQuoteById(id);
-		return quote;
-	}
-
 	//#endregion
 }
