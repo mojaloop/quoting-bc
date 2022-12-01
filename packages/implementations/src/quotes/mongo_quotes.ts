@@ -40,6 +40,7 @@
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError } from '../errors';
 import { IQuoteRegistry, Quote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
+import { randomUUID } from 'crypto';
 
 export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 	private readonly _logger: ILogger;
@@ -80,29 +81,22 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		}
 	}
 
-	async addQuote(quote: Quote): Promise<void> {
-		const quoteAlreadyPresent : WithId<Document> | null = await this.quotes.findOne(
-			{
-				id: quote.id,
-				transactionId: quote.transactionId
-			},
-		).catch((e: any) => {
-			this._logger.error(`Unable to add quote: ${e.message}`);
-			throw new UnableToGetQuoteError();
-		});
-		
-		if(quoteAlreadyPresent){
-			throw new QuoteAlreadyExistsError();
+	async addQuote(quote: Quote): Promise<string> {
+		if(quote.quoteId){
+			await this.checkIfQuoteExists(quote);
 		}
 
 		try {
+			quote.quoteId = quote.quoteId || randomUUID();
 			await this.quotes.insertOne(quote);
+			return quote.quoteId;
 			
 		} catch (e: any) {
 			this._logger.error(`Unable to insert quote: ${e.message}`);
 			throw new UnableToAddQuoteError();
 		}
 	}
+
 
 	async updateQuote(quote: Quote): Promise<void> {
 		try {
@@ -175,6 +169,22 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		return mappedQuote;
 		
     }
+
+	private async checkIfQuoteExists(quote: Quote) {
+		const quoteAlreadyPresent: WithId<Document> | null = await this.quotes.findOne(
+			{
+				id: quote.id,
+				transactionId: quote.transactionId
+			}
+		).catch((e: any) => {
+			this._logger.error(`Unable to add quote: ${e.message}`);
+			throw new UnableToGetQuoteError();
+		});
+
+		if (quoteAlreadyPresent) {
+			throw new QuoteAlreadyExistsError();
+		}
+	}
 
 	private mapToQuote(quote: WithId<Document>): Quote {
 		return {

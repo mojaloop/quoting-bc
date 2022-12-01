@@ -169,9 +169,28 @@ export class QuotingAggregate  {
 
 		await this.validateParticipant(destinationFspIdToUse);
 		
-		await this.addQuote({
+
+		const quote: Quote = {
+			quoteId: msg.payload.quoteId,
+			transactionId: msg.payload.transactionId,
+			transactionRequestId: msg.payload.transactionRequestId,
+			transactionType: msg.payload.transactionType,
+			amountType: msg.payload.amountType,
+			amount: msg.payload.amount,
+			amountCurrency: msg.payload.amount.currency,
+			transactionCode: msg.payload.transactionCode,
+			geoCode: msg.payload.geoCode,
+			extensionList: msg.payload.extensionList,
+			transactionInitiator: msg.payload.transactionInitiator,
+			transactionInitiatorType: msg.payload.transactionInitiatorType,
+			quoteRequestState: QuoteRequestState.RECEIVED,
+			quoteRequestResponseState: QuoteRequestResponseState.NONE,
+			quoteResponseState: QuoteResponseState.NONE,
+		}
+
+		await this._quoteRegistry.addQuote({
 			id: null,
-            requesterFspId: msg.fspiopOpaqueState.requesterFspId,
+            requesterFspId: msg.fspiopOpaqueState.requesterFspId as string,
             destinationFspId: msg.fspiopOpaqueState.destinationFspId,
 			quoteId: msg.payload.quoteId,
 			transactionId: msg.payload.transactionId,
@@ -318,24 +337,6 @@ export class QuotingAggregate  {
 		}
 
 		return;
-	}
-
-	//#region Quotes
-	private async addQuote(quote: AddQuoteDTO): Promise<string> {
-
-		if(quote.quoteId && await this._quoteRegistry.getQuoteById(quote.quoteId)) {
-			throw new DuplicateQuoteError("Quote with same id already exists");
-		}
-
-		if(!quote.id){
-			quote.id = randomUUID();
-		} 
-
-		const newQuote: Quote = quote as unknown as Quote; 
-
-		await this._quoteRegistry.addQuote(newQuote);
-
-		return quote.id;
 	}
 
 	private async updateQuote(quote: UpdateQuoteDTO): Promise<string> {

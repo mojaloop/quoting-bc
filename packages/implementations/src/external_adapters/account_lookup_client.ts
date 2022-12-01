@@ -30,7 +30,6 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { AccountLookupHttpClient } from "@mojaloop/account-lookup-bc-client-lib";
-import { Participant } from "@mojaloop/participant-bc-public-types-lib";
 import { IAccountLookupService } from "@mojaloop/quoting-bc-domain";
 import { ILocalCache, LocalCache } from "../local_cache";
 
