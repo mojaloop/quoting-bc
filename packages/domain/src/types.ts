@@ -92,9 +92,8 @@ export interface IGeoCode {
     latitude: string;
     longitude: string; 
 }
-
 export interface IExtensionList {
-    extension: { [key: string]: string } [];
+    extension: { key: string; value: string;}[];
 }
 
 export interface IParticipant {
@@ -103,7 +102,6 @@ export interface IParticipant {
     subId: string | null;
     isActive: boolean;
 }
-
 
 export type Quote = {
     quoteId: string;
@@ -129,9 +127,12 @@ export type QuoteRegistry =
     {
         requesterFspId:string,
         destinationFspId:string,
+        payeeReceiveAmount: IMoney | null,
+        payeeFspFee: IMoney | null,
+        payeeFspCommission: IMoney | null,
     } 
     & Partial<Quote> 
-    & Required<Pick<Quote, 'quoteId' | 'transactionId' | 'payee' | 'payer' | 'amount' | 'amountType' | 'transactionType'>>;
+    & Required<Pick<Quote, 'quoteId'>>;
 
 
 

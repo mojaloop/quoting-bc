@@ -39,7 +39,7 @@
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError } from '../errors';
-import { IQuoteRegistry, NonExistingQuoteError, Quote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
+import { IQuoteRegistry, NonExistingQuoteError, QuoteRegistry } from "@mojaloop/quoting-bc-domain";
 import { randomUUID } from 'crypto';
 
 export class MongoQuoteRegistryRepo implements IQuoteRegistry {
@@ -81,7 +81,7 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		}
 	}
 
-	async addQuote(quote: Quote): Promise<string> {
+	async addQuote(quote: QuoteRegistry): Promise<string> {
 		if(quote.quoteId){
 			await this.checkIfQuoteExists(quote);
 		}
@@ -98,10 +98,10 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 	}
 
 
-	async updateQuote(quote: Quote): Promise<void> {
-		const existingQuote = await this.getQuoteById(quote.quoteId)
+	async updateQuote(quote: QuoteRegistry): Promise<void> {
+		const existingQuote = await this.getQuoteById(quote.quoteId);
 
-		if(!existingQuote || !existingQuote.id) {
+		if(!existingQuote || !existingQuote.quoteId) {
 			throw new NonExistingQuoteError("Quote doesn't exist");
 		}
 			
@@ -115,8 +115,8 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		}
 	}
 
-	async removeQuote(id: string): Promise<void> {
-		const deleteResult = await this.quotes.deleteOne({id}).catch((e: any) => {
+	async removeQuote(quoteId: string): Promise<void> {
+		const deleteResult = await this.quotes.deleteOne({quoteId}).catch((e: any) => {
 			this._logger.error(`Unable to delete quote: ${e.message}`);
 			throw new UnableToDeleteQuoteError();
 		});
@@ -127,23 +127,8 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 			throw new NoSuchQuoteError();
 		}
 	}
-	
-	async getAllQuotes(): Promise<Quote[]> {
-		const quotes = await this.quotes.find().toArray().catch((e: any) => {
-			this._logger.error(`Unable to get all quotes: ${e.message}`);
-			throw new UnableToGetQuoteError();
-		});
 
-		const mappedQuotes: Quote[] = [];
-		
-		quotes.map((quote: any) => {
-			mappedQuotes.push(this.mapToQuote(quote));	
-		});
-		
-		return mappedQuotes;
-	}
-
-	async getQuoteById(quoteId:string):Promise<Quote|null>{
+	async getQuoteById(quoteId:string):Promise<QuoteRegistry|null>{
 		const quote = await this.quotes.findOne({quoteId: quoteId }).catch((e: any) => {
 			this._logger.error(`Unable to get quote by id: ${e.message}`);
 			throw new UnableToGetQuoteError();
@@ -153,33 +138,11 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		} 
 		return this.mapToQuote(quote);
 	}
-	
-    async getQuote(quoteId: string, transactionId: string | null): Promise<Quote | null>{
-		
-		const foundQuote: WithId<Document> | null = await this.quotes.findOne(
-		{
-			quoteId,
-			transactionId
-		},
-		).catch((e: any) => {
-			this._logger.error(`Unable to get quote: ${e.message}`);
-			throw new UnableToGetQuoteError();
-		});
 
-		if(!foundQuote) {
-			throw new NoSuchQuoteError();
-		}
-		
-		const mappedQuote: Quote = this.mapToQuote(foundQuote) as Quote;
-			
-		return mappedQuote;
-		
-    }
-
-	private async checkIfQuoteExists(quote: Quote) {
+	private async checkIfQuoteExists(quote: QuoteRegistry) {
 		const quoteAlreadyPresent: WithId<Document> | null = await this.quotes.findOne(
 			{
-				quoteId: quote.id,
+				quoteId: quote.quoteId,
 				transactionId: quote.transactionId
 			}
 		).catch((e: any) => {
@@ -192,8 +155,8 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		}
 	}
 
-	private mapToQuote(quote: WithId<Document>): Quote {
-		const quoteMapped:Partial<Quote> = { 
+	private mapToQuote(quote: WithId<Document>): QuoteRegistry {
+		const quoteMapped:Partial<QuoteRegistry> = { 
 			quoteId: quote.quoteId,
 			transactionId: quote.transactionId,
 			payee: quote.payee,
@@ -212,6 +175,6 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 			ilpPacket: quote.ilpPacket,
 			condition: quote.condition
 		};
-		return quoteMapped as Quote;
+		return quoteMapped as QuoteRegistry;
 	}
 }

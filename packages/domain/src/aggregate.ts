@@ -61,7 +61,7 @@ import {
 	QuoteRequestReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { Quote, QuoteRegistry, QuoteStatus } from "./types";
+import { IExtensionList, IMoney, Quote, QuoteRegistry, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -185,6 +185,9 @@ export class QuotingAggregate  {
 			note: msg.payload.note,
 			expiration: msg.payload.expiration,
 			extensionList: msg.payload.extensionList,
+			payeeReceiveAmount: null,
+			payeeFspFee: null,
+			payeeFspCommission: null,
 			status: QuoteStatus.PENDING 
 		}
 
@@ -221,8 +224,8 @@ export class QuotingAggregate  {
 		await this.validateParticipant(msg.fspiopOpaqueState.destinationFspId);
 		
 		const quoteRegistryEntry: QuoteRegistry = {
-			requesterFspId: msg.fspiopOpaqueState.requesterFspId,
-            destinationFspId: msg.fspiopOpaqueState.destinationFspId,
+			requesterFspId: msg.fspiopOpaqueState.requesterFspId as string,
+            destinationFspId: msg.fspiopOpaqueState.destinationFspId as string,
             quoteId: msg.payload.quoteId,
             transferAmount: msg.payload.transferAmount,
             expiration: msg.payload.expiration,
@@ -232,33 +235,14 @@ export class QuotingAggregate  {
             payeeFspFee: msg.payload.payeeFspFee,
             payeeFspCommission: msg.payload.payeeFspCommission,
             geoCode: msg.payload.geoCode,
-            extensionList: msg.payload.extensionList,		
+            extensionList: msg.payload.extensionList,	
 			// Whenever we update a quote that isn't an error, it is with the ACCEPTED state
 			// since the peer FSP should always be able to create a quote, otherwise something wrong (an error) happened
 			status: QuoteStatus.ACCEPTED
 		}
 
 
-		await this._quoteRegistry.updateQuote({
-            requesterFspId: msg.fspiopOpaqueState.requesterFspId,
-            destinationFspId: msg.fspiopOpaqueState.destinationFspId,
-            quoteId: msg.payload.quoteId,
-            transferAmount: msg.payload.transferAmount,
-            expiration: msg.payload.expiration,
-            ilpPacket: msg.payload.ilpPacket,
-            condition: msg.payload.condition,
-            payeeReceiveAmount: msg.payload.payeeReceiveAmount,
-            payeeFspFee: msg.payload.payeeFspFee,
-            payeeFspCommission: msg.payload.payeeFspCommission,
-            geoCode: msg.payload.geoCode,
-            extensionList: msg.payload.extensionList,		
-			// Whenever we update a quote that isn't an error, it is with the ACCEPTED state
-			// since the peer FSP should always be able to create a quote, otherwise something wrong (an error) happened
-			status: QuoteStatus.ACCEPTED
-		}).catch(error=>{
-			this._logger.error(`Unable to add quoteId: ${msg.payload.quoteId} ` + error);
-			throw new Error();
-		});
+		await this._quoteRegistry.updateQuote(quoteRegistryEntry);
 
 		const payload : QuoteResponseAcceptedEvtPayload = {
             quoteId: msg.payload.quoteId,
@@ -295,15 +279,15 @@ export class QuotingAggregate  {
 
 		const payload: QuoteQueryResponseEvtPayload = { 
 			quoteId: quote.quoteId,
-			transferAmount: quote.amount,
-			expiration: quote.expiration as string,
-			ilpPacket: quote.ilpPacket as string, 
-			condition:	quote.condition as string,
-			payeeReceiveAmount:	quote.amount,
-			payeeFspFee: quote.feesPayer,
-			extensionList: quote.extensionList,
-			geoCode: quote.geoCode,
-			payeeFspCommission:	quote.feesPayer,
+			transferAmount: quote.amount!,
+			expiration: quote.expiration!,
+			ilpPacket: quote.ilpPacket!, 
+			condition:	quote.condition!,
+			payeeReceiveAmount: quote.amount!,
+			payeeFspFee: quote.feesPayer!,
+			extensionList: quote.extensionList as IExtensionList,
+			geoCode: quote.geoCode!,
+			payeeFspCommission:	quote.feesPayer!,
 		};
 
 		const event = new QuoteQueryResponseEvt(payload);
