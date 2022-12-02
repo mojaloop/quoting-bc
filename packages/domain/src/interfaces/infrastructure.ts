@@ -30,88 +30,17 @@
  --------------
  **/
 
- "use strict";
-
+"use strict";
 
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import { IParty, IMoney, ITransactionType, IGeoCode, QuoteStatus, IExtensionList, IAmountType } from "../types";
- 
-/* infrastructure interfaces */
-
-export type Quote = {
-    id: string | null;
-    quoteId: string;
-    transactionId: string;
-    payee: IParty;
-    payer: IParty;
-    amountType: IAmountType;
-    amount: IMoney;
-    transactionType: ITransactionType;
-    feesPayer: IMoney | null;
-    transactionRequestId: string | null;
-    geoCode: IGeoCode | null;
-    note: string | null;
-    expiration: string | null;
-    extensionList: IExtensionList | null;
-    status: QuoteStatus;
-    transferAmount: IMoney | null;
-    ilpPacket: string | null;
-    condition: string | null;
-}
-
-export type QuoteRegistry = {
-    id: string,
-    quoteId: string,
-    transactionId: string,
-    
-}
-
-export type AddQuoteDTO = {
-    id: string | null;
-    requesterFspId: string;
-    destinationFspId: string;
-    quoteId: string;
-    transactionId: string;
-    payee: IParty;
-    payer: IParty;
-    amountType: IAmountType;
-    amount: IMoney;
-    transactionType: ITransactionType;
-    feesPayer: IMoney | null;
-    transactionRequestId: string | null;
-    geoCode: IGeoCode | null;
-    note: string | null;
-    expiration: string | null;
-    extensionList: IExtensionList | null;
-    status: QuoteStatus;
-}
-
-
-export type UpdateQuoteDTO = {
-    requesterFspId: string;
-    destinationFspId: string;
-    quoteId: string;
-    transferAmount: IMoney;
-    expiration: string;
-    ilpPacket: string;
-    condition: string;
-    payeeReceiveAmount: IMoney | null;
-    payeeFspFee: IMoney | null;
-    payeeFspCommission: IMoney | null;
-    geoCode: IGeoCode | null;
-    extensionList: IExtensionList | null;
-    status: QuoteStatus;
-}
-
+import { QuoteRegistry } from "../types";
 export interface IQuoteRegistry {
     init(): Promise<void>;
 	destroy(): Promise<void>;
-    addQuote(quote: Quote):Promise<void>;
-    updateQuote(quote: Quote):Promise<void>;
+    addQuote(quote: QuoteRegistry):Promise<string>;
+    updateQuote(quote: QuoteRegistry):Promise<void>;
     removeQuote(id: string):Promise<void>;
-    getAllQuotes():Promise<Quote[]>;
-    getQuoteById(id:string):Promise<Quote|null>;
-    getQuote(quoteId:string, transactionId: string | null):Promise<Quote | null>;
+    getQuoteById(id:string):Promise<QuoteRegistry|null>;
 }
 
 export interface IParticipantService {

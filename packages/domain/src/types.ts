@@ -62,7 +62,6 @@ export interface IPartyIdInfo {
     fspId: string | null
 }
 
-
 export interface IParty {
     partyIdInfo: IPartyIdInfo;
     merchantClassificationCode: string | null;
@@ -94,38 +93,8 @@ export interface IGeoCode {
     longitude: string; 
 }
 
-export interface IExtension {
-    key: string
-    value: string
-}
-
 export interface IExtensionList {
-    extension: IExtension[]
-}
-
-export interface IQuote {
-    quoteId: string;
-    transactionId: string;
-    payee: IParty;
-    payer: IParty;
-    amountType: IAmountType;
-    amount: IMoney;
-    transactionType: ITransactionType;
-    fees: IMoney | null;
-    transactionRequestId: string | null;
-    geoCode: IGeoCode | null;
-    note: string | null;
-    expiration: string | null;
-    extensionList: IExtensionList | null;
-    status: QuoteStatus;
-    transferAmount: IMoney | null;
-    ilpPacket: string | null;
-    condition: string | null;
-}
-
-export enum CurrencyType {
-	DOLLAR = "dollar",
-	EURO = "euro",
+    extension: { [key: string]: string } [];
 }
 
 export interface IParticipant {
@@ -135,10 +104,34 @@ export interface IParticipant {
     isActive: boolean;
 }
 
-export interface IParticipantAccount {
-	fspId: string;
-	extensionList: string[];
+
+export type Quote = {
+    quoteId: string;
+    transactionId: string;
+    payee: IParty;
+    payer: IParty;
+    amountType: IAmountType;
+    amount: IMoney;
+    transactionType: ITransactionType;
+    feesPayer: IMoney | null;
+    transactionRequestId: string | null;
+    geoCode: IGeoCode | null;
+    note: string | null;
+    expiration: string | null;
+    extensionList: IExtensionList | null;
+    status: QuoteStatus | null;
+    transferAmount: IMoney | null;
+    ilpPacket: string | null;
+    condition: string | null;
 }
+
+export type QuoteRegistry = 
+    {
+        requesterFspId:string,
+        destinationFspId:string,
+    } 
+    & Partial<Quote> 
+    & Required<Pick<Quote, 'quoteId' | 'transactionId' | 'payee' | 'payer' | 'amount' | 'amountType' | 'transactionType'>>;
 
 
 

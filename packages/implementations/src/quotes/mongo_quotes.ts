@@ -39,7 +39,7 @@
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError } from '../errors';
-import { IQuoteRegistry, Quote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
+import { IQuoteRegistry, NonExistingQuoteError, Quote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
 import { randomUUID } from 'crypto';
 
 export class MongoQuoteRegistryRepo implements IQuoteRegistry {
@@ -99,6 +99,12 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 
 
 	async updateQuote(quote: Quote): Promise<void> {
+		const existingQuote = await this.getQuoteById(quote.quoteId)
+
+		if(!existingQuote || !existingQuote.id) {
+			throw new NonExistingQuoteError("Quote doesn't exist");
+		}
+			
 		try {
 			await this.quotes.updateOne({
 				quoteId: quote.quoteId,
@@ -148,13 +154,13 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		return this.mapToQuote(quote);
 	}
 	
-    async getQuote(id: string, transactionId: string | null): Promise<Quote | null>{
+    async getQuote(quoteId: string, transactionId: string | null): Promise<Quote | null>{
 		
 		const foundQuote: WithId<Document> | null = await this.quotes.findOne(
 		{
-				id: id,
-				transactionId: transactionId
-			},
+			quoteId,
+			transactionId
+		},
 		).catch((e: any) => {
 			this._logger.error(`Unable to get quote: ${e.message}`);
 			throw new UnableToGetQuoteError();
@@ -164,7 +170,7 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 			throw new NoSuchQuoteError();
 		}
 		
-		const mappedQuote: Quote = this.mapToQuote(foundQuote);
+		const mappedQuote: Quote = this.mapToQuote(foundQuote) as Quote;
 			
 		return mappedQuote;
 		
@@ -173,7 +179,7 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 	private async checkIfQuoteExists(quote: Quote) {
 		const quoteAlreadyPresent: WithId<Document> | null = await this.quotes.findOne(
 			{
-				id: quote.id,
+				quoteId: quote.id,
 				transactionId: quote.transactionId
 			}
 		).catch((e: any) => {
@@ -187,8 +193,7 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 	}
 
 	private mapToQuote(quote: WithId<Document>): Quote {
-		return {
-			id: quote.id,
+		const quoteMapped:Partial<Quote> = { 
 			quoteId: quote.quoteId,
 			transactionId: quote.transactionId,
 			payee: quote.payee,
@@ -207,5 +212,6 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 			ilpPacket: quote.ilpPacket,
 			condition: quote.condition
 		};
+		return quoteMapped as Quote;
 	}
 }
