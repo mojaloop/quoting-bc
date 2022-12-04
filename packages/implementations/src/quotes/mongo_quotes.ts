@@ -104,11 +104,13 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		if(!existingQuote || !existingQuote.quoteId) {
 			throw new NonExistingQuoteError("Quote doesn't exist");
 		}
+
+		const updatedQuote: QuoteRegistry = {...existingQuote, ...quote};
 			
 		try {
 			await this.quotes.updateOne({
 				quoteId: quote.quoteId,
-			}, { $set: quote });
+			}, { $set: updatedQuote });
 		} catch (e: any) {
 			this._logger.error(`Unable to insert quote: ${e.message}`);
 			throw new UnableToUpdateQuoteError();

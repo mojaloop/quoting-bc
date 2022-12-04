@@ -39,8 +39,6 @@ import {
 	InvalidMessagePayloadError,
 	InvalidMessageTypeError,
 	UnableToProcessMessageError,
-	DuplicateQuoteError,
-	NonExistingQuoteError,
 	NoSuchParticipantError,
 	InvalidParticipantIdError,
 	RequiredParticipantIsNotActive
@@ -58,10 +56,9 @@ import {
 	QuoteQueryReceivedEvt,
 	QuoteQueryResponseEvt,
 	QuoteQueryResponseEvtPayload,
-	QuoteRequestReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IExtensionList, IMoney, Quote, QuoteRegistry, QuoteStatus } from "./types";
+import { IExtensionList, QuoteRegistry, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -161,7 +158,7 @@ export class QuotingAggregate  {
 		
 		await this.validateParticipant(msg.fspiopOpaqueState.requesterFspId);
 
-		let destinationFspIdToUse = msg.fspiopOpaqueState.destinationFspId ? msg.fspiopOpaqueState.destinationFspId : msg.payload.payee.partyIdInfo.fspId;
+		let destinationFspIdToUse = msg.fspiopOpaqueState.destinationFspId ?? msg.payload.payee.partyIdInfo.fspId;
 
 		if(!destinationFspIdToUse){
 			destinationFspIdToUse = await this._accountLookupService.getAccountFspId(msg.payload.payee.partyIdInfo.partyIdentifier, msg.payload.payee.partyIdInfo.partyIdType, msg.payload.payee.partyIdInfo.partySubIdOrType, null);
@@ -188,7 +185,10 @@ export class QuotingAggregate  {
 			payeeReceiveAmount: null,
 			payeeFspFee: null,
 			payeeFspCommission: null,
-			status: QuoteStatus.PENDING 
+			status: QuoteStatus.PENDING,
+			condition: null,
+			transferAmount: null,
+			ilpPacket: null,
 		}
 
 		await this._quoteRegistry.addQuote(quote);
@@ -235,7 +235,16 @@ export class QuotingAggregate  {
             payeeFspFee: msg.payload.payeeFspFee,
             payeeFspCommission: msg.payload.payeeFspCommission,
             geoCode: msg.payload.geoCode,
-            extensionList: msg.payload.extensionList,	
+            extensionList: msg.payload.extensionList,
+			amount: null,
+			amountType: null,
+			transactionId: null,
+			feesPayer: null,
+			transactionType: null,
+			note: null,
+			payee: null,
+			payer: null,
+			transactionRequestId: null,
 			// Whenever we update a quote that isn't an error, it is with the ACCEPTED state
 			// since the peer FSP should always be able to create a quote, otherwise something wrong (an error) happened
 			status: QuoteStatus.ACCEPTED

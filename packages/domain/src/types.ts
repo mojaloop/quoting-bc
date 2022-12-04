@@ -103,8 +103,9 @@ export interface IParticipant {
     isActive: boolean;
 }
 
+type Nullable<T> = { [K in keyof T]: T[K] | null };
+
 export type Quote = {
-    quoteId: string;
     transactionId: string;
     payee: IParty;
     payer: IParty;
@@ -121,18 +122,17 @@ export type Quote = {
     transferAmount: IMoney | null;
     ilpPacket: string | null;
     condition: string | null;
+    payeeReceiveAmount: IMoney | null,
+    payeeFspFee: IMoney | null,
+    payeeFspCommission: IMoney | null
 }
 
-export type QuoteRegistry = 
+export type QuoteRegistry = Nullable<Quote> &
     {
+        quoteId: string;
         requesterFspId:string,
         destinationFspId:string,
-        payeeReceiveAmount: IMoney | null,
-        payeeFspFee: IMoney | null,
-        payeeFspCommission: IMoney | null,
     } 
-    & Partial<Quote> 
-    & Required<Pick<Quote, 'quoteId'>>;
-
+    
 
 
