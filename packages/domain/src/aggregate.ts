@@ -41,7 +41,8 @@ import {
 	UnableToProcessMessageError,
 	NoSuchParticipantError,
 	InvalidParticipantIdError,
-	RequiredParticipantIsNotActive
+	RequiredParticipantIsNotActive,
+	NonExistingQuoteError
 } from "./errors";
 import { IAccountLookupService, IParticipantService, IQuoteRegistry} from "./interfaces/infrastructure";
 import {
@@ -58,7 +59,7 @@ import {
 	QuoteQueryResponseEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IExtensionList, QuoteRegistry, QuoteStatus } from "./types";
+import { IExtensionList, Quote, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -166,10 +167,10 @@ export class QuotingAggregate  {
 
 		await this.validateParticipant(destinationFspIdToUse);
 
-		const quote: QuoteRegistry = {
+		const quote: Quote = {
+			quoteId: msg.payload.quoteId,
 			requesterFspId: msg.fspiopOpaqueState.requesterFspId,
             destinationFspId: msg.fspiopOpaqueState.destinationFspId,
-			quoteId: msg.payload.quoteId,
 			transactionId: msg.payload.transactionId,
 			payee: msg.payload.payee,
 			payer: msg.payload.payer,
@@ -223,35 +224,26 @@ export class QuotingAggregate  {
 		await this.validateParticipant(msg.fspiopOpaqueState.requesterFspId);
 		await this.validateParticipant(msg.fspiopOpaqueState.destinationFspId);
 		
-		const quoteRegistryEntry: QuoteRegistry = {
-			requesterFspId: msg.fspiopOpaqueState.requesterFspId as string,
-            destinationFspId: msg.fspiopOpaqueState.destinationFspId as string,
-            quoteId: msg.payload.quoteId,
-            transferAmount: msg.payload.transferAmount,
-            expiration: msg.payload.expiration,
-            ilpPacket: msg.payload.ilpPacket,
-            condition: msg.payload.condition,
-            payeeReceiveAmount: msg.payload.payeeReceiveAmount,
-            payeeFspFee: msg.payload.payeeFspFee,
-            payeeFspCommission: msg.payload.payeeFspCommission,
-            geoCode: msg.payload.geoCode,
-            extensionList: msg.payload.extensionList,
-			amount: null,
-			amountType: null,
-			transactionId: null,
-			feesPayer: null,
-			transactionType: null,
-			note: null,
-			payee: null,
-			payer: null,
-			transactionRequestId: null,
-			// Whenever we update a quote that isn't an error, it is with the ACCEPTED state
-			// since the peer FSP should always be able to create a quote, otherwise something wrong (an error) happened
-			status: QuoteStatus.ACCEPTED
+		const quote = await this._quoteRegistry.getQuoteById(msg.payload.quoteId);
+
+		if(!quote){
+			throw new NonExistingQuoteError();
 		}
 
+		quote.requesterFspId = msg.fspiopOpaqueState.requesterFspId;
+		quote.destinationFspId = msg.fspiopOpaqueState.destinationFspId;
+		quote.quoteId = msg.payload.quoteId;
+		quote.transferAmount = msg.payload.transferAmount;
+		quote.expiration = msg.payload.expiration;
+		quote.ilpPacket = msg.payload.ilpPacket;
+		quote.condition = msg.payload.condition;
+		quote.payeeReceiveAmount = msg.payload.payeeReceiveAmount;
+		quote.payeeFspFee = msg.payload.payeeFspFee;
+		quote.payeeFspCommission = msg.payload.payeeFspCommission;
+		quote.geoCode = msg.payload.geoCode;
+		quote.extensionList = msg.payload.extensionList;
 
-		await this._quoteRegistry.updateQuote(quoteRegistryEntry);
+		await this._quoteRegistry.updateQuote(quote);
 
 		const payload : QuoteResponseAcceptedEvtPayload = {
             quoteId: msg.payload.quoteId,
@@ -283,12 +275,12 @@ export class QuotingAggregate  {
 		const quote = await this._quoteRegistry.getQuoteById(msg.payload.quoteId);
 
 		if(!quote) {
-			throw Error()
+			throw new NonExistingQuoteError()
 		}
 
 		const payload: QuoteQueryResponseEvtPayload = { 
 			quoteId: quote.quoteId,
-			transferAmount: quote.amount!,
+			transferAmount: quote.amount,
 			expiration: quote.expiration!,
 			ilpPacket: quote.ilpPacket!, 
 			condition:	quote.condition!,

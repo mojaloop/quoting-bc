@@ -33,14 +33,14 @@
 "use strict";
 
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import { QuoteRegistry } from "../types";
+import { Quote } from "../types";
 export interface IQuoteRegistry {
     init(): Promise<void>;
 	destroy(): Promise<void>;
-    addQuote(quote: QuoteRegistry):Promise<string>;
-    updateQuote(quote: QuoteRegistry):Promise<void>;
+    addQuote(quote: Quote):Promise<string>;
+    updateQuote(quote: Quote):Promise<void>;
     removeQuote(id: string):Promise<void>;
-    getQuoteById(id:string):Promise<QuoteRegistry|null>;
+    getQuoteById(id:string):Promise<Quote|null>;
 }
 
 export interface IParticipantService {

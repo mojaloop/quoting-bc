@@ -39,7 +39,7 @@
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError } from '../errors';
-import { IQuoteRegistry, NonExistingQuoteError, QuoteRegistry } from "@mojaloop/quoting-bc-domain";
+import { IQuoteRegistry, NonExistingQuoteError, Quote } from "@mojaloop/quoting-bc-domain";
 import { randomUUID } from 'crypto';
 
 export class MongoQuoteRegistryRepo implements IQuoteRegistry {
@@ -81,7 +81,7 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		}
 	}
 
-	async addQuote(quote: QuoteRegistry): Promise<string> {
+	async addQuote(quote: Quote): Promise<string> {
 		if(quote.quoteId){
 			await this.checkIfQuoteExists(quote);
 		}
@@ -98,14 +98,14 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 	}
 
 
-	async updateQuote(quote: QuoteRegistry): Promise<void> {
+	async updateQuote(quote: Quote): Promise<void> {
 		const existingQuote = await this.getQuoteById(quote.quoteId);
 
 		if(!existingQuote || !existingQuote.quoteId) {
 			throw new NonExistingQuoteError("Quote doesn't exist");
 		}
 
-		const updatedQuote: QuoteRegistry = {...existingQuote, ...quote};
+		const updatedQuote: Quote = {...existingQuote, ...quote};
 			
 		try {
 			await this.quotes.updateOne({
@@ -130,7 +130,7 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		}
 	}
 
-	async getQuoteById(quoteId:string):Promise<QuoteRegistry|null>{
+	async getQuoteById(quoteId:string):Promise<Quote|null>{
 		const quote = await this.quotes.findOne({quoteId: quoteId }).catch((e: any) => {
 			this._logger.error(`Unable to get quote by id: ${e.message}`);
 			throw new UnableToGetQuoteError();
@@ -141,7 +141,7 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		return this.mapToQuote(quote);
 	}
 
-	private async checkIfQuoteExists(quote: QuoteRegistry) {
+	private async checkIfQuoteExists(quote: Quote) {
 		const quoteAlreadyPresent: WithId<Document> | null = await this.quotes.findOne(
 			{
 				quoteId: quote.quoteId,
@@ -157,26 +157,31 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 		}
 	}
 
-	private mapToQuote(quote: WithId<Document>): QuoteRegistry {
-		const quoteMapped:Partial<QuoteRegistry> = { 
-			quoteId: quote.quoteId,
-			transactionId: quote.transactionId,
-			payee: quote.payee,
-			payer: quote.payer,
-			amountType: quote.amountType,
-			amount: quote.amount,
-			transactionType: quote.transactionType,
-			feesPayer: quote.feesPayer,
-			transactionRequestId: quote.transactionRequestId,
-			geoCode: quote.geoCode,
-			note: quote.note,
-			expiration: quote.expiration,
-			extensionList: quote.extensionList,
-			status: quote.status,
-			transferAmount: quote.transferAmount,
-			ilpPacket: quote.ilpPacket,
-			condition: quote.condition
+	private mapToQuote(quote: WithId<Document>): Quote {
+		const quoteMapped: Quote = { 
+			quoteId: quote.quoteId ?? null,
+			transactionId: quote.transactionId ?? null,
+			payee: quote.payee ?? null,
+			payer: quote.payer ?? null,
+			amountType: quote.amountType ?? null,
+			amount: quote.amount ?? null,
+			transactionType: quote.transactionType ?? null,
+			feesPayer: quote.feesPayer ?? null,
+			transactionRequestId: quote.transactionRequestId ?? null,
+			geoCode: quote.geoCode ?? null,
+			note: quote.note ?? null,
+			expiration: quote.expiration ?? null,
+			extensionList: quote.extensionList ?? null,
+			status: quote.status ?? null,
+			transferAmount: quote.transferAmount ?? null,
+			ilpPacket: quote.ilpPacket ?? null,
+			condition: quote.condition ?? null,
+			destinationFspId: quote.destinationFspId ?? null,
+			payeeFspCommission: quote.payeeFspCommission ?? null,
+			payeeFspFee: quote.payeeFspFee ?? null,
+			payeeReceiveAmount: quote.payeeReceiveAmount ?? null,
+			requesterFspId: quote.requesterFspId ?? null,
 		};
-		return quoteMapped as QuoteRegistry;
+		return quoteMapped as Quote;
 	}
 }
