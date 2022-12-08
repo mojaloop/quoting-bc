@@ -52,6 +52,7 @@
     "packages/domain",
     "packages/implementations",
     "packages/quoting-svc",
+    "packages/shared-mocks",
     "packages/*"
   ],
   "engines": {

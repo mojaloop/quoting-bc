@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+	"rootDir": "./src",
+	"outDir": "./dist",
+  "plugins": [
+      {  
+        "transform": "ts-auto-mock/transformer",
+        "cacheBetweenTests": false,
+        "features": ["random"] 
+      }
+    ]
+  },
+  "include": [
+	"./src"
+  ]
+}

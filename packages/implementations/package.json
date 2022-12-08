@@ -36,7 +36,7 @@
     "test:coverage-check": "jest --coverage --testMatch **/test/unit/**/*.test.ts"
   },
   "dependencies": {
-    "@mojaloop/account-lookup-bc-client-lib": "~0.0.1",
+    "@mojaloop/account-lookup-bc-client-lib": "~0.1.1",
     "@mojaloop/quoting-bc-domain": "*",
     "@mojaloop/participant-bc-public-types-lib": "~0.0.3",
     "@mojaloop/participants-bc-client-lib": "~0.0.5",

@@ -242,6 +242,7 @@ export class QuotingAggregate  {
 		quote.payeeFspCommission = msg.payload.payeeFspCommission;
 		quote.geoCode = msg.payload.geoCode;
 		quote.extensionList = msg.payload.extensionList;
+		quote.status = QuoteStatus.ACCEPTED;
 
 		await this._quoteRegistry.updateQuote(quote);
 
