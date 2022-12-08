@@ -46,10 +46,10 @@ export class MemoryQuoteRegistry implements IQuoteRegistry {
 	}
 
     init(): Promise<void> {
-        throw new Error("Method not implemented.");
+        return Promise.resolve();
     }
     destroy(): Promise<void> {
-        throw new Error("Method not implemented.");
+        return Promise.resolve();
     }
     addQuote(quote: Quote): Promise<string> {
         this._quotes.push(quote);

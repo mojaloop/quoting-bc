@@ -100,11 +100,10 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
     logger.info("Kafka Consumer Initialized");
 
     await messageProducer.connect();
-   
     logger.info("Kafka Producer Initialized");    
 
     await quoteRegistry.init();
-    logger.info("Quote Registry Initialized");
+    logger.info("Quote Registry Repo Initialized");
 
     aggregate = aggregateParam ?? new QuotingAggregate(logger, quoteRegistry,messageProducer, participantService, accountLookupService);    
     logger.info("Aggregate Initialized");

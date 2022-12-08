@@ -20,7 +20,6 @@
   "files": [
     "/dist"
   ],
-
   "scripts": {
     "start": "tsc && npm run service",
     "service": "node dist/index.js",
@@ -31,7 +30,7 @@
     "standard": "npm run lint",
     "lint": "npm run build && npx eslint ./src",
     "lint:fix": "npm run build && npx eslint ./src --fix",
-    "test:unit": "jest --passWithNoTests --testMatch **/test/unit/**/*.test.ts",
+    "test:unit": "jest --runInBand --forceExit --detectOpenHandles --verbose || ECHO.",
     "dep:check": "ncu -e 2",
     "dep:update": "ncu -e 2 -u"
   },

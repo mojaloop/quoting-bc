@@ -33,16 +33,16 @@
 "use strict";
 
 import { Quote } from "@mojaloop/quoting-bc-domain";
-import { createMock } from 'ts-auto-mock';
 
-const fakeQuote = createMock<Quote>();
-const fakeQuote2 = createMock<Quote>();
-const fakeQuote3 = createMock<Quote>();
-const fakeQuote4 = createMock<Quote>();
+const mockedQuote : Quote = {
+    "requesterFspId":"MHMV",
+    "destinationFspId":"AK3lXNY",
+    "quoteId":"Nc2eE8A",
+    "transactionId":"%a*q@fL",
+    "transactionRequestId":"5S@BAL",
+    "note":"gFk*E",
+    "expiration":"I5g4yf",
+    "ilpPacket":"Iyf",
+    "condition":"oAIY"
+}
 
-export const quotes = [
-    fakeQuote,
-    fakeQuote2,
-    fakeQuote3,
-    fakeQuote4
-];

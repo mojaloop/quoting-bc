@@ -74,10 +74,10 @@ describe("Quoting Service", () => {
         const spyConsumerStart = jest.spyOn(mockedConsumer, "connect");
         const spyConsumerCallback = jest.spyOn(mockedConsumer, "setCallbackFn");
         const spyProducerInit = jest.spyOn(mockedProducer, "connect");
+        const spyQuoteRegistryInit = jest.spyOn(mockedQuotingRegistry, "init");
      
         // Act
-        await start(logger,mockedConsumer, mockedProducer, mockedOracleFinder, mockedOracleProviderFactory, 
-            mockedParticipantService, mockedAggregate);
+        await start(logger,mockedConsumer, mockedProducer,mockedQuotingRegistry, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
 
         // Assert
         expect(spyConsumerSetTopics).toBeCalledTimes(1); 
@@ -85,29 +85,24 @@ describe("Quoting Service", () => {
         expect(spyConsumerStart).toBeCalledTimes(1);
         expect(spyConsumerCallback).toBeCalledTimes(1); 
         expect(spyProducerInit).toBeCalledTimes(1);
-        expect(spyAggregateInit).toBeCalledTimes(1);
-        expect(useSpy).toBeCalledWith("/admin", routerSpy);
-        expect(useSpy).toBeCalledWith("/account-lookup", routerSpy);
-        expect(listenSpy).toBeCalledTimes(1);
-    
+        expect(spyQuoteRegistryInit).toBeCalledTimes(1);
+        
     });
 
     test("should teardown instances when server stopped", async()=>{
         // Arrange
-        const spyMockedConsumer = jest.spyOn(mockedConsumer, "destroy");
-        const spyMockedProducer = jest.spyOn(mockedProducer, "destroy");
-        const spyMockedAggregate = jest.spyOn(mockedAggregate, "destroy");
-        await start(logger,mockedConsumer, mockedProducer, mockedOracleFinder, 
-            mockedOracleProviderFactory, mockedParticipantService, mockedAggregate);
-        
+        const spyConsumerDestroy = jest.spyOn(mockedConsumer, "destroy");
+        const spyProducerDestroy = jest.spyOn(mockedProducer, "destroy");
+        const spyQuoteRegistryDestroy = jest.spyOn(mockedQuotingRegistry, "destroy");
+        await start(logger,mockedConsumer, mockedProducer,mockedQuotingRegistry, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
+
         // Act
         await stop();
         
         // Assert
-        expect(spyMockedConsumer).toBeCalledTimes(1);
-        expect(spyMockedProducer).toBeCalledTimes(1);
-        expect(spyMockedAggregate).toBeCalledTimes(1);
-        expect(closeSpy).toBeCalledTimes(1);
+        expect(spyConsumerDestroy).toBeCalledTimes(1);
+        expect(spyProducerDestroy).toBeCalledTimes(1);
+        expect(spyQuoteRegistryDestroy).toBeCalledTimes(1);
     });
 
     

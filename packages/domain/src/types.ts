@@ -47,11 +47,7 @@ export interface IPartyComplexName {
 }
   
 export interface IPartyPersonalInfo {
-    complexName: {
-        firstName: string | null;
-        middleName: string | null;
-        lastName: string | null;              
-    } | null,
+    complexName: IPartyComplexName | null;
     dateOfBirth: string | null
 }
 
@@ -74,15 +70,17 @@ export interface IMoney {
     amount: string
 }
 
+export interface IRefund {
+    originalTransactionId: string;
+    refundReason: string | null;
+}
+
 export interface ITransactionType {
     scenario: string
     subScenario: string | null
     initiator: string
     initiatorType: string
-    refundInfo: {
-        originalTransactionId: string
-        refundReason: string | null
-    } | null,
+    refundInfo: IRefund | null,
     balanceOfPayments: string | null
 }
 
@@ -103,9 +101,9 @@ export interface IParticipant {
     isActive: boolean;
 }
 
-export type Quote = {
-    requesterFspId:string,
-    destinationFspId:string,
+export interface Quote {
+    requesterFspId:string;
+    destinationFspId:string;
     quoteId: string;
     transactionId: string;
     payee: IParty;
@@ -123,9 +121,9 @@ export type Quote = {
     transferAmount: IMoney | null;
     ilpPacket: string | null;
     condition: string | null;
-    payeeReceiveAmount: IMoney | null,
-    payeeFspFee: IMoney | null,
-    payeeFspCommission: IMoney | null
+    payeeReceiveAmount: IMoney | null;
+    payeeFspFee: IMoney | null;
+    payeeFspCommission: IMoney | null;
 }
 
 
