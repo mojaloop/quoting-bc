@@ -118,7 +118,7 @@ export interface Quote {
     expiration: string | null;
     extensionList: IExtensionList | null;
     status: QuoteStatus | null;
-    transferAmount: IMoney | null;
+    totalTransferAmount: IMoney | null;
     ilpPacket: string | null;
     condition: string | null;
     payeeReceiveAmount: IMoney | null;

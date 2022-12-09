@@ -172,8 +172,9 @@ export class QuotingAggregate  {
 			requesterFspId: msg.fspiopOpaqueState.requesterFspId,
             destinationFspId: msg.fspiopOpaqueState.destinationFspId,
 			transactionId: msg.payload.transactionId,
-			payee: msg.payload.payee,
-			payer: msg.payload.payer,
+			// TODO: correct in shared tip libs
+			payee: msg.payload.payee as any,
+			payer: msg.payload.payer as any,
 			amountType: msg.payload.amountType,
 			amount: msg.payload.amount,
 			transactionType: msg.payload.transactionType,
@@ -188,7 +189,7 @@ export class QuotingAggregate  {
 			payeeFspCommission: null,
 			status: QuoteStatus.PENDING,
 			condition: null,
-			transferAmount: null,
+			totalTransferAmount: null,
 			ilpPacket: null,
 		}
 
@@ -233,7 +234,7 @@ export class QuotingAggregate  {
 		quote.requesterFspId = msg.fspiopOpaqueState.requesterFspId;
 		quote.destinationFspId = msg.fspiopOpaqueState.destinationFspId;
 		quote.quoteId = msg.payload.quoteId;
-		quote.transferAmount = msg.payload.transferAmount;
+		quote.totalTransferAmount = msg.payload.transferAmount;
 		quote.expiration = msg.payload.expiration;
 		quote.ilpPacket = msg.payload.ilpPacket;
 		quote.condition = msg.payload.condition;
