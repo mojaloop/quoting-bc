@@ -40,7 +40,7 @@
 
 "use strict";
 
-export * from "./quotes/mongo_quotes";
+export * from "./quotes/mongo_quotes_repo";
 export * from "./external_adapters/account_lookup_client";
 export * from "./external_adapters/participant_client";
 export * from "./local_cache";

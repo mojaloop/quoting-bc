@@ -42,11 +42,11 @@ import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableTo
 import { IQuoteRegistry, NonExistingQuoteError, Quote } from "@mojaloop/quoting-bc-domain";
 import { randomUUID } from 'crypto';
 
-export class MongoQuoteRegistryRepo implements IQuoteRegistry {
+export class MongoQuotesRepo implements IQuoteRegistry {
 	private readonly _logger: ILogger;
 	private readonly _connectionString: string;
 	private readonly _dbName;
-	private readonly _collectionName = "quotes";
+	private readonly _collectionName = "quotes_repo";
 	private mongoClient: MongoClient;
 	private quotes: Collection;
 
@@ -182,6 +182,6 @@ export class MongoQuoteRegistryRepo implements IQuoteRegistry {
 			payeeReceiveAmount: quote.payeeReceiveAmount ?? null,
 			requesterFspId: quote.requesterFspId ?? null,
 		};
-		return quoteMapped as Quote;
+		return quoteMapped;
 	}
 }
