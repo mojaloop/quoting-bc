@@ -34,7 +34,7 @@ import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-ty
 import { IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { start, stop } from "../../src/service";
 import { MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRegistry, MemoryAccountLookupService } from "@mojaloop/quoting-shared-mocks";
-import { IParticipantService, IQuoteRegistry, QuotingAggregate } from "@mojaloop/quoting-bc-domain";
+import { IParticipantService, IQuoteRepo, QuotingAggregate } from "@mojaloop/quoting-bc-domain";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
@@ -45,7 +45,7 @@ const mockedConsumer : IMessageConsumer = new MemoryMessageConsumer();
 
 const mockedParticipantService: IParticipantService = new MemoryParticipantService(logger);
 
-const mockedQuotingRegistry: IQuoteRegistry = new MemoryQuoteRegistry(logger);
+const mockedQuotingRegistry: IQuoteRepo = new MemoryQuoteRegistry(logger);
 
 const mockedAccountLookupService = new MemoryAccountLookupService(logger);
 

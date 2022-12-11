@@ -34,7 +34,7 @@
 
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
 import { Quote } from "../types";
-export interface IQuoteRegistry {
+export interface IQuoteRepo {
     init(): Promise<void>;
 	destroy(): Promise<void>;
     addQuote(quote: Quote):Promise<string>;

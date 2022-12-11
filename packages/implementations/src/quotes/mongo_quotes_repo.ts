@@ -39,10 +39,10 @@
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError } from '../errors';
-import { IQuoteRegistry, NonExistingQuoteError, Quote } from "@mojaloop/quoting-bc-domain";
+import { IQuoteRepo, NonExistingQuoteError, Quote } from "@mojaloop/quoting-bc-domain";
 import { randomUUID } from 'crypto';
 
-export class MongoQuotesRepo implements IQuoteRegistry {
+export class MongoQuotesRepo implements IQuoteRepo {
 	private readonly _logger: ILogger;
 	private readonly _connectionString: string;
 	private readonly _dbName;
@@ -173,7 +173,7 @@ export class MongoQuotesRepo implements IQuoteRegistry {
 			expiration: quote.expiration ?? null,
 			extensionList: quote.extensionList ?? null,
 			status: quote.status ?? null,
-			transferAmount: quote.transferAmount ?? null,
+			totalTransferAmount: quote.totalTransferAmount ?? null,
 			ilpPacket: quote.ilpPacket ?? null,
 			condition: quote.condition ?? null,
 			destinationFspId: quote.destinationFspId ?? null,

@@ -34,7 +34,7 @@
 export * from "./memory_message_producer";
 export * from "./memory_message_consumer";
 export * from "./memory_accountlookup_service";
-export * from "./memory_quote_registry";
+export * from "./memory_quote_repo";
 export * from "./memory_participant_service";
 export * from "./mocked_data";
 

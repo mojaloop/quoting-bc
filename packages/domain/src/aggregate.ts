@@ -44,7 +44,7 @@ import {
 	RequiredParticipantIsNotActive,
 	NonExistingQuoteError
 } from "./errors";
-import { IAccountLookupService, IParticipantService, IQuoteRegistry} from "./interfaces/infrastructure";
+import { IAccountLookupService, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
 	QuoteErrorEvt,
 	QuoteErrorEvtPayload,
@@ -63,20 +63,20 @@ import { IExtensionList, Quote, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
-	private readonly _quoteRegistry: IQuoteRegistry;
+	private readonly _quotesRepo: IQuoteRepo;
 	private readonly _messageProducer: IMessageProducer;
 	private readonly _participantService: IParticipantService;
 	private readonly _accountLookupService: IAccountLookupService;
 
 	constructor(
 		logger: ILogger,
-		quoteRegistry:IQuoteRegistry,
+		quoteRegistry:IQuoteRepo,
 		messageProducer:IMessageProducer,
 		participantService: IParticipantService,
 		accountLookupService: IAccountLookupService
 	) {
 		this._logger = logger.createChild(this.constructor.name);
-		this._quoteRegistry = quoteRegistry;
+		this._quotesRepo = quoteRegistry;
 		this._messageProducer = messageProducer;
 		this._participantService = participantService;
 		this._accountLookupService = accountLookupService;
@@ -193,7 +193,7 @@ export class QuotingAggregate  {
 			ilpPacket: null,
 		}
 
-		await this._quoteRegistry.addQuote(quote);
+		await this._quotesRepo.addQuote(quote);
 
 		const payload : QuoteRequestAcceptedEvtPayload = {
 			quoteId: msg.payload.quoteId,
@@ -225,7 +225,7 @@ export class QuotingAggregate  {
 		await this.validateParticipant(msg.fspiopOpaqueState.requesterFspId);
 		await this.validateParticipant(msg.fspiopOpaqueState.destinationFspId);
 		
-		const quote = await this._quoteRegistry.getQuoteById(msg.payload.quoteId);
+		const quote = await this._quotesRepo.getQuoteById(msg.payload.quoteId);
 
 		if(!quote){
 			throw new NonExistingQuoteError();
@@ -245,7 +245,7 @@ export class QuotingAggregate  {
 		quote.extensionList = msg.payload.extensionList;
 		quote.status = QuoteStatus.ACCEPTED;
 
-		await this._quoteRegistry.updateQuote(quote);
+		await this._quotesRepo.updateQuote(quote);
 
 		const payload : QuoteResponseAcceptedEvtPayload = {
             quoteId: msg.payload.quoteId,
@@ -274,7 +274,7 @@ export class QuotingAggregate  {
 		await this.validateParticipant(msg.fspiopOpaqueState.requesterFspId);
 		await this.validateParticipant(msg.fspiopOpaqueState.destinationFspId);
 		
-		const quote = await this._quoteRegistry.getQuoteById(msg.payload.quoteId);
+		const quote = await this._quotesRepo.getQuoteById(msg.payload.quoteId);
 
 		if(!quote) {
 			throw new NonExistingQuoteError()

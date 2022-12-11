@@ -33,9 +33,9 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuoteRegistry, Quote } from "@mojaloop/quoting-bc-domain";
+import { IQuoteRepo, Quote } from "@mojaloop/quoting-bc-domain";
 
-export class MemoryQuoteRegistry implements IQuoteRegistry {
+export class MemoryQuoteRepo implements IQuoteRepo {
 	private readonly _logger: ILogger;
     private readonly _quotes: Quote[] = [];
 	

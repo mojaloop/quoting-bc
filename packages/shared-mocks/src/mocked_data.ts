@@ -125,7 +125,7 @@ const mockedQuote1 : Quote = {
       longitude: "2"
     },
     note: "note",
-    transferAmount: {
+    totalTransferAmount: {
       currency: "EUR",
       amount: "200"
     }
@@ -222,7 +222,7 @@ const mockedQuote2 : Quote = {
     longitude: "22"
   },
   note: "note",
-  transferAmount: {
+  totalTransferAmount: {
     currency: "USD",
     amount: "304.2"
   }
@@ -319,7 +319,7 @@ const mockedQuote3 : Quote = {
     longitude: "22"
   },
   note: "note",
-  transferAmount: {
+  totalTransferAmount: {
     currency: "USD",
     amount: "404.2"
   }
@@ -416,7 +416,7 @@ const mockedQuote4 : Quote = {
     longitude: "224"
   },
   note: "note",
-  transferAmount: {
+  totalTransferAmount: {
     currency: "EUR",
     amount: "1010.2"
   }

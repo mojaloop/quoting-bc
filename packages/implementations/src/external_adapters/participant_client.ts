@@ -53,8 +53,6 @@ export class ParticipantClient implements IParticipantService {
 		this._clientBaseUrl = clientBaseUrl;
 		this._externalParticipantClient = new ParticipantsHttpClient(this._logger, this._clientBaseUrl, this.token);
 		this._localCache = localCache ?? new LocalCache(logger);
-
-		this._externalParticipantClient.setAccessToken(this.token);
 	}
 
 	async getParticipantInfo(fspId: string): Promise<Participant| null> {

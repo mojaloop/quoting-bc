@@ -32,13 +32,13 @@
 
  "use strict";
 
-import { QuotingAggregate, IQuoteRegistry, IParticipantService, IAccountLookupService}  from "@mojaloop/quoting-bc-domain";
+import { QuotingAggregate, IQuoteRepo, IParticipantService, IAccountLookupService}  from "@mojaloop/quoting-bc-domain";
 import { IMessage, IMessageProducer, IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { MongoQuoteRegistryRepo, ParticipantClient, AccountLookupClient } from "@mojaloop/quoting-bc-implementations";
+import { MongoQuotesRepo, ParticipantClient, AccountLookupClient } from "@mojaloop/quoting-bc-implementations";
 
 // Global vars
 const BC_NAME = "quoting-bc";
@@ -71,7 +71,7 @@ const producerOptions : MLKafkaJsonProducerOptions = {
 const DB_NAME = process.env.QUOTING_DB_NAME ?? "quoting";
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 
-let quoteRegistry: IQuoteRegistry;
+let quotesRepo: IQuoteRepo;
 
 // Aggregate
 let aggregate: QuotingAggregate;
@@ -86,7 +86,7 @@ const ACCOUNT_LOOKUP_SVC_BASEURL = process.env["ACCOUNT_LOOKUP_SVC_BASEURL"] || 
 let accountLookupService: IAccountLookupService;
 
 export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer,
-    quoteRegistryParam?:IQuoteRegistry, participantServiceParam?:IParticipantService, accountLookupServiceParam?:IAccountLookupService, aggregateParam?:QuotingAggregate,
+    quoteRegistryParam?:IQuoteRepo, participantServiceParam?:IParticipantService, accountLookupServiceParam?:IAccountLookupService, aggregateParam?:QuotingAggregate,
   ):Promise<void> {
   console.log(`Quoting-svc - service starting with PID: ${process.pid}`);
 
@@ -102,10 +102,10 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
     await messageProducer.connect();
     logger.info("Kafka Producer Initialized");    
 
-    await quoteRegistry.init();
+    await quotesRepo.init();
     logger.info("Quote Registry Repo Initialized");
 
-    aggregate = aggregateParam ?? new QuotingAggregate(logger, quoteRegistry,messageProducer, participantService, accountLookupService);    
+    aggregate = aggregateParam ?? new QuotingAggregate(logger, quotesRepo,messageProducer, participantService, accountLookupService);    
     logger.info("Aggregate Initialized");
 
     const callbackFunction = async (message:IMessage):Promise<void> => {
@@ -123,7 +123,7 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
 }
 
 async function initExternalDependencies(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer, 
-    quoteRegistryParam?:IQuoteRegistry, participantServiceParam?: IParticipantService, accountLookupServiceParam?: IAccountLookupService):Promise<void>  {
+    quoteRegistryParam?:IQuoteRepo, participantServiceParam?: IParticipantService, accountLookupServiceParam?: IAccountLookupService):Promise<void>  {
 
     logger = loggerParam ?? new KafkaLogger(BC_NAME, APP_NAME, APP_VERSION,{kafkaBrokerList: KAFKA_URL}, KAFKA_LOGS_TOPIC,DEFAULT_LOGLEVEL);
     
@@ -132,7 +132,7 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
         logger.info("Kafka Logger Initialized");
     }
 
-    quoteRegistry = quoteRegistryParam ?? new MongoQuoteRegistryRepo(logger,MONGO_URL, DB_NAME);
+    quotesRepo = quoteRegistryParam ?? new MongoQuotesRepo(logger,MONGO_URL, DB_NAME);
 
     messageProducer = messageProducerParam ?? new MLKafkaJsonProducer(producerOptions, logger);
     
@@ -147,7 +147,7 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
 
 export async function stop(): Promise<void> {
   logger.debug("Tearing down quote Registry");
-  await quoteRegistry.destroy();
+  await quotesRepo.destroy();
   logger.debug("Tearing down message consumer");
   await messageConsumer.destroy(true);
   logger.debug("Tearing down message producer");
