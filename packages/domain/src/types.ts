@@ -126,5 +126,14 @@ export interface Quote {
     payeeFspCommission: IMoney | null;
 }
 
+export interface BulkQuote {
+    bulkQuoteId: string;
+    payer: IParty;
+    geoCode: IGeoCode | null;
+    expiration: string | null;
+    individualQuotes: Quote[];
+    extensionList: IExtensionList | null;
+}
+
 
 

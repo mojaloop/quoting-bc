@@ -41,6 +41,7 @@
 "use strict";
 
 export * from "./quotes/mongo_quotes_repo";
+export * from "./bulkQuotes/mongo_bulk_quotes_repo";
 export * from "./external_adapters/account_lookup_adapter";
 export * from "./external_adapters/participant_adapter";
 export * from "./local_cache";

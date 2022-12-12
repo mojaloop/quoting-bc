@@ -46,7 +46,7 @@ import {
 	InvalidRequesterFspIdError,
 	InvalidDestinationFspIdError
 } from "./errors";
-import { IAccountLookupService, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
+import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
 	QuoteErrorEvt,
 	QuoteErrorEvtPayload,
@@ -59,6 +59,9 @@ import {
 	QuoteQueryReceivedEvt,
 	QuoteQueryResponseEvt,
 	QuoteQueryResponseEvtPayload,
+	BulkQuoteRequestedEvt,
+	BulkQuoteReceivedEvt,
+	BulkQuoteReceivedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IExtensionList, Quote, QuoteStatus } from "./types";
@@ -66,6 +69,7 @@ import { IExtensionList, Quote, QuoteStatus } from "./types";
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
 	private readonly _quotesRepo: IQuoteRepo;
+	private readonly _bulkQuotesRepo: IBulkQuoteRepo;
 	private readonly _messageProducer: IMessageProducer;
 	private readonly _participantService: IParticipantService;
 	private readonly _accountLookupService: IAccountLookupService;
@@ -73,12 +77,14 @@ export class QuotingAggregate  {
 	constructor(
 		logger: ILogger,
 		quoteRegistry:IQuoteRepo,
+		bulkQuoteRegistry:IBulkQuoteRepo,
 		messageProducer:IMessageProducer,
 		participantService: IParticipantService,
 		accountLookupService: IAccountLookupService
 	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._quotesRepo = quoteRegistry;
+		this._bulkQuotesRepo = bulkQuoteRegistry;
 		this._messageProducer = messageProducer;
 		this._participantService = participantService;
 		this._accountLookupService = accountLookupService;
@@ -143,6 +149,9 @@ export class QuotingAggregate  {
 				break;
 			case QuoteQueryReceivedEvt.name:
 				eventToPublish = await this.handleQuoteQueryReceivedEvt(message as QuoteQueryReceivedEvt);
+				break;
+			case BulkQuoteRequestedEvt.name:
+				eventToPublish = await this.handleBulkQuoteRequestedEvt(message as BulkQuoteRequestedEvt);
 				break;
 			default:
 				this._logger.error(`message type has invalid format or value ${message.msgName}`);
@@ -332,6 +341,85 @@ export class QuotingAggregate  {
 		return event;
 	}
 	
+	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<any> {
+		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
+		
+		await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
+
+		let destinationFspIdToUse = message.fspiopOpaqueState.destinationFspId ?? message.payload.payer.partyIdInfo.fspId;
+
+		if(!destinationFspIdToUse){
+			this._logger.debug(`No destinationFspId found in message, trying to get it from account lookup service for payer: ${message.payload.payer.partyIdInfo.partyIdentifier}`);
+			destinationFspIdToUse = await this._accountLookupService.getAccountFspId(message.payload.payer.partyIdInfo.partyIdentifier, message.payload.payer.partyIdInfo.partyIdType, message.payload.payer.partyIdInfo.partySubIdOrType, null);
+			
+			if(destinationFspIdToUse){
+				this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspIdToUse}`);
+			}
+			else{
+				this._logger.error(`Unable to get destinationFspId from account lookup service for payer: ${message.payload.payer.partyIdInfo.partyIdentifier}`);
+			}
+		}
+
+		await this.validateParticipant(destinationFspIdToUse);
+
+		// const individualQuotes:Quote[] = [];
+
+		// for(let i=0 ; i<message.payload.individualQuotes.length ; i+=1){
+
+		// 	const individualQuote = message.payload.individualQuotes[i];
+
+		// 	const quote: Quote = {
+		// 		quoteId: individualQuote.quoteId,
+		// 		requesterFspId: message.fspiopOpaqueState.requesterFspId,
+		// 		destinationFspId: message.fspiopOpaqueState.destinationFspId,
+		// 		transactionId: individualQuote.transactionId,
+		// 		payee: individualQuote.payee as any,
+		// 		payer: individualQuote.payer as any,
+		// 		amountType: individualQuote.amountType,
+		// 		amount: individualQuote.amount,
+		// 		transactionType: individualQuote.transactionType,
+		// 		feesPayer: individualQuote.fees,
+		// 		transactionRequestId: individualQuote.transactionRequestId,
+		// 		geoCode: individualQuote.geoCode,
+		// 		note: individualQuote.note,
+		// 		expiration: individualQuote.expiration,
+		// 		extensionList: individualQuote.extensionList,
+		// 		payeeReceiveAmount: null,
+		// 		payeeFspFee: null,
+		// 		payeeFspCommission: null,
+		// 		status: QuoteStatus.PENDING,
+		// 		condition: null,
+		// 		totalTransferAmount: null,
+		// 		ilpPacket: null,
+		// 	};
+
+		// 	individualQuotes.push(quote);
+		// }
+
+		// await this._bulkQuotesRepo.addBulkQuote({
+		// 	...message.payload,
+		// 	...individualQuotes
+		// });
+
+		// const payload : BulkQuoteReceivedEvtPayload = {
+		// 	bulkQuoteId: message.payload.bulkQuoteId,
+		// 	payer: message.payload.payer,
+		// 	geoCode: message.payload.geoCode,
+		// 	note: message.payload.note,
+		// 	expiration: message.payload.expiration,
+		// 	individualQuotes: individualQuotes,
+		// 	extensionList: message.payload.extensionList
+		// };
+
+		// const event = new BulkQuoteReceivedEvt(payload);
+
+		// event.fspiopOpaqueState = message.fspiopOpaqueState;
+
+		// return event;
+		return;
+
+	}
+
 	private async validateParticipant(participantId: string | null):Promise<void>{
 		if(participantId){
 			const participant = await this._participantService.getParticipantInfo(participantId);

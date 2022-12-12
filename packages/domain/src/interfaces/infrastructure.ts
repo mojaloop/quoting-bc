@@ -33,7 +33,7 @@
 "use strict";
 
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import { Quote } from "../types";
+import { Quote, BulkQuote } from "../types";
 export interface IQuoteRepo {
     init(): Promise<void>;
 	destroy(): Promise<void>;
@@ -41,6 +41,15 @@ export interface IQuoteRepo {
     updateQuote(quote: Quote):Promise<void>;
     removeQuote(id: string):Promise<void>;
     getQuoteById(id:string):Promise<Quote|null>;
+}
+
+export interface IBulkQuoteRepo {
+    init(): Promise<void>;
+	destroy(): Promise<void>;
+    addBulkQuote(bulkQuote: BulkQuote):Promise<string>;
+    updateBulkQuote(bulkQuote: BulkQuote):Promise<void>;
+    removeBulkQuote(id: string):Promise<void>;
+    getBulkQuoteById(id:string):Promise<BulkQuote|null>;
 }
 
 export interface IParticipantService {
@@ -51,3 +60,4 @@ export interface IParticipantService {
 export interface IAccountLookupService {
     getAccountFspId(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null>;
 }
+

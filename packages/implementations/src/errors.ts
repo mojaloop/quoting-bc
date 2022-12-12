@@ -40,7 +40,7 @@
 
  "use strict";
 
-
+// Quotes
 export class QuoteTypeNotSupportedError extends Error {
   constructor(message?: string) {
     super(message || "Quote type not supported");
@@ -76,13 +76,54 @@ export class UnableToDeleteQuoteError extends Error {
     constructor(message?:string) {
         super(message || 'Unable to delete quote');
     }
-
 }
+
+// Bulk Quotes
+export class BulkQuoteTypeNotSupportedError extends Error {
+constructor(message?: string) {
+    super(message || "BulkQuote type not supported");
+}
+}
+export class UnableToAddBulkQuoteError extends Error {
+    constructor(message?: string) {
+        super(message || "Unable to add bulk quote");
+    }
+}
+
+export class UnableToUpdateBulkQuoteError extends Error {
+    constructor(message?: string) {
+        super(message || "Unable to update bulk quote");
+    }
+}
+export class NoSuchBulkQuoteError extends Error {
+    constructor(message?: string) {
+        super(message||"No such bulk quote");
+    }
+}
+export class UnableToGetBulkQuoteError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to get bulk quote');
+    }
+}   
+export class BulkQuoteAlreadyExistsError extends Error {
+    constructor(message?:string) {
+        super(message || 'BulkQuote already registered');
+    }
+}
+export class UnableToDeleteBulkQuoteError extends Error {
+    constructor(message?:string) {
+        super(message || 'Unable to delete bulk quote');
+    }
+}
+
+// Cache
 export class LocalCacheError extends Error {
     constructor(message?: string) {
         super(message || 'Unable to get local cache');
     }
 }
+
+// Database
 export class UnableToCloseDatabaseConnectionError extends Error{
     constructor(message?: string) {
         super(message || 'Unable to close database connection');
@@ -90,6 +131,11 @@ export class UnableToCloseDatabaseConnectionError extends Error{
 }
 
 export class UnableToInitQuoteRegistryError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to initialize quote registry');
+    }
+}
+export class UnableToInitBulkQuoteRegistryError extends Error {
     constructor(message?: string) {
         super(message || 'Unable to initialize quote registry');
     }

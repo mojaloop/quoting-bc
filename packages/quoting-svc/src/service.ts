@@ -32,13 +32,13 @@
 
  "use strict";
 
-import { QuotingAggregate, IQuoteRepo, IParticipantService, IAccountLookupService}  from "@mojaloop/quoting-bc-domain";
+import { QuotingAggregate, IQuoteRepo, IBulkQuoteRepo, IParticipantService, IAccountLookupService}  from "@mojaloop/quoting-bc-domain";
 import { IMessage, IMessageProducer, IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { MongoQuotesRepo, ParticipantAdapter, AccountLookupAdapter } from "@mojaloop/quoting-bc-implementations";
+import { MongoQuotesRepo, MongoBulkQuotesRepo, ParticipantAdapter, AccountLookupAdapter } from "@mojaloop/quoting-bc-implementations";
 
 // Global vars
 const BC_NAME = "quoting-bc";
@@ -67,11 +67,19 @@ const producerOptions : MLKafkaJsonProducerOptions = {
   
 };
 
-//Quotes
-const DB_NAME = process.env.QUOTING_DB_NAME ?? "quoting";
+// DB
+
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 
+// Quotes
+const DB_NAME_QUOTES = process.env.QUOTING_DB_NAME ?? "quoting";
+
 let quotesRepo: IQuoteRepo;
+
+// Bulk Quotes
+const DB_NAME_BULK_QUOTES = process.env.QUOTING_DB_NAME ?? "quoting";
+
+let bulkQuotesRepo: IBulkQuoteRepo;
 
 // Aggregate
 let aggregate: QuotingAggregate;
@@ -86,13 +94,13 @@ const ACCOUNT_LOOKUP_SVC_BASEURL = process.env["ACCOUNT_LOOKUP_SVC_BASEURL"] || 
 let accountLookupService: IAccountLookupService;
 
 export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer,
-    quoteRegistryParam?:IQuoteRepo, participantServiceParam?:IParticipantService, accountLookupServiceParam?:IAccountLookupService, aggregateParam?:QuotingAggregate,
+  quoteRegistryParam?:IQuoteRepo, bulkQuoteRegistryParam?:IBulkQuoteRepo, participantServiceParam?:IParticipantService, accountLookupServiceParam?:IAccountLookupService, aggregateParam?:QuotingAggregate,
   ):Promise<void> {
   console.log(`Quoting-svc - service starting with PID: ${process.pid}`);
 
   try{
     
-    await initExternalDependencies(loggerParam, messageConsumerParam, messageProducerParam, quoteRegistryParam, participantServiceParam, accountLookupServiceParam);
+    await initExternalDependencies(loggerParam, messageConsumerParam, messageProducerParam, quoteRegistryParam, bulkQuoteRegistryParam, participantServiceParam, accountLookupServiceParam);
 
     messageConsumer.setTopics([QuotingBCTopics.DomainRequests]);
     await messageConsumer.connect();
@@ -104,8 +112,11 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
 
     await quotesRepo.init();
     logger.info("Quote Registry Repo Initialized");
+    
+    await bulkQuotesRepo.init();
+    logger.info("Bulk Quote Registry Repo Initialized");
 
-    aggregate = aggregateParam ?? new QuotingAggregate(logger, quotesRepo,messageProducer, participantService, accountLookupService);    
+    aggregate = aggregateParam ?? new QuotingAggregate(logger, quotesRepo, bulkQuotesRepo, messageProducer, participantService, accountLookupService);    
     logger.info("Aggregate Initialized");
 
     const callbackFunction = async (message:IMessage):Promise<void> => {
@@ -123,7 +134,7 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
 }
 
 async function initExternalDependencies(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer, 
-    quoteRegistryParam?:IQuoteRepo, participantServiceParam?: IParticipantService, accountLookupServiceParam?: IAccountLookupService):Promise<void>  {
+    quoteRegistryParam?:IQuoteRepo, bulkQuoteRegistryParam?:IBulkQuoteRepo, participantServiceParam?: IParticipantService, accountLookupServiceParam?: IAccountLookupService):Promise<void>  {
 
     logger = loggerParam ?? new KafkaLogger(BC_NAME, APP_NAME, APP_VERSION,{kafkaBrokerList: KAFKA_URL}, KAFKA_LOGS_TOPIC,DEFAULT_LOGLEVEL);
     
@@ -132,7 +143,9 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
         logger.info("Kafka Logger Initialized");
     }
 
-    quotesRepo = quoteRegistryParam ?? new MongoQuotesRepo(logger,MONGO_URL, DB_NAME);
+    quotesRepo = quoteRegistryParam ?? new MongoQuotesRepo(logger,MONGO_URL, DB_NAME_QUOTES);
+
+    bulkQuotesRepo = bulkQuoteRegistryParam ?? new MongoBulkQuotesRepo(logger,MONGO_URL, DB_NAME_BULK_QUOTES);
 
     messageProducer = messageProducerParam ?? new MLKafkaJsonProducer(producerOptions, logger);
     
