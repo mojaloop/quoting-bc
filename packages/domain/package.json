@@ -31,14 +31,12 @@
     "dep:update": "npm exec ncu -- -u",
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix",
-    "test:unit": "jest --passWithNoTests --testMatch **/test/unit/**/*.test.ts ",
-    "test:integration": "jest --passWithNoTests --testMatch **/test/integration/**/*.test.ts",
-    "test:coverage": "jest --passWithNoTests --coverage --coverageThreshold='{}' --testMatch **/test/unit/**/*.test.ts",
-    "test:coverage-check": "jest --coverage --testMatch **/test/unit/**/*.test.ts"
+    "test:unit": "jest --passWithNoTests --testMatch **/test/unit/**/*.test.ts "
   },
   "dependencies": {
     "@mojaloop/logging-bc-public-types-lib": "^0.1.13",
     "@mojaloop/platform-shared-lib-messaging-types-lib": "^0.2.24",
-    "@mojaloop/platform-shared-lib-public-messages-lib": "^0.1.24"
+    "@mojaloop/platform-shared-lib-public-messages-lib": "^0.1.24",
+    "@mojaloop/quoting-shared-mocks":"*"
   }
 }

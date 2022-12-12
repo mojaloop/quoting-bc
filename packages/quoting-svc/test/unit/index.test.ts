@@ -33,7 +33,7 @@
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { start, stop } from "../../src/service";
-import { MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRegistry, MemoryAccountLookupService } from "@mojaloop/quoting-shared-mocks";
+import { MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, MemoryAccountLookupService } from "@mojaloop/quoting-shared-mocks";
 import { IParticipantService, IQuoteRepo, QuotingAggregate } from "@mojaloop/quoting-bc-domain";
 
 const logger: ILogger = new ConsoleLogger();
@@ -45,13 +45,13 @@ const mockedConsumer : IMessageConsumer = new MemoryMessageConsumer();
 
 const mockedParticipantService: IParticipantService = new MemoryParticipantService(logger);
 
-const mockedQuotingRegistry: IQuoteRepo = new MemoryQuoteRegistry(logger);
+const mockedQuoteRepository: IQuoteRepo = new MemoryQuoteRepo(logger);
 
 const mockedAccountLookupService = new MemoryAccountLookupService(logger);
 
 const mockedAggregate: QuotingAggregate = new QuotingAggregate(
     logger,
-    mockedQuotingRegistry,
+    mockedQuoteRepository,
     mockedProducer,
     mockedParticipantService,
     mockedAccountLookupService
@@ -74,10 +74,10 @@ describe("Quoting Service", () => {
         const spyConsumerStart = jest.spyOn(mockedConsumer, "connect");
         const spyConsumerCallback = jest.spyOn(mockedConsumer, "setCallbackFn");
         const spyProducerInit = jest.spyOn(mockedProducer, "connect");
-        const spyQuoteRegistryInit = jest.spyOn(mockedQuotingRegistry, "init");
+        const spyQuoteRegistryInit = jest.spyOn(mockedQuoteRepository, "init");
      
         // Act
-        await start(logger,mockedConsumer, mockedProducer,mockedQuotingRegistry, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
+        await start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
 
         // Assert
         expect(spyConsumerSetTopics).toBeCalledTimes(1); 
@@ -93,8 +93,8 @@ describe("Quoting Service", () => {
         // Arrange
         const spyConsumerDestroy = jest.spyOn(mockedConsumer, "destroy");
         const spyProducerDestroy = jest.spyOn(mockedProducer, "destroy");
-        const spyQuoteRegistryDestroy = jest.spyOn(mockedQuotingRegistry, "destroy");
-        await start(logger,mockedConsumer, mockedProducer,mockedQuotingRegistry, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
+        const spyQuoteRegistryDestroy = jest.spyOn(mockedQuoteRepository, "destroy");
+        await start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
 
         // Act
         await stop();

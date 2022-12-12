@@ -63,7 +63,7 @@ export interface IParty {
     merchantClassificationCode: string | null;
     name: string | null;
     personalInfo: IPartyPersonalInfo | null;
-};
+}
 
 export interface IMoney {
     currency: string;

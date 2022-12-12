@@ -29,9 +29,10 @@
 
  --------------
  **/
- "use strict";
 
- import {
+"use strict";
+
+import {
 	Collection,
 	Document,
 	MongoClient,
@@ -39,7 +40,7 @@
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError } from '../errors';
-import { IQuoteRepo, NonExistingQuoteError, Quote } from "@mojaloop/quoting-bc-domain";
+import { IQuoteRepo, Quote } from "@mojaloop/quoting-bc-domain";
 import { randomUUID } from 'crypto';
 
 export class MongoQuotesRepo implements IQuoteRepo {
@@ -102,7 +103,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 		const existingQuote = await this.getQuoteById(quote.quoteId);
 
 		if(!existingQuote || !existingQuote.quoteId) {
-			throw new NonExistingQuoteError("Quote doesn't exist");
+			throw new NoSuchQuoteError();
 		}
 
 		const updatedQuote: Quote = {...existingQuote, ...quote};

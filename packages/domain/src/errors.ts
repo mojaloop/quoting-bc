@@ -45,9 +45,21 @@ export class DuplicateQuoteError extends Error {
     }
 }
  
-export class NonExistingQuoteError extends Error {
+export class NoSuchQuoteError extends Error {
     constructor(message?: string) {
         super(message || "Quote doesn't exist");
+    }
+}
+
+export class InvalidRequesterFspIdError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid requester fsp id");
+    }
+}
+
+export class InvalidDestinationFspIdError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid destination fsp id");
     }
 }
  
@@ -68,7 +80,7 @@ export class UnableToProcessMessageError extends Error {
     }
 }
 
-// Participant Service
+// Participant Adapter
 export class NoSuchParticipantError extends Error {
     constructor(message?: string) {
         super(message || "No participant found");
