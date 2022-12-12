@@ -34,7 +34,7 @@
 
 import { Quote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
 
-const mockedQuote1 : Quote = {
+export const mockedQuote1 : Quote = {
     requesterFspId: "1",
     destinationFspId: "10",
     quoteId: "1",
@@ -131,7 +131,7 @@ const mockedQuote1 : Quote = {
     }
 };
 
-const mockedQuote2 : Quote = {
+export const mockedQuote2 : Quote = {
   requesterFspId: "2",
   destinationFspId: "11",
   quoteId: "2",
@@ -228,7 +228,7 @@ const mockedQuote2 : Quote = {
   }
 };
 
-const mockedQuote3 : Quote = {
+export const mockedQuote3 : Quote = {
   requesterFspId: "3",
   destinationFspId: "12",
   quoteId: "3",
@@ -325,7 +325,7 @@ const mockedQuote3 : Quote = {
   }
 };
 
-const mockedQuote4 : Quote = {
+export const mockedQuote4 : Quote = {
   requesterFspId: "4",
   destinationFspId: "13",
   quoteId: "4",

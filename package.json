@@ -26,14 +26,14 @@
     "lint:fix": "npm -ws --parallel run lint:fix",
     "test": "npm run test:unit",
     "test:unit": "npm -ws --if-present run test:unit",
+    "test:integration": "jest --runInBand --forceExit --detectOpenHandles --testPathPattern=integration",  
     "posttest": "npm run coverage:merge && npm run coverage:gen-report",
     "coverage:merge": "nyc merge ./coverage/ ./coverage/coverage.json",
     "coverage:gen-report": "nyc report --reporter=lcov --temp-dir=./coverage",
     "audit:check": "npm audit",
     "audit:resolve": "npm audit fix",
     "dep:check": "ncu -e 2 && npm -ws --parallel run dep:check",
-    "dep:update": "ncu -e 2 -u && npm -ws --parallel run dep:update",
-    "test:integration": "jest --passWithNoTests --testMatch '**/test/integration/**/*.test.ts'"
+    "dep:update": "ncu -e 2 -u && npm -ws --parallel run dep:update"
   },
   "devDependencies": {
     "@types/jest": "^29.2.2",
@@ -43,6 +43,7 @@
     "eslint": "^8.27.0",
     "husky": "^8.0.2",
     "jest": "^29.3.1",
+    "mongodb": "^4.10.0",
     "nyc": "^15.1.0",
     "npm-check-updates": "^16.3.25",
     "ts-jest": "^29.0.3",

@@ -33,7 +33,7 @@ import { AccountLookupHttpClient } from "@mojaloop/account-lookup-bc-client-lib"
 import { IAccountLookupService } from "@mojaloop/quoting-bc-domain";
 import { ILocalCache, LocalCache } from "../local_cache";
 
-export class AccountLookupClient implements IAccountLookupService {
+export class AccountLookupAdapter implements IAccountLookupService {
 	private readonly _logger: ILogger;
 	private readonly _localCache: ILocalCache;
 	private readonly _clientBaseUrl: string;

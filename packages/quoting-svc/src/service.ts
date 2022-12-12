@@ -38,7 +38,7 @@ import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonConsumerOptions, MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { MongoQuotesRepo, ParticipantClient, AccountLookupClient } from "@mojaloop/quoting-bc-implementations";
+import { MongoQuotesRepo, ParticipantAdapter, AccountLookupAdapter } from "@mojaloop/quoting-bc-implementations";
 
 // Global vars
 const BC_NAME = "quoting-bc";
@@ -138,9 +138,9 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
     
     messageConsumer = messageConsumerParam ?? new MLKafkaJsonConsumer(consumerOptions, logger);
 
-    participantService = participantServiceParam ?? new ParticipantClient(logger, PARTICIPANT_SVC_BASEURL, fixedToken);
+    participantService = participantServiceParam ?? new ParticipantAdapter(logger, PARTICIPANT_SVC_BASEURL, fixedToken);
 
-    accountLookupService = accountLookupServiceParam ?? new AccountLookupClient(logger, ACCOUNT_LOOKUP_SVC_BASEURL, fixedToken);
+    accountLookupService = accountLookupServiceParam ?? new AccountLookupAdapter(logger, ACCOUNT_LOOKUP_SVC_BASEURL, fixedToken);
 }
 
 

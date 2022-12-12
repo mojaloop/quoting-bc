@@ -34,7 +34,7 @@ import { Participant } from "@mojaloop/participant-bc-public-types-lib";
 import { IParticipantService } from "@mojaloop/quoting-bc-domain";
 import { ILocalCache, LocalCache } from "../local_cache";
 
-export class ParticipantClient implements IParticipantService {
+export class ParticipantAdapter implements IParticipantService {
 	private readonly _logger: ILogger;
 	private readonly _localCache: ILocalCache;
 	private readonly _clientBaseUrl: string;

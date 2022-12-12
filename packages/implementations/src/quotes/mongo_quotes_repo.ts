@@ -46,7 +46,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 	private readonly _logger: ILogger;
 	private readonly _connectionString: string;
 	private readonly _dbName;
-	private readonly _collectionName = "quotes_repo";
+	private readonly _collectionName = "quotes";
 	private mongoClient: MongoClient;
 	private quotes: Collection;
 
@@ -106,6 +106,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 		}
 
 		const updatedQuote: Quote = {...existingQuote, ...quote};
+		updatedQuote.quoteId = existingQuote.quoteId;
 			
 		try {
 			await this.quotes.updateOne({
@@ -144,8 +145,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 	private async checkIfQuoteExists(quote: Quote) {
 		const quoteAlreadyPresent: WithId<Document> | null = await this.quotes.findOne(
 			{
-				quoteId: quote.quoteId,
-				transactionId: quote.transactionId
+				quoteId: quote.quoteId
 			}
 		).catch((e: any) => {
 			this._logger.error(`Unable to add quote: ${e.message}`);

@@ -28,262 +28,187 @@
  - Rui Rocha <rui.rocha@arg.software>
 
  --------------
- **/
+**/
 
- "use strict";
+"use strict";
 
- import { ILogger,ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
- import { MongoOracleFinderRepo, OracleAlreadyRegisteredError } from "@mojaloop/account-lookup-bc-implementations";
- import { NoSuchOracleError, Oracle } from "@mojaloop/account-lookup-bc-domain";
- import { MongoClient, Collection } from "mongodb";
+import { ILogger,ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
+import {  MongoQuotesRepo, NoSuchQuoteError, QuoteAlreadyExistsError } from "@mojaloop/quoting-bc-implementations";
+//  import { NoSuchOracleError, Oracle } from "@mojaloop/quoting-bc-domain";
+import { MongoClient, Collection } from "mongodb";
+import { mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4 } from "@mojaloop/quoting-shared-mocks";
+import { NonExistingQuoteError } from "@mojaloop/quoting-bc-domain";
+
+const logger: ILogger = new ConsoleLogger();
+logger.setLogLevel(LogLevel.FATAL);
  
- const logger: ILogger = new ConsoleLogger();
- logger.setLogLevel(LogLevel.FATAL);
+const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
+//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
+const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://localhost:27017/";
+const COLLECTION_NAME = "quotes";
  
- const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
- const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
- // const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://localhost:27017/";
- const COLLECTION_NAME = "oracles";
+let mongoQuotesRepo : MongoQuotesRepo;
  
- let oracleFinder : MongoOracleFinderRepo;
+let mongoClient: MongoClient;
+let collection : Collection;
+const connectionString = `${CONNECTION_STRING}/${DB_NAME}`;
  
- let mongoClient: MongoClient;
- let collection : Collection;
- const connectionString = `${CONNECTION_STRING}/${DB_NAME}`;
+describe("Implementations - Mongo Quotes Repo Integration tests", () => {
  
- describe("Infrastructure - Oracle Finder Integration tests", () => {
+    beforeAll(async () => {
+        mongoClient = await MongoClient.connect(connectionString);
+        collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
+        mongoQuotesRepo = new MongoQuotesRepo(logger, CONNECTION_STRING, DB_NAME);
+        await mongoQuotesRepo.init();
+        await collection.deleteMany({});
+    });
  
-     beforeAll(async () => {
-         mongoClient = await MongoClient.connect(connectionString);
-         collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
-         oracleFinder = new MongoOracleFinderRepo(logger, CONNECTION_STRING, DB_NAME);
-         await oracleFinder.init();
-     });
+    afterEach(async () => {
+        await collection.deleteMany({});
+
+    });
  
-     afterEach(async () => {
-       await collection.deleteMany({});
-     });
+    afterAll(async () => {
+        await collection.deleteMany({});
+        await mongoQuotesRepo.destroy();
+        await mongoClient.close();
+    });
  
-     afterAll(async () => {
-         await oracleFinder.destroy();
-         await mongoClient.close();
-     });
+    test("should be able to init mongo quotes repo", async () => {
+        expect(mongoQuotesRepo).toBeDefined();
+    });
  
-     test("should be able to init the builtin oracle finder", async () => {
-         expect(oracleFinder).toBeDefined();
-     });
- 
- 
-     test("should return an empty array if there are no oracles in the database", async () => {
-         // Act
-         const oracles = await oracleFinder.getAllOracles();
+    test("should throw error when is unable to init quotes repo", async () => {
+        // Arrange
+        const badMongoRepository = new MongoQuotesRepo(logger, "invalid connection", "invalid_db_name");
          
-         // Assert
-         expect(oracles).toEqual([]);
-     });
+        // Act
+        await expect(badMongoRepository.init()).rejects.toThrowError();
  
-     test("should throw error when is unable to init oracle finder", async () => {
-         // Arrange
-         const badOracleFinder = new MongoOracleFinderRepo(logger, "invalid connection", "invalid_db_name");
+    });
+ 
+    test("should throw error when is unable to destroy mongo quote repo", async () => {
+        // Arrange
+        const badMongoRepository = new MongoQuotesRepo(logger, "invalid connection", "invalid_db_name");
          
-         // Act
-         await expect(badOracleFinder.init()).rejects.toThrowError();
+        // Act
+        await expect(badMongoRepository.destroy()).rejects.toThrowError();
+    });
  
-     });
+    test("should insert a quote in the database", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
  
-     test("should throw error when is unable to destroy oracle finder", async () => {
-         // Arrange
-         const badOracleFinder = new MongoOracleFinderRepo(logger, "invalid connection", "invalid_db_name");
- 
-         // Act
-         await expect(badOracleFinder.destroy()).rejects.toThrowError();
-     });
- 
-     test("should insert remote and builtin oracles in the database", async () => {
-         // Arrange
-         const builtInOracle: Oracle = {
-             id: "testOracleId1",
-             endpoint: null,
-             name: "testName",
-             partyType: "testPartyType",
-             type: "builtin",
-             partySubType: "testPartySubType",
-         };
- 
-         const remoteOracle: Oracle = {
-             id: "testOracleId2",
-             endpoint: "testEndpoint",
-             name: "testName",
-             partyType: "testPartyType",
-             type: "remote-http",
-             partySubType: "testPartySubType",
-         };
- 
-         // Act
-         await oracleFinder.addOracle(builtInOracle);
-         await oracleFinder.addOracle(remoteOracle);
- 
-         // Assert
-         const oracles = await oracleFinder.getAllOracles();
-         expect(oracles[0].id).toEqual(builtInOracle.id);
-         expect(oracles[0].name).toEqual(builtInOracle.name);
-         expect(oracles[0].type==="builtin").toBeTruthy();
-         expect(oracles[1].id).toEqual(remoteOracle.id);
-         expect(oracles[1].name).toEqual(remoteOracle.name);
-         expect(oracles[1].type==="remote-http").toBeTruthy();
+        // Act
+        const quoteId = await mongoQuotesRepo.addQuote(quote1);
+
+        // Assert
+        expect(quoteId).toBeDefined();
+        expect(quoteId).toEqual(quote1.quoteId);
          
-     });
- 
-     test("should return error if oracle is already registered", async () => {
-         // Arrange
-         const oracle: Oracle = {
-             id: "testOracleId1",
-             endpoint: null,
-             name: "testName",
-             partyType: "testPartyType",
-             type: "builtin",
-             partySubType: "testPartySubType",
-         };
- 
-         await oracleFinder.addOracle(oracle);
- 
-         // Act && Assert
-         await expect(oracleFinder.addOracle(oracle)).rejects.toThrow(OracleAlreadyRegisteredError);
-     });
- 
-     test("should return an oracle by its id", async () => {
-         // Arrange
-         const oracle: Oracle = {
-             id: "testOracleId3",
-             endpoint: "testEndpoint",
-             name: "testName",
-             partyType: "testPartyType",
-             type: "remote-http",
-             partySubType: "testPartySubType",
-         };
- 
-         // Act
-         await oracleFinder.addOracle(oracle);
-         const oracleById = await oracleFinder.getOracleById(oracle.id);
- 
-         // Assert
-         expect(oracleById?.id).toEqual(oracle.id);
- 
-     });
- 
-     test("should return null if no oracle it's found by its id", async () => {
-         // Act
-         const oracleById = await oracleFinder.getOracleById("nonExistingOracleId");
- 
-         // Assert
-         expect(oracleById).toBeNull();
-     });
- 
-     test("should return an oracle by its name", async () => {
-         //Arrange
-         const oracle: Oracle = {
-             id: "testOracleId4",
-             endpoint: "testEndpoint",
-             name: "testName",
-             partyType: "testPartyType",
-             type: "remote-http",
-             partySubType: "testPartySubType",
-         };
- 
-         //Act
-         await oracleFinder.addOracle(oracle);
-         const oracleFound = await oracleFinder.getOracleByName(oracle.name);
- 
-         //Assert
-         expect(oracleFound?.name).toEqual(oracle.name);
- 
-     });
- 
-     test("should return null if there are no oracles with the given name", async () => {
-         //Arrange
-         const oracle: Oracle = {
-             id: "testOracleId7",
-             endpoint: "testEndpoint",
-             name: "testName",
-             partyType: "testPartyType",
-             type: "remote-http",
-             partySubType: "testPartySubType",
-         };
- 
-         //Act
-         await oracleFinder.addOracle(oracle);
-         const oracleFound = await oracleFinder.getOracleByName("non existing name");
- 
-         //Assert
-         expect(oracleFound).toEqual(null);
- 
-     });
- 
-     test("should return an oracle by its party type and party sub type", async () => {
-         //Arrange
-         const oracle: Oracle = {
-             id: "testOracleId5",
-             endpoint: "testEndpoint",
-             name: "testName",
-             partyType: "testPartyType",
-             type: "remote-http",
-             partySubType: "testPartySubType",
-         };
- 
-         //Act
-         await oracleFinder.addOracle(oracle);
-         const oracleFound = await oracleFinder.getOracle(oracle.partyType, oracle.partySubType);
- 
-         //Assert
-         expect(oracleFound?.id).toEqual(oracle.id);
-         expect(oracleFound?.partyType).toEqual(oracle.partyType);
-         expect(oracleFound?.partySubType).toEqual(oracle.partySubType);
- 
-     });
- 
-     test("should throw error if there are no oracles with the given party type and party sub type", async () => {
+    });
+
+    test("should throw error when trying to insert a quote with an existing id", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+        const quote2 = mockedQuote2;
+
+        // Act
+        await mongoQuotesRepo.addQuote(quote1);
+
+        // Assert
+        await expect(mongoQuotesRepo.addQuote(quote1)).rejects.toThrowError(QuoteAlreadyExistsError);
+
+    });
+
+    test("should throw an error when trying to update a quote that does not exist", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+
+        // Act && Assert
+        await expect(mongoQuotesRepo.updateQuote(quote1)).rejects.toThrowError(NonExistingQuoteError);
+
+    });
+
+    test("should update a quote in the database", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+        const newQuote = mockedQuote2;
+        await mongoQuotesRepo.addQuote(quote1);
+        newQuote.quoteId = quote1.quoteId;
         
-         //Act && Assert
-         await expect(oracleFinder.getOracle("nonExistingOracleType","nonExistingOracleSubType")).rejects.toThrow(NoSuchOracleError);
- 
-     });
- 
-     test("should be able to delete an oracle by its id", async () => {
-         //Arrange
-         const oracle: Oracle = {
-             id: "testOracleId8",
-             endpoint: "testEndpoint",
-             name: "testName",
-             partyType: "testPartyType",
-             type: "remote-http",
-             partySubType: "testPartySubType",
-         };
- 
-         //Act
-         await oracleFinder.addOracle(oracle);
-         await oracleFinder.removeOracle(oracle.id);
-         
-         //Assert
-         const oracles = await oracleFinder.getAllOracles();
-         expect(oracles).toEqual([]);
-     });
- 
-     test("should throw error if the oracle to be deleted does not exist", async () => {
-         //Arrange
-         const oracle: Oracle = {
-             id: "testOracleId9",
-             endpoint: "testEndpoint",
-             name: "testName",
-             partyType: "testPartyType",
-             type: "remote-http",
-             partySubType: "testPartySubType",
-         };
- 
-         //Act && Assert
-         await oracleFinder.addOracle(oracle);
-         await expect(oracleFinder.removeOracle("nonExistingOracleId")).rejects.toThrow(NoSuchOracleError);
-     });
- 
+        // Act
+        await mongoQuotesRepo.updateQuote(newQuote);
+
+        // Assert
+        const result = await mongoQuotesRepo.getQuoteById(newQuote.quoteId);
+        expect(result).toBeDefined();
+        expect(result).toEqual(newQuote);
+    });
+
+    test("should update a quote partially in the database", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+        const newPayee = mockedQuote2.payee;
+        const newQuote = mockedQuote2;
+        newQuote.payee = newPayee;
+
+        await mongoQuotesRepo.addQuote(quote1);
+        
+        // Act
+        await mongoQuotesRepo.updateQuote(newQuote);
+
+        // Assert
+        const result = await mongoQuotesRepo.getQuoteById(newQuote.quoteId);
+        expect(result).toBeDefined();
+        expect(result?.payee).toEqual(newPayee);
+    });
+
+    test("should return null when a quote that does not exist", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+
+        // Act
+        const result = await mongoQuotesRepo.getQuoteById(quote1.quoteId);
+
+        // Assert
+        expect(result).toBeNull();
+    });
+
+    test("should return a quote when it exists", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+        await mongoQuotesRepo.addQuote(quote1);
+
+        // Act
+        const result = await mongoQuotesRepo.getQuoteById(quote1.quoteId);
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result).toEqual(quote1);
+    });
+
+    test("should throw error when trying to delete a quote that does not exist", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+
+        // Act && Assert
+        await expect(mongoQuotesRepo.removeQuote(quote1.quoteId)).rejects.toThrowError(NoSuchQuoteError);
+
+    });
+
+    test("should delete a quote in the database", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+        await mongoQuotesRepo.addQuote(quote1);
+
+        // Act
+        await mongoQuotesRepo.removeQuote(quote1.quoteId);
+
+        // Assert
+        const result = await mongoQuotesRepo.getQuoteById(quote1.quoteId);
+        expect(result).toBeNull();
+    });
      
  });
  
