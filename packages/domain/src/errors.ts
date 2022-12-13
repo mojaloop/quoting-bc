@@ -62,6 +62,12 @@ export class InvalidDestinationFspIdError extends Error {
         super(message || "Invalid destination fsp id");
     }
 }
+
+export class InvalidDestinationPartyInformationError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid destination party information");
+    }
+}
  
 // Message Producer
 export class InvalidMessagePayloadError extends Error {
