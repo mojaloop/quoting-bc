@@ -28,12 +28,10 @@
  - Rui Rocha <rui.rocha@arg.software>
 
  --------------
- **/
+**/
 
 "use strict";
 
-
- // Logger.
 import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import { IMessage, IMessageProducer, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
@@ -47,30 +45,15 @@ import {IMoney, Quote, QuoteStatus} from '../../src/types';
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
 
-const quoteRepo: IQuoteRepo = new MemoryQuoteRepo(
-    logger,
-);
+const quoteRepo: IQuoteRepo = new MemoryQuoteRepo(logger,);
 
-const messageProducer: IMessageProducer = new MemoryMessageProducer(
-    logger,
-);
+const messageProducer: IMessageProducer = new MemoryMessageProducer(logger);
 
-const participantService: IParticipantService = new MemoryParticipantService(
-    logger,
-);
+const participantService: IParticipantService = new MemoryParticipantService(logger);
 
-const accountLookupService: IAccountLookupService = new MemoryAccountLookupService(
-    logger,
-);
+const accountLookupService: IAccountLookupService = new MemoryAccountLookupService(logger);
 
-// Domain.
-const aggregate: QuotingAggregate = new QuotingAggregate(
-    logger,
-    quoteRepo,
-    messageProducer,
-    participantService,
-    accountLookupService,
-);
+const aggregate: QuotingAggregate = new QuotingAggregate(logger,quoteRepo,messageProducer,participantService,accountLookupService);
 
 describe("Domain - Unit Tests for event handler", () => {
        
@@ -81,7 +64,6 @@ describe("Domain - Unit Tests for event handler", () => {
     afterAll(async () => {
         jest.clearAllMocks();
     });
-
     
     //#region Publish Event
     test("should publish error message if payload is invalid", async () => {
@@ -113,24 +95,8 @@ describe("Domain - Unit Tests for event handler", () => {
     test("should publish error message if message Name is invalid", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteRequestReceivedEvtPayload = {
-            amount: mockedQuote.amount,
-            expiration: mockedQuote.expiration,
-            geoCode: mockedQuote.geoCode,
-            payee: mockedQuote.payee,
-            payer: mockedQuote.payer,
-            quoteId: mockedQuote.quoteId,
-            transactionId: mockedQuote.transactionId,
-            amountType: mockedQuote.amountType,
-            note: mockedQuote.note,
-            extensionList: mockedQuote.extensionList,
-            fees: {
-                amount: "2",
-                currency: "USD",
-            },
-            transactionType: mockedQuote.transactionType,
-            transactionRequestId: mockedQuote.transactionRequestId,
-        }
+
+        const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
         const message: IMessage = createMessage(payload, "fake msg name", null);
 
@@ -156,28 +122,11 @@ describe("Domain - Unit Tests for event handler", () => {
 
     });
 
-
     test("should publish error message if message Type is invalid", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteRequestReceivedEvtPayload = {
-            amount: mockedQuote.amount,
-            expiration: mockedQuote.expiration,
-            geoCode: mockedQuote.geoCode,
-            payee: mockedQuote.payee,
-            payer: mockedQuote.payer,
-            quoteId: mockedQuote.quoteId,
-            transactionId: mockedQuote.transactionId,
-            amountType: mockedQuote.amountType,
-            note: mockedQuote.note,
-            extensionList: mockedQuote.extensionList,
-            fees: {
-                amount: "2",
-                currency: "USD",
-            },
-            transactionType: mockedQuote.transactionType,
-            transactionRequestId: mockedQuote.transactionRequestId,
-        }
+
+        const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
         const message: IMessage = {
             fspiopOpaqueState: "fake opaque state",
@@ -214,34 +163,16 @@ describe("Domain - Unit Tests for event handler", () => {
 
     });
 
-
     test("should publish opaque state when publishing error event", async () => {
         const mockedQuote = mockedQuote1;
-        const payload:QuoteRequestReceivedEvtPayload = {
-            amount: mockedQuote.amount,
-            expiration: mockedQuote.expiration,
-            geoCode: mockedQuote.geoCode,
-            payee: mockedQuote.payee,
-            payer: mockedQuote.payer,
-            quoteId: mockedQuote.quoteId,
-            transactionId: mockedQuote.transactionId,
-            amountType: mockedQuote.amountType,
-            note: mockedQuote.note,
-            extensionList: mockedQuote.extensionList,
-            fees: {
-                amount: "2",
-                currency: "USD",
-            },
-            transactionType: mockedQuote.transactionType,
-            transactionRequestId: mockedQuote.transactionRequestId,
-        }
+
+        const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
         const fspiopOpaqueState = {
             "state": "fake opaque state",
         }
 
         const message: IMessage = createMessage(payload, QuoteResponseReceivedEvt.name,fspiopOpaqueState);
-
 
         jest.spyOn(messageProducer, "send");
 
@@ -258,21 +189,7 @@ describe("Domain - Unit Tests for event handler", () => {
     test("should publish opaque state when publishing successful event", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteRequestReceivedEvtPayload = {
-            amount: mockedQuote.amount,
-            expiration: mockedQuote.expiration,
-            geoCode: mockedQuote.geoCode,
-            payee: mockedQuote.payee,
-            payer: mockedQuote.payer,
-            quoteId: mockedQuote.quoteId,
-            transactionId: mockedQuote.transactionId,
-            amountType: mockedQuote.amountType,
-            note: mockedQuote.note,
-            extensionList: mockedQuote.extensionList,
-            fees: mockedQuote.feesPayer,
-            transactionType: mockedQuote.transactionType,
-            transactionRequestId: mockedQuote.transactionRequestId,
-        }
+        const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
         const requesterFspId = "payer";
         const destinationFspId = "payee";
@@ -299,31 +216,14 @@ describe("Domain - Unit Tests for event handler", () => {
         expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
             "fspiopOpaqueState": fspiopOpaqueState,
            }));
-
     });
-
-
     //#endregion
 
     //#region handleQuoteRequestReceivedEvt
 
     test("handleQuoteRequestReceivedEvt - should publish error message if participant is invalid", async () => {
         const mockedQuote = mockedQuote1;
-        const payload:QuoteRequestReceivedEvtPayload = {
-            amount: mockedQuote.amount,
-            expiration: mockedQuote.expiration,
-            geoCode: mockedQuote.geoCode,
-            payee: mockedQuote.payee,
-            payer: mockedQuote.payer,
-            quoteId: mockedQuote.quoteId,
-            transactionId: mockedQuote.transactionId,
-            amountType: mockedQuote.amountType,
-            note: mockedQuote.note,
-            extensionList: mockedQuote.extensionList,
-            fees: mockedQuote.feesPayer,
-            transactionType: mockedQuote.transactionType,
-            transactionRequestId: mockedQuote.transactionRequestId,
-        }
+        const payload: QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
         const requesterFspId = "payer";
         const destinationFspId = "payee";
@@ -362,21 +262,7 @@ describe("Domain - Unit Tests for event handler", () => {
     test("handleQuoteRequestReceivedEvt - should call getAccountFspId if fspId not provided", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteRequestReceivedEvtPayload = {
-            amount: mockedQuote.amount,
-            expiration: mockedQuote.expiration,
-            geoCode: mockedQuote.geoCode,
-            payee: mockedQuote.payee,
-            payer: mockedQuote.payer,
-            quoteId: mockedQuote.quoteId,
-            transactionId: mockedQuote.transactionId,
-            amountType: mockedQuote.amountType,
-            note: mockedQuote.note,
-            extensionList: mockedQuote.extensionList,
-            fees: mockedQuote.feesPayer,
-            transactionType: mockedQuote.transactionType,
-            transactionRequestId: mockedQuote.transactionRequestId,
-        }
+        const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
         payload.payee.partyIdInfo.fspId = null;
 
@@ -407,21 +293,7 @@ describe("Domain - Unit Tests for event handler", () => {
     test("handleQuoteRequestReceivedEvt - should add quote to quote repo", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteRequestReceivedEvtPayload = {
-            amount: mockedQuote.amount,
-            expiration: mockedQuote.expiration,
-            geoCode: mockedQuote.geoCode,
-            payee: mockedQuote.payee,
-            payer: mockedQuote.payer,
-            quoteId: mockedQuote.quoteId,
-            transactionId: mockedQuote.transactionId,
-            amountType: mockedQuote.amountType,
-            note: mockedQuote.note,
-            extensionList: mockedQuote.extensionList,
-            fees: mockedQuote.feesPayer,
-            transactionType: mockedQuote.transactionType,
-            transactionRequestId: mockedQuote.transactionRequestId,
-        }
+        const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
         payload.payee.partyIdInfo.fspId = null;
 
@@ -458,21 +330,7 @@ describe("Domain - Unit Tests for event handler", () => {
     test("handleQuoteRequestReceivedEvt - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteRequestReceivedEvtPayload = {
-            amount: mockedQuote.amount,
-            expiration: mockedQuote.expiration,
-            geoCode: mockedQuote.geoCode,
-            payee: mockedQuote.payee,
-            payer: mockedQuote.payer,
-            quoteId: mockedQuote.quoteId,
-            transactionId: mockedQuote.transactionId,
-            amountType: mockedQuote.amountType,
-            note: mockedQuote.note,
-            extensionList: mockedQuote.extensionList,
-            fees: mockedQuote.feesPayer,
-            transactionType: mockedQuote.transactionType,
-            transactionRequestId: mockedQuote.transactionRequestId,
-        }
+        const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
         const requesterFspId = "payer";
         const destinationFspId = "payee";
@@ -526,18 +384,7 @@ describe("Domain - Unit Tests for event handler", () => {
     test("handleQuoteResponseReceivedEvt - should send error event if requesterFspId not valid", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteResponseReceivedEvtPayload = {
-            expiration: mockedQuote.expiration as string ,
-            geoCode: mockedQuote.geoCode,
-            quoteId: mockedQuote.quoteId,
-            extensionList: mockedQuote.extensionList,
-            condition: mockedQuote.condition as string,
-            ilpPacket: mockedQuote.ilpPacket as string,
-            transferAmount: mockedQuote.totalTransferAmount as IMoney,
-            payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
-            payeeFspFee: mockedQuote.payeeFspFee as IMoney,
-            payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
-        };
+        const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
 
         const message: IMessage = createMessage(payload, QuoteResponseReceivedEvt.name, null);
 
@@ -566,18 +413,8 @@ describe("Domain - Unit Tests for event handler", () => {
     test("handleQuoteResponseReceivedEvt - should send error event if destinationFspId not valid", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteResponseReceivedEvtPayload = {
-            expiration: mockedQuote.expiration as string ,
-            geoCode: mockedQuote.geoCode,
-            quoteId: mockedQuote.quoteId,
-            extensionList: mockedQuote.extensionList,
-            condition: mockedQuote.condition as string,
-            ilpPacket: mockedQuote.ilpPacket as string,
-            transferAmount: mockedQuote.totalTransferAmount as IMoney,
-            payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
-            payeeFspFee: mockedQuote.payeeFspFee as IMoney,
-            payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
-        };
+
+        const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
 
         const fspiopOpaqueState = {
             requesterFspId: "payer",
@@ -609,18 +446,7 @@ describe("Domain - Unit Tests for event handler", () => {
     test("handleQuoteResponseReceivedEvt - should send error event if couldnt validate requester participant", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteResponseReceivedEvtPayload = {
-            expiration: mockedQuote.expiration as string ,
-            geoCode: mockedQuote.geoCode,
-            quoteId: mockedQuote.quoteId,
-            extensionList: mockedQuote.extensionList,
-            condition: mockedQuote.condition as string,
-            ilpPacket: mockedQuote.ilpPacket as string,
-            transferAmount: mockedQuote.totalTransferAmount as IMoney,
-            payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
-            payeeFspFee: mockedQuote.payeeFspFee as IMoney,
-            payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
-        };
+        const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
 
         const fspiopOpaqueState = {
             requesterFspId: "payer",
@@ -657,18 +483,7 @@ describe("Domain - Unit Tests for event handler", () => {
     test("handleQuoteResponseReceivedEvt - should send error event if couldnt find quote on database", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteResponseReceivedEvtPayload = {
-            expiration: mockedQuote.expiration as string ,
-            geoCode: mockedQuote.geoCode,
-            quoteId: mockedQuote.quoteId,
-            extensionList: mockedQuote.extensionList,
-            condition: mockedQuote.condition as string,
-            ilpPacket: mockedQuote.ilpPacket as string,
-            transferAmount: mockedQuote.totalTransferAmount as IMoney,
-            payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
-            payeeFspFee: mockedQuote.payeeFspFee as IMoney,
-            payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
-        };
+        const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
 
         const fspiopOpaqueState = {
             requesterFspId: "payer",
@@ -708,18 +523,7 @@ describe("Domain - Unit Tests for event handler", () => {
     test("handleQuoteResponseReceivedEvt - should update quote on quote repository", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteResponseReceivedEvtPayload = {
-            expiration: mockedQuote.expiration as string ,
-            geoCode: mockedQuote.geoCode,
-            quoteId: mockedQuote.quoteId,
-            extensionList: mockedQuote.extensionList,
-            condition: mockedQuote.condition as string,
-            ilpPacket: mockedQuote.ilpPacket as string,
-            transferAmount: mockedQuote.totalTransferAmount as IMoney,
-            payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
-            payeeFspFee: mockedQuote.payeeFspFee as IMoney,
-            payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
-        };
+        const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
 
         const fspiopOpaqueState = {
             requesterFspId: "payer",
@@ -753,18 +557,7 @@ describe("Domain - Unit Tests for event handler", () => {
     test("handleQuoteResponseReceivedEvt - should send quote response accepted event", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteResponseReceivedEvtPayload = {
-            expiration: mockedQuote.expiration as string ,
-            geoCode: mockedQuote.geoCode,
-            quoteId: mockedQuote.quoteId,
-            extensionList: mockedQuote.extensionList,
-            condition: mockedQuote.condition as string,
-            ilpPacket: mockedQuote.ilpPacket as string,
-            transferAmount: mockedQuote.totalTransferAmount as IMoney,
-            payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
-            payeeFspFee: mockedQuote.payeeFspFee as IMoney,
-            payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
-        };
+        const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
 
         const fspiopOpaqueState = {
             requesterFspId: "payer",
@@ -999,6 +792,39 @@ describe("Domain - Unit Tests for event handler", () => {
     
 
 });
+
+function createQuoteResponseReceivedEvtPayload(mockedQuote: Quote): QuoteResponseReceivedEvtPayload {
+    return {
+        expiration: mockedQuote.expiration as string,
+        geoCode: mockedQuote.geoCode,
+        quoteId: mockedQuote.quoteId,
+        extensionList: mockedQuote.extensionList,
+        condition: mockedQuote.condition as string,
+        ilpPacket: mockedQuote.ilpPacket as string,
+        transferAmount: mockedQuote.totalTransferAmount as IMoney,
+        payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
+        payeeFspFee: mockedQuote.payeeFspFee as IMoney,
+        payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
+    };
+}
+
+function createQuoteRequestReceivedEvtPayload(mockedQuote: Quote): QuoteRequestReceivedEvtPayload {
+    return {
+        amount: mockedQuote.amount,
+        expiration: mockedQuote.expiration,
+        geoCode: mockedQuote.geoCode,
+        payee: mockedQuote.payee,
+        payer: mockedQuote.payer,
+        quoteId: mockedQuote.quoteId,
+        transactionId: mockedQuote.transactionId,
+        amountType: mockedQuote.amountType,
+        note: mockedQuote.note,
+        extensionList: mockedQuote.extensionList,
+        fees: mockedQuote.feesPayer,
+        transactionType: mockedQuote.transactionType,
+        transactionRequestId: mockedQuote.transactionRequestId,
+    };
+}
 
 function createMessage(payload: object | null, messageName:string, fspiopOpaqueState:object|null): IMessage {
     return {

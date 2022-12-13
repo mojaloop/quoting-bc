@@ -76,15 +76,15 @@ export class QuotingAggregate  {
 
 	constructor(
 		logger: ILogger,
-		quoteRegistry:IQuoteRepo,
-		bulkQuoteRegistry:IBulkQuoteRepo,
+		quoteRepo:IQuoteRepo,
+		bulkQuoteRepo:IBulkQuoteRepo,
 		messageProducer:IMessageProducer,
 		participantService: IParticipantService,
 		accountLookupService: IAccountLookupService
 	) {
 		this._logger = logger.createChild(this.constructor.name);
-		this._quotesRepo = quoteRegistry;
-		this._bulkQuotesRepo = bulkQuoteRegistry;
+		this._quotesRepo = quoteRepo;
+		this._bulkQuotesRepo = bulkQuoteRepo;
 		this._messageProducer = messageProducer;
 		this._participantService = participantService;
 		this._accountLookupService = accountLookupService;
