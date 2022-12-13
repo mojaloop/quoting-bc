@@ -341,7 +341,7 @@ export class QuotingAggregate  {
 		return event;
 	}
 	
-	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<any> {
+	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt> {
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
 		
 		await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
@@ -362,61 +362,63 @@ export class QuotingAggregate  {
 
 		await this.validateParticipant(destinationFspIdToUse);
 
-		// const individualQuotes:Quote[] = [];
+		const individualQuotes:Quote[] = [];
 
-		// for(let i=0 ; i<message.payload.individualQuotes.length ; i+=1){
+		for(let i=0 ; i<message.payload.individualQuotes.length ; i+=1){
 
-		// 	const individualQuote = message.payload.individualQuotes[i];
+			const individualQuote = message.payload.individualQuotes[i];
 
-		// 	const quote: Quote = {
-		// 		quoteId: individualQuote.quoteId,
-		// 		requesterFspId: message.fspiopOpaqueState.requesterFspId,
-		// 		destinationFspId: message.fspiopOpaqueState.destinationFspId,
-		// 		transactionId: individualQuote.transactionId,
-		// 		payee: individualQuote.payee as any,
-		// 		payer: individualQuote.payer as any,
-		// 		amountType: individualQuote.amountType,
-		// 		amount: individualQuote.amount,
-		// 		transactionType: individualQuote.transactionType,
-		// 		feesPayer: individualQuote.fees,
-		// 		transactionRequestId: individualQuote.transactionRequestId,
-		// 		geoCode: individualQuote.geoCode,
-		// 		note: individualQuote.note,
-		// 		expiration: individualQuote.expiration,
-		// 		extensionList: individualQuote.extensionList,
-		// 		payeeReceiveAmount: null,
-		// 		payeeFspFee: null,
-		// 		payeeFspCommission: null,
-		// 		status: QuoteStatus.PENDING,
-		// 		condition: null,
-		// 		totalTransferAmount: null,
-		// 		ilpPacket: null,
-		// 	};
+			const quote: Quote = {
+				quoteId: individualQuote.quoteId,
+				requesterFspId: message.fspiopOpaqueState.requesterFspId,
+				destinationFspId: message.fspiopOpaqueState.destinationFspId,
+				transactionId: individualQuote.transactionId,
+				payee: individualQuote.payee as any,
+				payer: message.payload.payer as any,
+				amountType: individualQuote.amountType,
+				amount: individualQuote.amount,
+				transactionType: individualQuote.transactionType,
+				feesPayer: individualQuote.fees as any,
+				transactionRequestId: individualQuote.transactionRequestId,
+				geoCode: message.payload.geoCode,
+				note: individualQuote.note,
+				expiration: message.payload.expiration,
+				extensionList: individualQuote.extensionList,
+				payeeReceiveAmount: null,
+				payeeFspFee: null,
+				payeeFspCommission: null,
+				status: QuoteStatus.PENDING,
+				condition: null,
+				totalTransferAmount: null,
+				ilpPacket: null,
+			};
 
-		// 	individualQuotes.push(quote);
-		// }
+			individualQuotes.push(quote);
+		}
 
-		// await this._bulkQuotesRepo.addBulkQuote({
-		// 	...message.payload,
-		// 	...individualQuotes
-		// });
+		await this._bulkQuotesRepo.addBulkQuote({
+			bulkQuoteId: message.payload.bulkQuoteId,
+			payer: message.payload.payer as any,
+			geoCode: message.payload.geoCode,
+			expiration: message.payload.expiration,
+			individualQuotes: individualQuotes,
+			extensionList: message.payload.extensionList,
+		});
 
-		// const payload : BulkQuoteReceivedEvtPayload = {
-		// 	bulkQuoteId: message.payload.bulkQuoteId,
-		// 	payer: message.payload.payer,
-		// 	geoCode: message.payload.geoCode,
-		// 	note: message.payload.note,
-		// 	expiration: message.payload.expiration,
-		// 	individualQuotes: individualQuotes,
-		// 	extensionList: message.payload.extensionList
-		// };
+		const payload : BulkQuoteReceivedEvtPayload = {
+			bulkQuoteId: message.payload.bulkQuoteId,
+			payer: message.payload.payer,
+			geoCode: message.payload.geoCode,
+			expiration: message.payload.expiration,
+			individualQuotes: individualQuotes as any,
+			extensionList: message.payload.extensionList
+		};
 
-		// const event = new BulkQuoteReceivedEvt(payload);
+		const event = new BulkQuoteReceivedEvt(payload);
 
-		// event.fspiopOpaqueState = message.fspiopOpaqueState;
+		event.fspiopOpaqueState = message.fspiopOpaqueState;
 
-		// return event;
-		return;
+		return event;
 
 	}
 
