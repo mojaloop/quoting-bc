@@ -44,7 +44,8 @@ import {
 	RequiredParticipantIsNotActive,
 	NoSuchQuoteError,
 	InvalidRequesterFspIdError,
-	InvalidDestinationFspIdError
+	InvalidDestinationFspIdError,
+	InvalidDestinationPartyInformationError
 } from "./errors";
 import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
@@ -76,15 +77,15 @@ export class QuotingAggregate  {
 
 	constructor(
 		logger: ILogger,
-		quoteRegistry:IQuoteRepo,
-		bulkQuoteRegistry:IBulkQuoteRepo,
+		quoteRepo:IQuoteRepo,
+		bulkQuoteRepo:IBulkQuoteRepo,
 		messageProducer:IMessageProducer,
 		participantService: IParticipantService,
 		accountLookupService: IAccountLookupService
 	) {
 		this._logger = logger.createChild(this.constructor.name);
-		this._quotesRepo = quoteRegistry;
-		this._bulkQuotesRepo = bulkQuoteRegistry;
+		this._quotesRepo = quoteRepo;
+		this._bulkQuotesRepo = bulkQuoteRepo;
 		this._messageProducer = messageProducer;
 		this._participantService = participantService;
 		this._accountLookupService = accountLookupService;
@@ -170,18 +171,14 @@ export class QuotingAggregate  {
 		
 		await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
 
-		let destinationFspIdToUse = message.fspiopOpaqueState.destinationFspId ?? message.payload.payee.partyIdInfo.fspId;
+		let destinationFspIdToUse = message.fspiopOpaqueState?.destinationFspId ?? message.payload?.payee?.partyIdInfo?.fspId;
 
 		if(!destinationFspIdToUse){
-			this._logger.debug(`No destinationFspId found in message, trying to get it from account lookup service for payee: ${message.payload.payee.partyIdInfo.partyIdentifier}`);
-			destinationFspIdToUse = await this._accountLookupService.getAccountFspId(message.payload.payee.partyIdInfo.partyIdentifier, message.payload.payee.partyIdInfo.partyIdType, message.payload.payee.partyIdInfo.partySubIdOrType, null);
-			
-			if(destinationFspIdToUse){
-				this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspIdToUse}`);
-			}
-			else{
-				this._logger.error(`Unable to get destinationFspId from account lookup service for payee: ${message.payload.payee.partyIdInfo.partyIdentifier}`);
-			}
+			const payeePartyId = message.payload.payee?.partyIdInfo?.partyIdentifier;
+			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType;
+			const payeePartySubIdOrType = message.payload.payer?.partyIdInfo?.partySubIdOrType ?? null;
+			const currency = message.payload.amount?.currency ?? null;
+			destinationFspIdToUse = this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
 		}
 
 		await this.validateParticipant(destinationFspIdToUse);
@@ -346,18 +343,14 @@ export class QuotingAggregate  {
 		
 		await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
 
-		let destinationFspIdToUse = message.fspiopOpaqueState.destinationFspId ?? message.payload.payer.partyIdInfo.fspId;
+		let destinationFspIdToUse = message.fspiopOpaqueState?.destinationFspId ?? message.payload.payer?.partyIdInfo?.fspId ?? null;
 
 		if(!destinationFspIdToUse){
-			this._logger.debug(`No destinationFspId found in message, trying to get it from account lookup service for payer: ${message.payload.payer.partyIdInfo.partyIdentifier}`);
-			destinationFspIdToUse = await this._accountLookupService.getAccountFspId(message.payload.payer.partyIdInfo.partyIdentifier, message.payload.payer.partyIdInfo.partyIdType, message.payload.payer.partyIdInfo.partySubIdOrType, null);
-			
-			if(destinationFspIdToUse){
-				this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspIdToUse}`);
-			}
-			else{
-				this._logger.error(`Unable to get destinationFspId from account lookup service for payer: ${message.payload.payer.partyIdInfo.partyIdentifier}`);
-			}
+			const payeePartyId = message.payload.payee?.partyIdInfo?.partyIdentifier;
+			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType;
+			const payeePartySubIdOrType = message.payload.payer?.partyIdInfo?.partySubIdOrType ?? null;
+			const currency = message.payload.amount?.currency ?? null;
+			destinationFspIdToUse = this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
 		}
 
 		await this.validateParticipant(destinationFspIdToUse);
@@ -443,6 +436,25 @@ export class QuotingAggregate  {
 		}
 
 		return;
+	}
+
+	private async getDestinationFspIdUsingAccountLookup(payeePartyId: string | null, payeePartyIdType: string | null, payeePartySubIdOrType: string | null, currency: string | null) {
+
+		if (!payeePartyId || !payeePartyIdType) {
+			throw new InvalidDestinationPartyInformationError();
+		}
+
+		this._logger.debug(`No destinationFspId found in message, trying to get it from account lookup service for payee: ${payeePartyId}`);
+
+		const destinationFspIdToUse = await this._accountLookupService.getAccountFspId(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+
+		if (destinationFspIdToUse) {
+			this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspIdToUse}`);
+		}
+		else {
+			this._logger.error(`Unable to get destinationFspId from account lookup service for payee: ${payeePartyId}`);
+		}
+		return destinationFspIdToUse;
 	}
 
 }
