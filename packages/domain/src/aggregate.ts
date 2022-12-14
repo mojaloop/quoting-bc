@@ -105,10 +105,10 @@ export class QuotingAggregate  {
 
 			const errorPayload: QuoteErrorEvtPayload = {
 				errorMsg: errorMessage,
-				quoteId: message.payload?.quoteId ?? "N/A",
+				quoteId: message.payload?.quoteId,
 				sourceEvent: message.msgName,
-				requesterFspId: message.fspiopOpaqueState?.requesterFspId ?? "N/A",
-				destinationFspId: message.fspiopOpaqueState?.destinationFspId ?? "N/A",
+				requesterFspId: message.fspiopOpaqueState?.requesterFspId,
+				destinationFspId: message.fspiopOpaqueState?.destinationFspId,
 
 			};
 			const messageToPublish = new QuoteErrorEvt(errorPayload);
@@ -159,7 +159,14 @@ export class QuotingAggregate  {
 				throw new InvalidMessageTypeError();
 			}
 		if(eventToPublish){
-			await this._messageProducer.send(eventToPublish);
+			// Required to check because of bulkQuotes
+			if(Array.isArray(eventToPublish)) {
+				for await (const event of eventToPublish) {
+					await this._messageProducer.send(event);
+				}
+			} else {
+				await this._messageProducer.send(eventToPublish);
+			}
 		}else{
 			throw new UnableToProcessMessageError();
 		}
@@ -338,80 +345,85 @@ export class QuotingAggregate  {
 		return event;
 	}
 	
-	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt> {
+	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt[]> {
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
 		
-		await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
-
-		let destinationFspIdToUse = message.fspiopOpaqueState?.destinationFspId ?? message.payload.payer?.partyIdInfo?.fspId ?? null;
-
-		if(!destinationFspIdToUse){
-			const payeePartyId = message.payload.payee?.partyIdInfo?.partyIdentifier;
-			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType;
-			const payeePartySubIdOrType = message.payload.payer?.partyIdInfo?.partySubIdOrType ?? null;
-			const currency = message.payload.amount?.currency ?? null;
-			destinationFspIdToUse = this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
-		}
-
-		await this.validateParticipant(destinationFspIdToUse);
-
-		const individualQuotes:Quote[] = [];
-
-		for(let i=0 ; i<message.payload.individualQuotes.length ; i+=1){
-
-			const individualQuote = message.payload.individualQuotes[i];
-
-			const quote: Quote = {
-				quoteId: individualQuote.quoteId,
-				requesterFspId: message.fspiopOpaqueState.requesterFspId,
-				destinationFspId: message.fspiopOpaqueState.destinationFspId,
-				transactionId: individualQuote.transactionId,
-				payee: individualQuote.payee as any,
-				payer: message.payload.payer as any,
-				amountType: individualQuote.amountType,
-				amount: individualQuote.amount,
-				transactionType: individualQuote.transactionType,
-				feesPayer: individualQuote.fees as any,
-				transactionRequestId: individualQuote.transactionRequestId,
-				geoCode: message.payload.geoCode,
-				note: individualQuote.note,
-				expiration: message.payload.expiration,
-				extensionList: individualQuote.extensionList,
-				payeeReceiveAmount: null,
-				payeeFspFee: null,
-				payeeFspCommission: null,
-				status: QuoteStatus.PENDING,
-				condition: null,
-				totalTransferAmount: null,
-				ilpPacket: null,
-			};
-
-			individualQuotes.push(quote);
-		}
+		const events:BulkQuoteReceivedEvt[] = [];
 
 		await this._bulkQuotesRepo.addBulkQuote({
 			bulkQuoteId: message.payload.bulkQuoteId,
 			payer: message.payload.payer as any,
 			geoCode: message.payload.geoCode,
 			expiration: message.payload.expiration,
-			individualQuotes: individualQuotes,
+			individualQuotes: message.payload.individualQuotes as any,
 			extensionList: message.payload.extensionList,
 		});
 
-		const payload : BulkQuoteReceivedEvtPayload = {
-			bulkQuoteId: message.payload.bulkQuoteId,
-			payer: message.payload.payer,
-			geoCode: message.payload.geoCode,
-			expiration: message.payload.expiration,
-			individualQuotes: individualQuotes as any,
-			extensionList: message.payload.extensionList
+		await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
+
+		const groupBy = (groupingFn:any, arr:any) => {
+			const groups:any = {};
+		  
+			arr.forEach((item:any) => {
+			  const key = groupingFn(item);
+		  
+			  if (groups[key] !== undefined) {
+				groups[key].list.push(item);
+			  } else {
+				groups[key] = {
+					...item.payee.partyIdInfo,
+					currency: item.amount.currency,
+					list: [item],
+				};
+			  }
+			});
+		  
+			return groups;
 		};
+		  
+		const grouped:any[] = Object.values(
+			groupBy((item:any) => {
+				// We create the key based on all possible parameters for the account-lookup
+				return item.payee.partyIdInfo.partyIdType + item.payee.partyIdInfo.partyIdentifier + item.payee.partyIdInfo.partySubIdOrType + item.amount.currency
+			}, message.payload.individualQuotes)
+		);
 
-		const event = new BulkQuoteReceivedEvt(payload);
+		const errorList = [];
 
-		event.fspiopOpaqueState = message.fspiopOpaqueState;
+		for await (const group of grouped) {
+			let destinationFspIdToUse = group.payer?.partyIdInfo?.fspId ?? null;
 
-		return event;
+			if(!destinationFspIdToUse){
+				const payeePartyId = group.partyIdentifier;
+				const payeePartyIdType = group.partyIdType;
+				const payeePartySubIdOrType = group.partySubIdOrType ?? null;
+				const currency = group.currency ?? null;
+				destinationFspIdToUse = this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+			}
+
+			try {
+				await this.validateParticipant(destinationFspIdToUse);
+				
+				const payload : BulkQuoteReceivedEvtPayload = {
+					bulkQuoteId: message.payload.bulkQuoteId,
+					payer: message.payload.payer,
+					geoCode: message.payload.geoCode,
+					expiration: message.payload.expiration,
+					individualQuotes: group.list,
+					extensionList: message.payload.extensionList
+				};
+		
+				const event = new BulkQuoteReceivedEvt(payload);
+		
+				event.fspiopOpaqueState = message.fspiopOpaqueState;
+
+				events.push(event);
+			} catch (e) {
+				errorList.push(group)
+			}
+		}
+
+		return events;
 
 	}
 
