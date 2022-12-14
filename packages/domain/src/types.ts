@@ -132,8 +132,19 @@ export interface BulkQuote {
     geoCode: IGeoCode | null;
     expiration: string | null;
     individualQuotes: Quote[];
+    quotesNotProcessed: Quote[];
     extensionList: IExtensionList | null;
 }
+
+export type BulkQuotesWithIdentifier = Map<string,
+    {
+        partyId:string, 
+        partyIdType:string, 
+        destinationFspId: string | null, 
+        partySubIdOrType: string| null, 
+        currency: string|null, 
+        quoteList:Quote[]
+    }>;
 
 
 

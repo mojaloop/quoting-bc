@@ -65,7 +65,7 @@ import {
 	BulkQuoteReceivedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IExtensionList, Quote, QuoteStatus } from "./types";
+import { BulkQuote, BulkQuotesWithIdentifier, IExtensionList, Quote, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -158,13 +158,13 @@ export class QuotingAggregate  {
 				this._logger.error(`message type has invalid format or value ${message.msgName}`);
 				throw new InvalidMessageTypeError();
 			}
+
 		if(eventToPublish){
-			// Required to check because of bulkQuotes
-			if(Array.isArray(eventToPublish)) {
-				for await (const event of eventToPublish) {
+			if(Array.isArray(eventToPublish)){
+				for(const event of eventToPublish){
 					await this._messageProducer.send(event);
 				}
-			} else {
+			}else{
 				await this._messageProducer.send(eventToPublish);
 			}
 		}else{
@@ -349,58 +349,34 @@ export class QuotingAggregate  {
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
 		
 		const events:BulkQuoteReceivedEvt[] = [];
+		const quotesNotProcessed: Quote[] = [];
 
-		await this._bulkQuotesRepo.addBulkQuote({
+		const bulkQuote: BulkQuote = {
 			bulkQuoteId: message.payload.bulkQuoteId,
 			payer: message.payload.payer as any,
 			geoCode: message.payload.geoCode,
 			expiration: message.payload.expiration,
 			individualQuotes: message.payload.individualQuotes as any,
 			extensionList: message.payload.extensionList,
-		});
+			quotesNotProcessed: [],
+		}
 
-		await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
+		const addedBulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
 
-		const groupBy = (groupingFn:any, arr:any) => {
-			const groups:any = {};
-		  
-			arr.forEach((item:any) => {
-			  const key = groupingFn(item);
-		  
-			  if (groups[key] !== undefined) {
-				groups[key].list.push(item);
-			  } else {
-				groups[key] = {
-					...item.payee.partyIdInfo,
-					currency: item.amount.currency,
-					list: [item],
-				};
-			  }
-			});
-		  
-			return groups;
-		};
-		  
-		const grouped:any[] = Object.values(
-			groupBy((item:any) => {
-				// We create the key based on all possible parameters for the account-lookup
-				return item.payee.partyIdInfo.partyIdType + item.payee.partyIdInfo.partyIdentifier + item.payee.partyIdInfo.partySubIdOrType + item.amount.currency
-			}, message.payload.individualQuotes)
-		);
+		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
+		
+		const quotesDictionary = this.groupBulkQuotesByPartyIdentifier(message);
 
-		const errorList = [];
-
-		for await (const group of grouped) {
-			let destinationFspIdToUse = group.payer?.partyIdInfo?.fspId ?? null;
+		for (const [key, quoteGroup] of quotesDictionary) {
+			let destinationFspIdToUse = quoteGroup.destinationFspId;
 
 			if(!destinationFspIdToUse){
-				const payeePartyId = group.partyIdentifier;
-				const payeePartyIdType = group.partyIdType;
-				const payeePartySubIdOrType = group.partySubIdOrType ?? null;
-				const currency = group.currency ?? null;
-				destinationFspIdToUse = this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
-			}
-
+				const payeePartyId = quoteGroup.partyId;
+				const payeePartyIdType = quoteGroup.partyIdType;
+				const payeePartySubIdOrType = quoteGroup.partySubIdOrType;
+				const currency = quoteGroup.currency;
+				destinationFspIdToUse = await this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+			}	
 			try {
 				await this.validateParticipant(destinationFspIdToUse);
 				
@@ -409,7 +385,7 @@ export class QuotingAggregate  {
 					payer: message.payload.payer,
 					geoCode: message.payload.geoCode,
 					expiration: message.payload.expiration,
-					individualQuotes: group.list,
+					individualQuotes: quoteGroup,
 					extensionList: message.payload.extensionList
 				};
 		
@@ -419,12 +395,42 @@ export class QuotingAggregate  {
 
 				events.push(event);
 			} catch (e) {
-				errorList.push(group)
+				quotesNotProcessed.push(...quoteGroup.quoteList);
+			}	
+		}
+
+		if(quotesNotProcessed.length > 0) {
+			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(addedBulkQuoteId);
+			if(bulkQuote) {
+				bulkQuote.quotesNotProcessed = quotesNotProcessed;
+				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 			}
 		}
 
 		return events;
 
+	}
+
+	private groupBulkQuotesByPartyIdentifier(message: BulkQuoteRequestedEvt): BulkQuotesWithIdentifier {
+		const groupedQuotes = message.payload.individualQuotes.reduce((map: BulkQuotesWithIdentifier, quote: Quote) => {
+			const key = `${quote.payee.partyIdInfo.partyIdentifier}-${quote.payee.partyIdInfo.partyIdType}
+				-${quote.payee.partyIdInfo.partySubIdOrType}-${quote.amount.currency}`;
+			if (!map.get(key)) {
+				map.set(key, {
+					partyId: quote.payee.partyIdInfo.partyIdentifier,
+					partyIdType: quote.payee.partyIdInfo.partyIdType,
+					partySubIdOrType: quote.payee.partyIdInfo.partySubIdOrType,
+					currency: quote.amount.currency,
+					destinationFspId: quote.payee.partyIdInfo.fspId,
+					quoteList: [quote]
+				});
+			} else {
+				map.get(key)?.quoteList.push(quote);
+			}
+			return map;
+		}, {});
+
+		return groupedQuotes;
 	}
 
 	private async validateParticipant(participantId: string | null):Promise<void>{
