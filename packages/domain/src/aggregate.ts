@@ -30,8 +30,7 @@
  --------------
  **/
 
- "use strict";
-
+"use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageProducer, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -62,7 +61,8 @@ import {
 	QuoteQueryResponseEvtPayload,
 	BulkQuoteRequestedEvt,
 	BulkQuoteReceivedEvt,
-	BulkQuoteReceivedEvtPayload
+	BulkQuoteReceivedEvtPayload,
+	BulkQuoteRequestedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { BulkQuote, BulkQuotesMap, IExtensionList, IndividualBulkQuote, Quote, QuoteStatus } from "./types";
@@ -367,7 +367,7 @@ export class QuotingAggregate  {
 
 		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
 		
-		const quotesDictionary = this.groupBulkQuotesByPartyIdentifier(message);
+		const quotesDictionary = this.groupBulkQuotesByPartyIdentifier(message.payload);
 
 		for await (const [ _ , quoteGroup] of quotesDictionary) {
 			let destinationFspIdToUse = quoteGroup.destinationFspId;
@@ -387,7 +387,7 @@ export class QuotingAggregate  {
 					payer: message.payload.payer,
 					geoCode: message.payload.geoCode,
 					expiration: message.payload.expiration,
-					individualQuotes: quoteGroup,
+					individualQuotes: quoteGroup.quoteList as any,
 					extensionList: message.payload.extensionList
 				};
 		
@@ -413,10 +413,13 @@ export class QuotingAggregate  {
 
 	}
 
-	private groupBulkQuotesByPartyIdentifier(message: BulkQuoteRequestedEvt): BulkQuotesMap {
-		const groupedQuotes = message.payload.individualQuotes.reduce((map: BulkQuotesMap, quote: Quote) => {
+	private groupBulkQuotesByPartyIdentifier(payload: BulkQuoteRequestedEvtPayload): BulkQuotesMap {
+		type IndividualQuote = typeof payload.individualQuotes[number];
+
+		const groupedQuotes = payload.individualQuotes.reduce((map: BulkQuotesMap, quote: IndividualQuote) => {
 			const key = `${quote.payee.partyIdInfo.partyIdentifier}-${quote.payee.partyIdInfo.partyIdType}
 				-${quote.payee.partyIdInfo.partySubIdOrType}-${quote.amount.currency}`;
+
 			if (!map.get(key)) {
 				map.set(key, {
 					partyId: quote.payee.partyIdInfo.partyIdentifier,
@@ -424,13 +427,13 @@ export class QuotingAggregate  {
 					partySubIdOrType: quote.payee.partyIdInfo.partySubIdOrType,
 					currency: quote.amount.currency,
 					destinationFspId: quote.payee.partyIdInfo.fspId,
-					quoteList: [quote]
+					quoteList: [quote as any]
 				});
 			} else {
-				map.get(key)?.quoteList.push(quote);
+				map.get(key)?.quoteList.push(quote as any);
 			}
 			return map;
-		}, {});
+		}, new Map());
 
 		return groupedQuotes;
 	}
