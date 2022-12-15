@@ -367,7 +367,7 @@ export class QuotingAggregate  {
 
 		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
 		
-		const quotesDictionary = this.groupBulkQuotesByPartyIdentifier(message);
+		const quotesDictionary = this.groupBulkQuotesByPartyIdentifier(message.payload);
 
 		for await (const [ _ , quoteGroup] of quotesDictionary) {
 			let destinationFspIdToUse = quoteGroup.destinationFspId;
@@ -413,16 +413,15 @@ export class QuotingAggregate  {
 
 	}
 
-	private groupBulkQuotesByPartyIdentifier(message: BulkQuoteRequestedEvt): BulkQuotesMap {
+	private groupBulkQuotesByPartyIdentifier(payload: BulkQuoteRequestedEvtPayload): BulkQuotesMap {
 		const map: BulkQuotesMap = new Map();
-		// reduce the quotes to a map of partyId -> quoteList
-		message.payload.individualQuotes.map(quote => {
+		payload.individualQuotes.map(quote => {
 			const partyId = quote.payee.partyIdInfo.partyIdentifier;
 			const partyIdType = quote.payee.partyIdInfo.partyIdType;
 			const partySubIdOrType = quote.payee.partyIdInfo.partySubIdOrType;
-			const currency =	quote.amount.currency;
+			const currency = quote.amount.currency;
 			const destinationFspId = quote.payee.partyIdInfo.fspId;
-			const key = `${partyId}-${partyIdType}-${partySubIdOrType}-${currency}-${destinationFspId}`;
+			const key = `${partyId}-${partyIdType}-${partySubIdOrType}-${currency}`;
 			const quoteGroup = map.get(key);
 			if(quoteGroup) {
 				quoteGroup.quoteList.push(quote);

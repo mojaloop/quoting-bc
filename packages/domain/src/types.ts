@@ -41,9 +41,9 @@ export enum QuoteStatus {
 }
 
 export interface IPartyComplexName {
-    firstName: string;
-    middleName: string;
-    lastName: string;
+    firstName: string | null;
+    middleName: string | null;
+    lastName: string | null;
 }
   
 export interface IPartyPersonalInfo {
@@ -127,9 +127,17 @@ export interface Quote {
 }
 
 export type IndividualBulkQuote = {
+        quoteId: string;
+        transactionId: string;
+        payee: IParty;
+        amountType: IAmountType;
+        amount: IMoney;
+        fees: IMoney | null;
+        transactionType: ITransactionType;
+        note: string | null;
+        extensionList: IExtensionList | null;
+}
     
-};
-
 export interface BulkQuote {
     bulkQuoteId: string;
     payer: IParty;
@@ -142,14 +150,14 @@ export interface BulkQuote {
 }
 
 export type BulkQuotesMap = Map<string,
-    {
+{
         partyId:string, 
         partyIdType:string, 
         destinationFspId: string | null, 
         partySubIdOrType: string| null, 
         currency: string|null, 
         quoteList:IndividualBulkQuote[]
-    }>;
+}>;
 
 
 
