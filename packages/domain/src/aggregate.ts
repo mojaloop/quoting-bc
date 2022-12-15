@@ -65,7 +65,7 @@ import {
 	BulkQuoteReceivedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { BulkQuote, BulkQuotesWithIdentifier, IExtensionList, Quote, QuoteStatus } from "./types";
+import { BulkQuote, BulkQuotesMap, IExtensionList, IndividualBulkQuote, Quote, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -161,7 +161,7 @@ export class QuotingAggregate  {
 
 		if(eventToPublish){
 			if(Array.isArray(eventToPublish)){
-				for(const event of eventToPublish){
+				for await (const event of eventToPublish){
 					await this._messageProducer.send(event);
 				}
 			}else{
@@ -349,7 +349,8 @@ export class QuotingAggregate  {
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
 		
 		const events:BulkQuoteReceivedEvt[] = [];
-		const quotesNotProcessed: Quote[] = [];
+
+		const quotesNotProcessed: IndividualBulkQuote[] = [];
 
 		const bulkQuote: BulkQuote = {
 			bulkQuoteId: message.payload.bulkQuoteId,
@@ -359,6 +360,7 @@ export class QuotingAggregate  {
 			individualQuotes: message.payload.individualQuotes as any,
 			extensionList: message.payload.extensionList,
 			quotesNotProcessed: [],
+			status: QuoteStatus.PENDING
 		}
 
 		const addedBulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
@@ -367,7 +369,7 @@ export class QuotingAggregate  {
 		
 		const quotesDictionary = this.groupBulkQuotesByPartyIdentifier(message);
 
-		for (const [key, quoteGroup] of quotesDictionary) {
+		for await (const [ _ , quoteGroup] of quotesDictionary) {
 			let destinationFspIdToUse = quoteGroup.destinationFspId;
 
 			if(!destinationFspIdToUse){
@@ -411,8 +413,8 @@ export class QuotingAggregate  {
 
 	}
 
-	private groupBulkQuotesByPartyIdentifier(message: BulkQuoteRequestedEvt): BulkQuotesWithIdentifier {
-		const groupedQuotes = message.payload.individualQuotes.reduce((map: BulkQuotesWithIdentifier, quote: Quote) => {
+	private groupBulkQuotesByPartyIdentifier(message: BulkQuoteRequestedEvt): BulkQuotesMap {
+		const groupedQuotes = message.payload.individualQuotes.reduce((map: BulkQuotesMap, quote: Quote) => {
 			const key = `${quote.payee.partyIdInfo.partyIdentifier}-${quote.payee.partyIdInfo.partyIdType}
 				-${quote.payee.partyIdInfo.partySubIdOrType}-${quote.amount.currency}`;
 			if (!map.get(key)) {

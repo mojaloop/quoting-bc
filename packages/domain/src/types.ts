@@ -126,24 +126,27 @@ export interface Quote {
     payeeFspCommission: IMoney | null;
 }
 
+export type IndividualBulkQuote = Omit<Quote,"status">;
+
 export interface BulkQuote {
     bulkQuoteId: string;
     payer: IParty;
     geoCode: IGeoCode | null;
     expiration: string | null;
-    individualQuotes: Quote[];
-    quotesNotProcessed: Quote[];
+    individualQuotes: IndividualBulkQuote[];
+    quotesNotProcessed: IndividualBulkQuote[];
+    status: QuoteStatus,
     extensionList: IExtensionList | null;
 }
 
-export type BulkQuotesWithIdentifier = Map<string,
+export type BulkQuotesMap = Map<string,
     {
         partyId:string, 
         partyIdType:string, 
         destinationFspId: string | null, 
         partySubIdOrType: string| null, 
         currency: string|null, 
-        quoteList:Quote[]
+        quoteList:IndividualBulkQuote[]
     }>;
 
 
