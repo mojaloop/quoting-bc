@@ -367,7 +367,7 @@ export class QuotingAggregate  {
 
 		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
 		
-		const quotesDictionary = this.groupBulkQuotesByPartyIdentifier(message.payload);
+		const quotesDictionary = this.groupBulkQuotesByPartyIdentifier(message);
 
 		for await (const [ _ , quoteGroup] of quotesDictionary) {
 			let destinationFspIdToUse = quoteGroup.destinationFspId;
