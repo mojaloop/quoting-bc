@@ -387,7 +387,11 @@ export class QuotingAggregate  {
 					payer: message.payload.payer,
 					geoCode: message.payload.geoCode,
 					expiration: message.payload.expiration,
+<<<<<<< HEAD
 					individualQuotes: quoteGroup.quoteList,
+=======
+					individualQuotes: quoteGroup.quoteList as any,
+>>>>>>> 598d1deef05cbfcfcaa14a4fc95d5eb266b4f63c
 					extensionList: message.payload.extensionList
 				};
 		
@@ -413,6 +417,7 @@ export class QuotingAggregate  {
 
 	}
 
+<<<<<<< HEAD
 	private groupBulkQuotesByPartyIdentifier(message: BulkQuoteRequestedEvt): BulkQuotesMap {
 		const map: BulkQuotesMap = new Map();
 		// reduce the quotes to a map of partyId -> quoteList
@@ -438,6 +443,31 @@ export class QuotingAggregate  {
 		}
 		});
 		return map;
+=======
+	private groupBulkQuotesByPartyIdentifier(payload: BulkQuoteRequestedEvtPayload): BulkQuotesMap {
+		type IndividualQuote = typeof payload.individualQuotes[number];
+
+		const groupedQuotes = payload.individualQuotes.reduce((map: BulkQuotesMap, quote: IndividualQuote) => {
+			const key = `${quote.payee.partyIdInfo.partyIdentifier}-${quote.payee.partyIdInfo.partyIdType}
+				-${quote.payee.partyIdInfo.partySubIdOrType}-${quote.amount.currency}`;
+
+			if (!map.get(key)) {
+				map.set(key, {
+					partyId: quote.payee.partyIdInfo.partyIdentifier,
+					partyIdType: quote.payee.partyIdInfo.partyIdType,
+					partySubIdOrType: quote.payee.partyIdInfo.partySubIdOrType,
+					currency: quote.amount.currency,
+					destinationFspId: quote.payee.partyIdInfo.fspId,
+					quoteList: [quote as any]
+				});
+			} else {
+				map.get(key)?.quoteList.push(quote as any);
+			}
+			return map;
+		}, new Map());
+
+		return groupedQuotes;
+>>>>>>> 598d1deef05cbfcfcaa14a4fc95d5eb266b4f63c
 	}
 
 	private async validateParticipant(participantId: string | null):Promise<void>{
