@@ -72,13 +72,5 @@ export class MemoryQuoteRepo implements IQuoteRepo {
     getQuoteById(id: string): Promise<Quote | null> {
         return Promise.resolve(this._quotes.find(q => q.quoteId === id) || null);
     }
-
-	async getParticipantInfo(fspId: string): Promise<Participant|null> {
-		return Promise.resolve(null);
-	}
-
-	async getParticipantsInfo(fspIds: string[]): Promise<Participant[]> {
-		return Promise.resolve([]);
-	}
 	
 }

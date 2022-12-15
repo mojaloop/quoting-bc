@@ -35,17 +35,20 @@
 import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import { IMessage, IMessageProducer, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import {MemoryParticipantService,MemoryMessageProducer,MemoryQuoteRepo, MemoryAccountLookupService, mockedQuote1, mockedQuote2, mockedQuote4 } from "@mojaloop/quoting-shared-mocks";
+import {MemoryParticipantService,MemoryMessageProducer,MemoryQuoteRepo, MemoryAccountLookupService, mockedQuote1, mockedQuote2, mockedQuote4, MemoryBulkQuoteRepo } from "@mojaloop/quoting-shared-mocks";
 import {QuoteErrorEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload, QuoteQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseAcceptedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {IAccountLookupService, IParticipantService, IQuoteRepo} from "../../src/interfaces/infrastructure";
 import {InvalidMessageTypeError, InvalidMessagePayloadError, InvalidParticipantIdError, InvalidRequesterFspIdError, NoSuchParticipantError, InvalidDestinationFspIdError, NoSuchQuoteError} from '../../src/errors';
 import { QuotingAggregate } from "../../src/aggregate";
 import {IMoney, Quote, QuoteStatus} from '../../src/types';
+import { IBulkQuoteRepo } from "../../dist";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
 
 const quoteRepo: IQuoteRepo = new MemoryQuoteRepo(logger,);
+
+const bulkQuoteRepo: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logger);
 
 const messageProducer: IMessageProducer = new MemoryMessageProducer(logger);
 
@@ -53,7 +56,7 @@ const participantService: IParticipantService = new MemoryParticipantService(log
 
 const accountLookupService: IAccountLookupService = new MemoryAccountLookupService(logger);
 
-const aggregate: QuotingAggregate = new QuotingAggregate(logger,quoteRepo,messageProducer,participantService,accountLookupService);
+const aggregate: QuotingAggregate = new QuotingAggregate(logger,quoteRepo, bulkQuoteRepo, messageProducer,participantService,accountLookupService);
 
 describe("Domain - Unit Tests for event handler", () => {
        
@@ -75,9 +78,9 @@ describe("Domain - Unit Tests for event handler", () => {
         const errorPayload: QuoteErrorEvtPayload = {
 			errorMsg,
             sourceEvent : "fake msg name",
-            quoteId: "N/A",
-            destinationFspId: "N/A",
-            requesterFspId: "N/A",
+            quoteId: undefined as unknown as string,
+            destinationFspId: null,
+            requesterFspId: null,
 		};
 
         jest.spyOn(messageProducer, "send");
@@ -104,8 +107,8 @@ describe("Domain - Unit Tests for event handler", () => {
 
         const errorPayload: QuoteErrorEvtPayload = {
 			errorMsg,
-			destinationFspId:"N/A",
-            requesterFspId: "N/A",
+			destinationFspId: null,
+            requesterFspId: null,
             quoteId: payload.quoteId,
             sourceEvent : "fake msg name",
 		};
@@ -145,8 +148,8 @@ describe("Domain - Unit Tests for event handler", () => {
 
         const errorPayload: QuoteErrorEvtPayload = {
 			errorMsg,
-			destinationFspId:"N/A",
-            requesterFspId: "N/A",
+			destinationFspId: null,
+            requesterFspId: null,
             quoteId: payload.quoteId,
             sourceEvent : "fake msg name",
 		};
@@ -392,8 +395,8 @@ describe("Domain - Unit Tests for event handler", () => {
 
         const errorPayload: QuoteErrorEvtPayload = {
 			errorMsg,
-			requesterFspId:"N/A",
-            destinationFspId: "N/A",
+			requesterFspId:null,
+            destinationFspId: null,
             quoteId: payload.quoteId,
             sourceEvent : QuoteResponseReceivedEvt.name,
 		};
@@ -426,7 +429,7 @@ describe("Domain - Unit Tests for event handler", () => {
         const errorPayload: QuoteErrorEvtPayload = {
 			errorMsg,
 			requesterFspId:"payer",
-            destinationFspId: "N/A",
+            destinationFspId: null,
             quoteId: payload.quoteId,
             sourceEvent : QuoteResponseReceivedEvt.name,
 		};
@@ -586,6 +589,9 @@ describe("Domain - Unit Tests for event handler", () => {
         jest.spyOn(quoteRepo, "getQuoteById")
             .mockResolvedValueOnce({} as unknown as Quote);
 
+        jest.spyOn(quoteRepo, "updateQuote")
+            .mockResolvedValue();
+
         jest.spyOn(messageProducer, "send");
 
         // Act
@@ -613,10 +619,10 @@ describe("Domain - Unit Tests for event handler", () => {
         const errorMsg = InvalidRequesterFspIdError.name;
 
         const errorPayload: QuoteErrorEvtPayload = {
-            destinationFspId: "N/A",
+            destinationFspId: null,
             errorMsg,
             quoteId: "quoteId",
-            requesterFspId: "N/A",
+            requesterFspId: null,
             sourceEvent: QuoteQueryReceivedEvt.name,
         };
 
@@ -646,7 +652,7 @@ describe("Domain - Unit Tests for event handler", () => {
         const errorMsg = InvalidDestinationFspIdError.name;
 
         const errorPayload: QuoteErrorEvtPayload = {
-            destinationFspId: "N/A",
+            destinationFspId: null,
             errorMsg,
             quoteId: "quoteId",
             requesterFspId: "payer",
@@ -694,7 +700,7 @@ describe("Domain - Unit Tests for event handler", () => {
 
         // Act
         await aggregate.handleQuotingEvent(message);
-
+        
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
             "payload": errorPayload,

@@ -27,16 +27,50 @@
  - Rui Rocha <rui.rocha@arg.software>
 
  --------------
- **/
+**/
 
 "use strict";
 
-export * from "./memory_message_producer";
-export * from "./memory_message_consumer";
-export * from "./memory_accountlookup_service";
-export * from "./memory_quote_repo";
-export * from "./memory_bulkquote_repo";
-export * from "./memory_participant_service";
-export * from "./mocked_data";
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { BulkQuote, IBulkQuoteRepo, Quote } from "@mojaloop/quoting-bc-domain";
 
+export class MemoryBulkQuoteRepo implements IBulkQuoteRepo {
+	private readonly _logger: ILogger;
+    private readonly _bulkQuotes: BulkQuote[] = [];
+	
+	constructor(
+		logger: ILogger,
+	) {
+		this._logger = logger;
+	}
+    
+    init(): Promise<void> {
+        return Promise.resolve();
+    }
+    destroy(): Promise<void> {
+        return Promise.resolve();
+    }
 
+    addBulkQuote(bulkQuote: BulkQuote): Promise<string> {
+        this._bulkQuotes.push(bulkQuote);
+        return Promise.resolve(bulkQuote.bulkQuoteId);
+    }
+    updateBulkQuote(bulkQuote: BulkQuote): Promise<void> {
+        const bulkQuoteToUpdate = this._bulkQuotes.find(q => q.bulkQuoteId === bulkQuote.bulkQuoteId);
+        if (bulkQuoteToUpdate) {
+            Object.assign(bulkQuoteToUpdate, bulkQuote);
+        }
+        else{
+            throw new Error(`Quote with id ${bulkQuote.bulkQuoteId} not found`);
+        }
+        return Promise.resolve();
+    }
+
+    removeBulkQuote(id: string): Promise<void> {
+        this._bulkQuotes.splice(this._bulkQuotes.findIndex(q => q.bulkQuoteId === id), 1);
+        return Promise.resolve();
+    }
+    getBulkQuoteById(id: string): Promise<BulkQuote | null> {
+        return Promise.resolve(this._bulkQuotes.find(q => q.bulkQuoteId === id) || null);
+    }	
+}

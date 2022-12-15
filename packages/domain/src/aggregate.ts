@@ -107,8 +107,8 @@ export class QuotingAggregate  {
 				errorMsg: errorMessage,
 				quoteId: message.payload?.quoteId,
 				sourceEvent: message.msgName,
-				requesterFspId: message.fspiopOpaqueState?.requesterFspId,
-				destinationFspId: message.fspiopOpaqueState?.destinationFspId,
+				requesterFspId: message.fspiopOpaqueState?.requesterFspId ?? null,
+				destinationFspId: message.fspiopOpaqueState?.destinationFspId ?? null,
 
 			};
 			const messageToPublish = new QuoteErrorEvt(errorPayload);
@@ -246,6 +246,7 @@ export class QuotingAggregate  {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`);
 		
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
+		
 		if(!requesterFspId){
 			throw new InvalidRequesterFspIdError();
 		}
@@ -361,7 +362,7 @@ export class QuotingAggregate  {
 			extensionList: message.payload.extensionList,
 			quotesNotProcessed: [],
 			status: QuoteStatus.PENDING
-		}
+		};
 
 		const addedBulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
 

@@ -33,8 +33,8 @@
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { start, stop } from "../../src/service";
-import { MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, MemoryAccountLookupService } from "@mojaloop/quoting-shared-mocks";
-import { IParticipantService, IQuoteRepo, QuotingAggregate } from "@mojaloop/quoting-bc-domain";
+import { MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, MemoryAccountLookupService, MemoryBulkQuoteRepo } from "@mojaloop/quoting-shared-mocks";
+import { IBulkQuoteRepo, IParticipantService, IQuoteRepo, QuotingAggregate } from "@mojaloop/quoting-bc-domain";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
@@ -47,11 +47,14 @@ const mockedParticipantService: IParticipantService = new MemoryParticipantServi
 
 const mockedQuoteRepository: IQuoteRepo = new MemoryQuoteRepo(logger);
 
+const mockedBulkQuoteRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logger);
+
 const mockedAccountLookupService = new MemoryAccountLookupService(logger);
 
 const mockedAggregate: QuotingAggregate = new QuotingAggregate(
     logger,
     mockedQuoteRepository,
+    mockedBulkQuoteRepository,
     mockedProducer,
     mockedParticipantService,
     mockedAccountLookupService
@@ -77,7 +80,7 @@ describe("Quoting Service", () => {
         const spyQuoteRegistryInit = jest.spyOn(mockedQuoteRepository, "init");
      
         // Act
-        await start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
+        await start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
 
         // Assert
         expect(spyConsumerSetTopics).toBeCalledTimes(1); 
@@ -94,7 +97,7 @@ describe("Quoting Service", () => {
         const spyConsumerDestroy = jest.spyOn(mockedConsumer, "destroy");
         const spyProducerDestroy = jest.spyOn(mockedProducer, "destroy");
         const spyQuoteRegistryDestroy = jest.spyOn(mockedQuoteRepository, "destroy");
-        await start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
+        await start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
 
         // Act
         await stop();
