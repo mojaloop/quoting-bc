@@ -126,7 +126,9 @@ export interface Quote {
     payeeFspCommission: IMoney | null;
 }
 
-export type IndividualBulkQuote = Omit<Quote,"status">;
+export type IndividualBulkQuote = {
+    
+};
 
 export interface BulkQuote {
     bulkQuoteId: string;

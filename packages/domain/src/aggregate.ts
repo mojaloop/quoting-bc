@@ -387,7 +387,7 @@ export class QuotingAggregate  {
 					payer: message.payload.payer,
 					geoCode: message.payload.geoCode,
 					expiration: message.payload.expiration,
-					individualQuotes: quoteGroup,
+					individualQuotes: quoteGroup.quoteList,
 					extensionList: message.payload.extensionList
 				};
 		
@@ -414,25 +414,30 @@ export class QuotingAggregate  {
 	}
 
 	private groupBulkQuotesByPartyIdentifier(message: BulkQuoteRequestedEvt): BulkQuotesMap {
-		const groupedQuotes = message.payload.individualQuotes.reduce((map: BulkQuotesMap, quote: Quote) => {
-			const key = `${quote.payee.partyIdInfo.partyIdentifier}-${quote.payee.partyIdInfo.partyIdType}
-				-${quote.payee.partyIdInfo.partySubIdOrType}-${quote.amount.currency}`;
-			if (!map.get(key)) {
+		const map: BulkQuotesMap = new Map();
+		// reduce the quotes to a map of partyId -> quoteList
+		message.payload.individualQuotes.map(quote => {
+			const partyId = quote.payee.partyIdInfo.partyIdentifier;
+			const partyIdType = quote.payee.partyIdInfo.partyIdType;
+			const partySubIdOrType = quote.payee.partyIdInfo.partySubIdOrType;
+			const currency =	quote.amount.currency;
+			const destinationFspId = quote.payee.partyIdInfo.fspId;
+			const key = `${partyId}-${partyIdType}-${partySubIdOrType}-${currency}-${destinationFspId}`;
+			const quoteGroup = map.get(key);
+			if(quoteGroup) {
+				quoteGroup.quoteList.push(quote);
+			} else {
 				map.set(key, {
-					partyId: quote.payee.partyIdInfo.partyIdentifier,
-					partyIdType: quote.payee.partyIdInfo.partyIdType,
-					partySubIdOrType: quote.payee.partyIdInfo.partySubIdOrType,
-					currency: quote.amount.currency,
-					destinationFspId: quote.payee.partyIdInfo.fspId,
+					partyId,
+					partyIdType,
+					partySubIdOrType,
+					currency,
+					destinationFspId,
 					quoteList: [quote]
 				});
-			} else {
-				map.get(key)?.quoteList.push(quote);
-			}
-			return map;
-		}, {});
-
-		return groupedQuotes;
+		}
+		});
+		return map;
 	}
 
 	private async validateParticipant(participantId: string | null):Promise<void>{
