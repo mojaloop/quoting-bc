@@ -51,21 +51,10 @@ export class NoSuchQuoteError extends Error {
     }
 }
 
-export class InvalidRequesterFspIdError extends Error {
+// BulkQuotes
+export class NoSuchBulkQuoteError extends Error {
     constructor(message?: string) {
-        super(message || "Invalid requester fsp id");
-    }
-}
-
-export class InvalidDestinationFspIdError extends Error {
-    constructor(message?: string) {
-        super(message || "Invalid destination fsp id");
-    }
-}
-
-export class InvalidDestinationPartyInformationError extends Error {
-    constructor(message?: string) {
-        super(message || "Invalid destination party information");
+        super(message || "Quote doesn't exist");
     }
 }
  
@@ -102,5 +91,22 @@ export class InvalidParticipantIdError extends Error {
 export class RequiredParticipantIsNotActive extends Error {
     constructor(message?: string) {
         super(message || "Participant is not active");
+    }
+}
+export class InvalidRequesterFspIdError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid requester fsp id");
+    }
+}
+
+export class InvalidDestinationFspIdError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid destination fsp id");
+    }
+}
+
+export class InvalidDestinationPartyInformationError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid destination party information");
     }
 }

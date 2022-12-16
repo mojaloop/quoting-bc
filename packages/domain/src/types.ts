@@ -94,6 +94,12 @@ export interface IExtensionList {
     extension: { key: string; value: string;}[];
 }
 
+export interface IErrorInformation {
+    errorCode: string;
+    errorDescription: string;
+    extensionList: IExtensionList
+}
+
 export interface IParticipant {
     id: string;
     type: string;
@@ -127,15 +133,28 @@ export interface Quote {
 }
 
 export type IndividualBulkQuote = {
-        quoteId: string;
-        transactionId: string;
-        payee: IParty;
-        amountType: IAmountType;
-        amount: IMoney;
-        fees: IMoney | null;
-        transactionType: ITransactionType;
-        note: string | null;
-        extensionList: IExtensionList | null;
+    quoteId: string;
+    transactionId: string;
+    payee: IParty;
+    amountType: IAmountType;
+    amount: IMoney;
+    fees: IMoney | null;
+    transactionType: ITransactionType;
+    note: string | null;
+    extensionList: IExtensionList | null;
+}
+
+export type IndividualBulkQuoteResult = {
+    quoteId: string;
+    payee: IParty | null;
+    transferAmount: IMoney | null;
+    payeeReceiveAmount: IMoney | null;
+    payeeFspFee: IMoney | null;
+    payeeFspCommission: IMoney | null;
+    ilpPacket: string | null;
+    condition: string | null;
+    errorInformation: IErrorInformation | null;
+    extensionList: IExtensionList | null;
 }
     
 export interface BulkQuote {
@@ -144,6 +163,7 @@ export interface BulkQuote {
     geoCode: IGeoCode | null;
     expiration: string | null;
     individualQuotes: IndividualBulkQuote[];
+    quotesProcessed: IndividualBulkQuote[];
     quotesNotProcessed: IndividualBulkQuote[];
     status: QuoteStatus,
     extensionList: IExtensionList | null;

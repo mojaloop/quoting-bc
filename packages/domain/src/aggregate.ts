@@ -44,7 +44,8 @@ import {
 	NoSuchQuoteError,
 	InvalidRequesterFspIdError,
 	InvalidDestinationFspIdError,
-	InvalidDestinationPartyInformationError
+	InvalidDestinationPartyInformationError,
+	NoSuchBulkQuoteError
 } from "./errors";
 import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
@@ -62,10 +63,13 @@ import {
 	BulkQuoteRequestedEvt,
 	BulkQuoteReceivedEvt,
 	BulkQuoteReceivedEvtPayload,
-	BulkQuoteRequestedEvtPayload
+	BulkQuoteRequestedEvtPayload,
+	BulkQuotePendingReceivedEvt,
+	BulkQuoteAcceptedEvt,
+	BulkQuoteAcceptedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { BulkQuote, BulkQuotesMap, IExtensionList, IndividualBulkQuote, Quote, QuoteStatus } from "./types";
+import { BulkQuote, BulkQuotesMap, IExtensionList, IndividualBulkQuote, IndividualBulkQuoteResult, Quote, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -154,6 +158,9 @@ export class QuotingAggregate  {
 			case BulkQuoteRequestedEvt.name:
 				eventToPublish = await this.handleBulkQuoteRequestedEvt(message as BulkQuoteRequestedEvt);
 				break;
+			case BulkQuotePendingReceivedEvt.name:
+				eventToPublish = await this.handleBulkQuotePendingReceivedEvt(message as BulkQuotePendingReceivedEvt);
+				break;
 			default:
 				this._logger.error(`message type has invalid format or value ${message.msgName}`);
 				throw new InvalidMessageTypeError();
@@ -164,7 +171,7 @@ export class QuotingAggregate  {
 				for await (const event of eventToPublish){
 					await this._messageProducer.send(event);
 				}
-			}else{
+			}else if(eventToPublish) {
 				await this._messageProducer.send(eventToPublish);
 			}
 		}else{
@@ -196,8 +203,8 @@ export class QuotingAggregate  {
             destinationFspId: message.fspiopOpaqueState.destinationFspId,
 			transactionId: message.payload.transactionId,
 			// TODO: correct in shared tip libs
-			payee: message.payload.payee as any,
-			payer: message.payload.payer as any,
+			payee: message.payload.payee,
+			payer: message.payload.payer,
 			amountType: message.payload.amountType,
 			amount: message.payload.amount,
 			transactionType: message.payload.transactionType,
@@ -355,11 +362,12 @@ export class QuotingAggregate  {
 
 		const bulkQuote: BulkQuote = {
 			bulkQuoteId: message.payload.bulkQuoteId,
-			payer: message.payload.payer as any,
+			payer: message.payload.payer,
 			geoCode: message.payload.geoCode,
 			expiration: message.payload.expiration,
-			individualQuotes: message.payload.individualQuotes as any,
+			individualQuotes: message.payload.individualQuotes,
 			extensionList: message.payload.extensionList,
+			quotesProcessed: [],
 			quotesNotProcessed: [],
 			status: QuoteStatus.PENDING
 		};
@@ -373,13 +381,14 @@ export class QuotingAggregate  {
 		for await (const [ _ , quoteGroup] of quotesDictionary) {
 			let destinationFspIdToUse = quoteGroup.destinationFspId;
 
-			if(!destinationFspIdToUse){
+			if(!destinationFspIdToUse) {
 				const payeePartyId = quoteGroup.partyId;
 				const payeePartyIdType = quoteGroup.partyIdType;
 				const payeePartySubIdOrType = quoteGroup.partySubIdOrType;
 				const currency = quoteGroup.currency;
 				destinationFspIdToUse = await this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
 			}	
+
 			try {
 				await this.validateParticipant(destinationFspIdToUse);
 				
@@ -404,6 +413,7 @@ export class QuotingAggregate  {
 
 		if(quotesNotProcessed.length > 0) {
 			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(addedBulkQuoteId);
+
 			if(bulkQuote) {
 				bulkQuote.quotesNotProcessed = quotesNotProcessed;
 				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
@@ -411,6 +421,88 @@ export class QuotingAggregate  {
 		}
 
 		return events;
+
+	}
+
+	private async handleBulkQuotePendingReceivedEvt(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | null> {
+		this._logger.debug(`Got BulkQuotePendingReceivedEvt msg for bulkQuotes: ${message.payload.individualQuoteResults}`);
+		
+		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
+		
+		if(!requesterFspId){
+			throw new InvalidRequesterFspIdError();
+		}
+
+		const destinationFspId = message.fspiopOpaqueState?.destinationFspId;
+
+		if(!destinationFspId){
+			throw new InvalidDestinationFspIdError();
+		}
+
+		await this.validateParticipant(requesterFspId);
+		await this.validateParticipant(destinationFspId);
+		
+		// Hardcoded at the moment due to not being able to retrieve bulkQuoteId in an apparent way
+		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById("8843fdbe-5dea-3abd-a210-3780e7f2f17a");
+
+		if(!bulkQuote){
+			throw new NoSuchBulkQuoteError();
+		}
+
+		
+		// The ttk doesn't seem to "remember" which quote ids were send, so it just generated random ones (including the quoteId)
+		// Refer to: https://docs.mojaloop.io/api/fspiop/v1.1/api-definition.html#table-23
+		// Below is a sample of how the event domain code logic should somehow work
+		
+		// const quotes:IndividualBulkQuoteResult[] = [];
+
+		// for(const individualQuote of message.payload.individualQuoteResults) {
+		// 	const quote = bulkQuote.individualQuotes.find(value => value.quoteId === individualQuote.quoteId) as unknown as IndividualBulkQuoteResult;
+
+		// 	if(quote === undefined) {
+		// 		throw Error()
+		// 	}
+			
+		// 	quote.condition = individualQuote.condition;
+		// 	quote.errorInformation = individualQuote.errorInformation;
+		// 	quote.payeeFspCommission = individualQuote.payeeFspCommission;
+		// 	quote.payeeFspFee = individualQuote.payeeFspFee;
+		// 	quote.ilpPacket = individualQuote.ilpPacket;
+		// 	quote.payeeReceiveAmount = individualQuote.payeeReceiveAmount;
+		// 	quote.transferAmount = individualQuote.transferAmount;
+		// 	quote.extensionList = individualQuote.extensionList;
+		// }
+		
+		const quotes = message.payload.individualQuoteResults as unknown as IndividualBulkQuote[];
+
+		bulkQuote.quotesProcessed = [...bulkQuote.quotesProcessed, ...quotes];
+
+		const totalProcessedQuotes = bulkQuote.quotesProcessed.length + bulkQuote.quotesNotProcessed.length;
+		// if(bulkQuote.individualQuotes.length === bulkQuote.quotesNotProcessed.length) {
+		if(bulkQuote.individualQuotes.length !== totalProcessedQuotes) {
+
+			// All quotes have been processed, whether they have errors or not
+			bulkQuote.status = QuoteStatus.ACCEPTED;
+
+			await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+
+			const payload : BulkQuoteAcceptedEvtPayload = {
+				bulkQuoteId: bulkQuote.bulkQuoteId,
+				individualQuoteResults: [...bulkQuote.quotesProcessed, ...bulkQuote.quotesNotProcessed] as any,
+				expiration: message.payload.expiration,
+				extensionList: message.payload.extensionList
+			};
+
+			const event = new BulkQuoteAcceptedEvt(payload);
+
+			event.fspiopOpaqueState = message.fspiopOpaqueState;
+
+			return event;
+		} else {
+			await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+		}
+
+		return null;
 
 	}
 
@@ -437,6 +529,7 @@ export class QuotingAggregate  {
 				});
 		}
 		});
+
 		return map;
 	}
 
@@ -464,7 +557,6 @@ export class QuotingAggregate  {
 	}
 
 	private async getDestinationFspIdUsingAccountLookup(payeePartyId: string | null, payeePartyIdType: string | null, payeePartySubIdOrType: string | null, currency: string | null) {
-
 		if (!payeePartyId || !payeePartyIdType) {
 			throw new InvalidDestinationPartyInformationError();
 		}
