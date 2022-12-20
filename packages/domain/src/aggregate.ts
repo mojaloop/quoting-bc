@@ -67,6 +67,7 @@ import {
 	BulkQuotePendingReceivedEvt,
 	BulkQuoteAcceptedEvt,
 	BulkQuoteAcceptedEvtPayload,
+	BulkQuotePendingReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { BulkQuote, BulkQuotesMap, IExtensionList, IndividualBulkQuote, IndividualBulkQuoteResult, Quote, QuoteStatus } from "./types";
@@ -192,7 +193,7 @@ export class QuotingAggregate  {
 			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType;
 			const payeePartySubIdOrType = message.payload.payer?.partyIdInfo?.partySubIdOrType ?? null;
 			const currency = message.payload.amount?.currency ?? null;
-			destinationFspIdToUse = this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+			destinationFspIdToUse = await this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
 		}
 
 		await this.validateParticipant(destinationFspIdToUse);
@@ -442,48 +443,25 @@ export class QuotingAggregate  {
 		await this.validateParticipant(requesterFspId);
 		await this.validateParticipant(destinationFspId);
 		
-		// Hardcoded at the moment due to not being able to retrieve bulkQuoteId in an apparent way
-		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById("8843fdbe-5dea-3abd-a210-3780e7f2f17a");
+		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(message.payload.bulkQuoteId);
 
 		if(!bulkQuote){
 			throw new NoSuchBulkQuoteError();
 		}
 
-		
-		// The ttk doesn't seem to "remember" which quote ids were send, so it just generated random ones (including the quoteId)
-		// Refer to: https://docs.mojaloop.io/api/fspiop/v1.1/api-definition.html#table-23
-		// Below is a sample of how the event domain code logic should somehow work
-		
-		// const quotes:IndividualBulkQuoteResult[] = [];
-
-		// for(const individualQuote of message.payload.individualQuoteResults) {
-		// 	const quote = bulkQuote.individualQuotes.find(value => value.quoteId === individualQuote.quoteId) as unknown as IndividualBulkQuoteResult;
-
-		// 	if(quote === undefined) {
-		// 		throw Error()
-		// 	}
-			
-		// 	quote.condition = individualQuote.condition;
-		// 	quote.errorInformation = individualQuote.errorInformation;
-		// 	quote.payeeFspCommission = individualQuote.payeeFspCommission;
-		// 	quote.payeeFspFee = individualQuote.payeeFspFee;
-		// 	quote.ilpPacket = individualQuote.ilpPacket;
-		// 	quote.payeeReceiveAmount = individualQuote.payeeReceiveAmount;
-		// 	quote.transferAmount = individualQuote.transferAmount;
-		// 	quote.extensionList = individualQuote.extensionList;
-		// }
-		
 		const quotes = message.payload.individualQuoteResults as unknown as IndividualBulkQuote[];
 
 		bulkQuote.quotesProcessed = [...bulkQuote.quotesProcessed, ...quotes];
 
 		const totalProcessedQuotes = bulkQuote.quotesProcessed.length + bulkQuote.quotesNotProcessed.length;
-		// if(bulkQuote.individualQuotes.length === bulkQuote.quotesNotProcessed.length) {
+
 		if(bulkQuote.individualQuotes.length !== totalProcessedQuotes) {
 
 			// All quotes have been processed, whether they have errors or not
 			bulkQuote.status = QuoteStatus.ACCEPTED;
 
+			// Only update it here so that we save an extra DB transaction
+			// when all the quotes of the bulk are processed
 			await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 
 			const payload : BulkQuoteAcceptedEvtPayload = {
