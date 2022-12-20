@@ -111,6 +111,7 @@ export interface Quote {
     requesterFspId:string;
     destinationFspId:string;
     quoteId: string;
+    bulkQuoteId: string | null;
     transactionId: string;
     payee: IParty;
     payer: IParty;
@@ -123,6 +124,7 @@ export interface Quote {
     note: string | null;
     expiration: string | null;
     extensionList: IExtensionList | null;
+    errorInformation: IErrorInformation | null;
     status: QuoteStatus | null;
     totalTransferAmount: IMoney | null;
     ilpPacket: string | null;
@@ -162,9 +164,9 @@ export interface BulkQuote {
     payer: IParty;
     geoCode: IGeoCode | null;
     expiration: string | null;
-    individualQuotes: IndividualBulkQuote[];
-    quotesProcessed: IndividualBulkQuote[];
-    quotesNotProcessed: IndividualBulkQuote[];
+    individualQuotes: string[];
+    quotesProcessed: string[];
+    quotesNotProcessed: string[];
     status: QuoteStatus,
     extensionList: IExtensionList | null;
 }

@@ -200,6 +200,7 @@ export class QuotingAggregate  {
 
 		const quote: Quote = {
 			quoteId: message.payload.quoteId,
+			bulkQuoteId: null,
 			requesterFspId: message.fspiopOpaqueState.requesterFspId,
             destinationFspId: message.fspiopOpaqueState.destinationFspId,
 			transactionId: message.payload.transactionId,
@@ -222,6 +223,7 @@ export class QuotingAggregate  {
 			condition: null,
 			totalTransferAmount: null,
 			ilpPacket: null,
+			errorInformation: null
 		};
 
 		await this._quotesRepo.addQuote(quote);
@@ -366,14 +368,45 @@ export class QuotingAggregate  {
 			payer: message.payload.payer,
 			geoCode: message.payload.geoCode,
 			expiration: message.payload.expiration,
-			individualQuotes: message.payload.individualQuotes,
 			extensionList: message.payload.extensionList,
+			individualQuotes: message.payload.individualQuotes.map(({ quoteId }) => quoteId),
 			quotesProcessed: [],
 			quotesNotProcessed: [],
 			status: QuoteStatus.PENDING
 		};
 
 		const addedBulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
+
+		for await (const individualQuote of message.payload.individualQuotes) {
+			const quote: Quote = {
+				bulkQuoteId: message.payload.bulkQuoteId,
+				quoteId: individualQuote.quoteId,
+				requesterFspId: message.fspiopOpaqueState.requesterFspId,
+				destinationFspId: message.fspiopOpaqueState.destinationFspId,
+				transactionId: individualQuote.transactionId,
+				payee: individualQuote.payee,
+				payer: message.payload.payer,
+				amountType: individualQuote.amountType,
+				amount: individualQuote.amount,
+				transactionType: individualQuote.transactionType,
+				feesPayer: individualQuote.fees,
+				transactionRequestId: individualQuote.transactionRequestId,
+				geoCode: message.payload.geoCode,
+				note: individualQuote.note,
+				expiration: message.payload.expiration,
+				extensionList: individualQuote.extensionList,
+				payeeReceiveAmount: null,
+				payeeFspFee: null,
+				payeeFspCommission: null,
+				status: QuoteStatus.PENDING,
+				condition: null,
+				totalTransferAmount: null,
+				ilpPacket: null,
+				errorInformation: null
+			};
+
+			await this._quotesRepo.addQuote(quote);
+		}
 
 		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
 		
@@ -416,7 +449,7 @@ export class QuotingAggregate  {
 			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(addedBulkQuoteId);
 
 			if(bulkQuote) {
-				bulkQuote.quotesNotProcessed = quotesNotProcessed;
+				bulkQuote.quotesNotProcessed = quotesNotProcessed.map(({ quoteId }) => quoteId);
 				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 			}
 		}
@@ -449,9 +482,34 @@ export class QuotingAggregate  {
 			throw new NoSuchBulkQuoteError();
 		}
 
-		const quotes = message.payload.individualQuoteResults as unknown as IndividualBulkQuote[];
+		const quotes = message.payload.individualQuoteResults;
 
-		bulkQuote.quotesProcessed = [...bulkQuote.quotesProcessed, ...quotes];
+		// Update the status and fields of each quote that was processed/has new data
+		for await (const individualQuote of quotes) {
+			const quote = await this._quotesRepo.getQuoteById(individualQuote.quoteId);
+
+			if(!quote){
+				throw new NoSuchQuoteError();
+			}
+	
+			quote.requesterFspId = message.fspiopOpaqueState.requesterFspId;
+			quote.destinationFspId = message.fspiopOpaqueState.destinationFspId;
+			quote.quoteId = individualQuote.quoteId;
+			quote.totalTransferAmount = individualQuote.transferAmount;
+			quote.expiration = message.payload.expiration;
+			quote.ilpPacket = individualQuote.ilpPacket;
+			quote.condition = individualQuote.condition;
+			quote.payeeReceiveAmount = individualQuote.payeeReceiveAmount;
+			quote.payeeFspFee = individualQuote.payeeFspFee;
+			quote.payeeFspCommission = individualQuote.payeeFspCommission;
+			quote.extensionList = individualQuote.extensionList;
+			quote.errorInformation = individualQuote.errorInformation;
+			quote.status = QuoteStatus.ACCEPTED;
+	
+			await this._quotesRepo.updateQuote(quote);
+		}
+
+		bulkQuote.quotesProcessed = [...bulkQuote.quotesProcessed, ...quotes.map(({ quoteId }) => quoteId)];
 
 		const totalProcessedQuotes = bulkQuote.quotesProcessed.length + bulkQuote.quotesNotProcessed.length;
 
