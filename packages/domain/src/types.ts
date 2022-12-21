@@ -101,7 +101,7 @@ export interface IParticipant {
     isActive: boolean;
 }
 
-export interface Quote {
+export interface IQuote {
     requesterFspId:string;
     destinationFspId:string;
     quoteId: string;
@@ -125,39 +125,26 @@ export interface Quote {
     payeeFspFee: IMoney | null;
     payeeFspCommission: IMoney | null;
 }
-
-export type IndividualBulkQuote = {
-        quoteId: string;
-        transactionId: string;
-        payee: IParty;
-        amountType: IAmountType;
-        amount: IMoney;
-        fees: IMoney | null;
-        transactionType: ITransactionType;
-        note: string | null;
-        extensionList: IExtensionList | null;
-}
     
-export interface BulkQuote {
+export interface IBulkQuote {
     bulkQuoteId: string;
     payer: IParty;
     geoCode: IGeoCode | null;
     expiration: string | null;
-    individualQuotes: IndividualBulkQuote[];
-    quotesNotProcessed: IndividualBulkQuote[];
-    status: QuoteStatus,
+    individualQuotes: string[];
+    quotesNotProcessed: string[];
     extensionList: IExtensionList | null;
 }
 
-export type BulkQuotesMap = Map<string,
-{
-        partyId:string, 
-        partyIdType:string, 
-        destinationFspId: string | null, 
-        partySubIdOrType: string| null, 
-        currency: string|null, 
-        quoteList:IndividualBulkQuote[]
-}>;
+// export type BulkQuotesMap = Map<string,
+// {
+//         partyId:string, 
+//         partyIdType:string, 
+//         destinationFspId: string | null, 
+//         partySubIdOrType: string| null, 
+//         currency: string|null, 
+//         quoteList:IndividualBulkQuote[]
+// }>;
 
 
 

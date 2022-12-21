@@ -40,7 +40,7 @@ import {
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { BulkQuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitBulkQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError, UnableToGetBulkQuoteError } from '../errors';
-import { IBulkQuoteRepo, BulkQuote } from "@mojaloop/quoting-bc-domain";
+import { IBulkQuoteRepo, IBulkQuote } from "@mojaloop/quoting-bc-domain";
 import { randomUUID } from 'crypto';
 
 export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
@@ -82,7 +82,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 		}
 	}
 
-	async addBulkQuote(bulkQuote: BulkQuote): Promise<string> {
+	async addBulkQuote(bulkQuote: IBulkQuote): Promise<string> {
 		if(bulkQuote.bulkQuoteId){
 			await this.checkIfBulkQuoteExists(bulkQuote);
 		}
@@ -99,14 +99,14 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 	}
 
 
-	async updateBulkQuote(bulkQuote: BulkQuote): Promise<void> {
+	async updateBulkQuote(bulkQuote: IBulkQuote): Promise<void> {
 		const existingQuote = await this.getBulkQuoteById(bulkQuote.bulkQuoteId);
 
 		if(!existingQuote || !existingQuote.bulkQuoteId) {
 			throw new NoSuchQuoteError();
 		}
 
-		const updatedQuote: BulkQuote = {...existingQuote, ...bulkQuote};
+		const updatedQuote: IBulkQuote = {...existingQuote, ...bulkQuote};
 		updatedQuote.bulkQuoteId = existingQuote.bulkQuoteId;
 			
 		try {
@@ -132,7 +132,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 		}
 	}
 
-	async getBulkQuoteById(bulkQuoteId:string):Promise<BulkQuote|null>{
+	async getBulkQuoteById(bulkQuoteId:string):Promise<IBulkQuote|null>{
 		const bulkQuote = await this.bulkQuotes.findOne({bulkQuoteId: bulkQuoteId }).catch((e: any) => {
 			this._logger.error(`Unable to get bulkQuote by id: ${e.message}`);
 			throw new UnableToGetQuoteError();
@@ -143,7 +143,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 		return this.mapToBulkQuote(bulkQuote);
 	}
 
-	private async checkIfBulkQuoteExists(bulkQuote: BulkQuote) {
+	private async checkIfBulkQuoteExists(bulkQuote: IBulkQuote) {
 		const quoteAlreadyPresent: WithId<Document> | null = await this.bulkQuotes.findOne(
 			{
 				bulkQuoteId: bulkQuote.bulkQuoteId
@@ -158,8 +158,8 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 		}
 	}
 
-	private mapToBulkQuote(bulkQuote: WithId<Document>): BulkQuote {
-		const quoteMapped: BulkQuote = { 
+	private mapToBulkQuote(bulkQuote: WithId<Document>): IBulkQuote {
+		const quoteMapped: IBulkQuote = { 
 			bulkQuoteId: bulkQuote.bulkQuoteId ?? null,
 			payer: bulkQuote.payer ?? null,
 			geoCode: bulkQuote.geoCode ?? null,
@@ -167,7 +167,6 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 			extensionList: bulkQuote.extensionList ?? null,
 			individualQuotes: bulkQuote.individualQuotes ?? [],
 			quotesNotProcessed: bulkQuote.quotesNotProcessed ?? [],
-			status: bulkQuote.status ?? null
 		};
 		return quoteMapped;
 	}

@@ -32,9 +32,9 @@
 
 "use strict";
 
-import { Quote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
+import { IQuote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
 
-export const mockedQuote1 : Quote = {
+export const mockedQuote1 : IQuote = {
     requesterFspId: "1",
     destinationFspId: "10",
     quoteId: "1",
@@ -131,7 +131,7 @@ export const mockedQuote1 : Quote = {
     }
 };
 
-export const mockedQuote2 : Quote = {
+export const mockedQuote2 : IQuote = {
   requesterFspId: "2",
   destinationFspId: "11",
   quoteId: "2",
@@ -228,7 +228,7 @@ export const mockedQuote2 : Quote = {
   }
 };
 
-export const mockedQuote3 : Quote = {
+export const mockedQuote3 : IQuote = {
   requesterFspId: "3",
   destinationFspId: "12",
   quoteId: "3",
@@ -325,7 +325,7 @@ export const mockedQuote3 : Quote = {
   }
 };
 
-export const mockedQuote4 : Quote = {
+export const mockedQuote4 : IQuote = {
   requesterFspId: "4",
   destinationFspId: "13",
   quoteId: "4",
@@ -422,7 +422,7 @@ export const mockedQuote4 : Quote = {
   }
 };
 
-export const mockedQuotes : Quote[] = [
+export const mockedQuotes : IQuote[] = [
   mockedQuote1,
   mockedQuote2,
   mockedQuote3,

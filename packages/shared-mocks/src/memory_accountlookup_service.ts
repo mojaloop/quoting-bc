@@ -32,7 +32,7 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { IAccountLookupService } from "@mojaloop/quoting-bc-domain";
+import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService } from "@mojaloop/quoting-bc-domain";
 
 export class MemoryAccountLookupService implements IAccountLookupService {
 	private readonly logger: ILogger;
@@ -41,6 +41,9 @@ export class MemoryAccountLookupService implements IAccountLookupService {
 		logger: ILogger,
 	) {
 		this.logger = logger;
+	}
+	getBulkAccountFspId(partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest[]): Promise<{ [key: string]: string | null; }> {
+		return Promise.resolve({});
 	}
 	getAccountFspId(partyId: string, partyType: string, partySubIdOrType: string | null, currency: string | null): Promise<string | null> {
 		return Promise.resolve(null);

@@ -33,29 +33,33 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuoteRepo, Quote } from "@mojaloop/quoting-bc-domain";
+import { IQuoteRepo, IQuote } from "@mojaloop/quoting-bc-domain";
 
 export class MemoryQuoteRepo implements IQuoteRepo {
 	private readonly _logger: ILogger;
-    private readonly _quotes: Quote[] = [];
+    private readonly _quotes: IQuote[] = [];
 	
 	constructor(
 		logger: ILogger,
 	) {
 		this._logger = logger;
 	}
-
     init(): Promise<void> {
         return Promise.resolve();
     }
     destroy(): Promise<void> {
         return Promise.resolve();
     }
-    addQuote(quote: Quote): Promise<string> {
+    addQuote(quote: IQuote): Promise<string> {
         this._quotes.push(quote);
         return Promise.resolve(quote.quoteId);
     }
-    updateQuote(quote: Quote): Promise<void> {
+    addBulkQuotes(quotes: IQuote[]): Promise<void> {
+        this._quotes.push(...quotes);
+        return Promise.resolve();
+    }
+
+    updateQuote(quote: IQuote): Promise<void> {
         const quoteToUpdate = this._quotes.find(q => q.quoteId === quote.quoteId);
         if (quoteToUpdate) {
             Object.assign(quoteToUpdate, quote);
@@ -69,7 +73,7 @@ export class MemoryQuoteRepo implements IQuoteRepo {
         this._quotes.splice(this._quotes.findIndex(q => q.quoteId === id), 1);
         return Promise.resolve();
     }
-    getQuoteById(id: string): Promise<Quote | null> {
+    getQuoteById(id: string): Promise<IQuote | null> {
         return Promise.resolve(this._quotes.find(q => q.quoteId === id) || null);
     }
 	

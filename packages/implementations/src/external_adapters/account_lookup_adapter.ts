@@ -30,7 +30,7 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { AccountLookupHttpClient } from "@mojaloop/account-lookup-bc-client-lib";
-import { IAccountLookupService } from "@mojaloop/quoting-bc-domain";
+import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService } from "@mojaloop/quoting-bc-domain";
 import { ILocalCache, LocalCache } from "../local_cache";
 
 export class AccountLookupAdapter implements IAccountLookupService {
@@ -51,6 +51,29 @@ export class AccountLookupAdapter implements IAccountLookupService {
 		this._clientBaseUrl = clientBaseUrl;
 		this._externalAccountClient = new AccountLookupHttpClient(this._logger, this._clientBaseUrl);
 		this._localCache = localCache ?? new LocalCache(logger);
+	}
+	getBulkAccountFspId(partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest[]): Promise<{ [key: string]: string | null; }> {
+		const result: { [key: string]: string | null; } = {};
+		const identifiersListNotCached = partyIdentifiersList.map(partyIdentifier => {
+			const partyId = partyIdentifier.partyId;
+			const partyType = partyIdentifier.partyIdType;
+			const partySubIdOrType = partyIdentifier.partySubIdOrType ?? "";
+			const currency = partyIdentifier.currency ?? "";
+			const cachedResult = this._localCache.get(partyId, partyType, partySubIdOrType, currency);
+			
+			if (!cachedResult) {
+				return partyIdentifier;
+			};
+			return;
+
+		});
+
+		
+
+
+
+		return Promise.resolve(result);
+
 	}
 
 	async getAccountFspId(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null> {

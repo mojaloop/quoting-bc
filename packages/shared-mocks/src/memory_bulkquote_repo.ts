@@ -32,11 +32,11 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { BulkQuote, IBulkQuoteRepo, Quote } from "@mojaloop/quoting-bc-domain";
+import { IBulkQuote, IBulkQuoteRepo, IQuote } from "@mojaloop/quoting-bc-domain";
 
 export class MemoryBulkQuoteRepo implements IBulkQuoteRepo {
 	private readonly _logger: ILogger;
-    private readonly _bulkQuotes: BulkQuote[] = [];
+    private readonly _bulkQuotes: IBulkQuote[] = [];
 	
 	constructor(
 		logger: ILogger,
@@ -51,11 +51,11 @@ export class MemoryBulkQuoteRepo implements IBulkQuoteRepo {
         return Promise.resolve();
     }
 
-    addBulkQuote(bulkQuote: BulkQuote): Promise<string> {
+    addBulkQuote(bulkQuote: IBulkQuote): Promise<string> {
         this._bulkQuotes.push(bulkQuote);
         return Promise.resolve(bulkQuote.bulkQuoteId);
     }
-    updateBulkQuote(bulkQuote: BulkQuote): Promise<void> {
+    updateBulkQuote(bulkQuote: IBulkQuote): Promise<void> {
         const bulkQuoteToUpdate = this._bulkQuotes.find(q => q.bulkQuoteId === bulkQuote.bulkQuoteId);
         if (bulkQuoteToUpdate) {
             Object.assign(bulkQuoteToUpdate, bulkQuote);
@@ -70,7 +70,7 @@ export class MemoryBulkQuoteRepo implements IBulkQuoteRepo {
         this._bulkQuotes.splice(this._bulkQuotes.findIndex(q => q.bulkQuoteId === id), 1);
         return Promise.resolve();
     }
-    getBulkQuoteById(id: string): Promise<BulkQuote | null> {
+    getBulkQuoteById(id: string): Promise<IBulkQuote | null> {
         return Promise.resolve(this._bulkQuotes.find(q => q.bulkQuoteId === id) || null);
     }	
 }

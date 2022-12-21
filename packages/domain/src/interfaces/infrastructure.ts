@@ -33,31 +33,36 @@
 "use strict";
 
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import { Quote, BulkQuote } from "../types";
+import {IQuote, IBulkQuote } from "../types";
 export interface IQuoteRepo {
     init(): Promise<void>;
 	destroy(): Promise<void>;
-    addQuote(quote: Quote):Promise<string>;
-    updateQuote(quote: Quote):Promise<void>;
+    addQuote(quote: IQuote):Promise<string>;
+    addBulkQuotes(quotes: IQuote[]):Promise<void>;
+    updateQuote(quote: IQuote):Promise<void>;
     removeQuote(id: string):Promise<void>;
-    getQuoteById(id:string):Promise<Quote|null>;
+    getQuoteById(id:string):Promise<IQuote|null>;
 }
 
 export interface IBulkQuoteRepo {
     init(): Promise<void>;
 	destroy(): Promise<void>;
-    addBulkQuote(bulkQuote: BulkQuote):Promise<string>;
-    updateBulkQuote(bulkQuote: BulkQuote):Promise<void>;
+    addBulkQuote(bulkQuote: IBulkQuote):Promise<string>;
+    updateBulkQuote(bulkQuote: IBulkQuote):Promise<void>;
     removeBulkQuote(id: string):Promise<void>;
-    getBulkQuoteById(id:string):Promise<BulkQuote|null>;
+    getBulkQuoteById(id:string):Promise<IBulkQuote|null>;
 }
 
-export interface IParticipantService {
+export interface IParticipantService { 
     getParticipantInfo(fspId: string): Promise<Participant| null>;
     getParticipantsInfo(fspIds: string[]): Promise<Participant[]|null>;
 }
 
+
+export type AccountLookupBulkQuoteFspIdRequest = { [key:string] : { partyId: string, partyType:string, partySubType: string | null, currency:string | null} };
+
 export interface IAccountLookupService {
     getAccountFspId(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null>;
+    getBulkAccountFspId( partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest []): Promise<{[key:string]:string | null}>;
 }
 

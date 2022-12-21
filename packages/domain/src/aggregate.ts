@@ -46,7 +46,7 @@ import {
 	InvalidDestinationFspIdError,
 	InvalidDestinationPartyInformationError
 } from "./errors";
-import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
+import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
 	QuoteErrorEvt,
 	QuoteErrorEvtPayload,
@@ -65,7 +65,7 @@ import {
 	BulkQuoteRequestedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { BulkQuote, BulkQuotesMap, IExtensionList, IndividualBulkQuote, Quote, QuoteStatus } from "./types";
+import { IBulkQuote, IExtensionList, IQuote, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -190,7 +190,7 @@ export class QuotingAggregate  {
 
 		await this.validateParticipant(destinationFspIdToUse);
 
-		const quote: Quote = {
+		const quote: IQuote = {
 			quoteId: message.payload.quoteId,
 			requesterFspId: message.fspiopOpaqueState.requesterFspId,
             destinationFspId: message.fspiopOpaqueState.destinationFspId,
@@ -351,44 +351,47 @@ export class QuotingAggregate  {
 		
 		const events:BulkQuoteReceivedEvt[] = [];
 
-		const quotesNotProcessed: IndividualBulkQuote[] = [];
+		const quotes = message.payload.individualQuotes as any as IQuote[];
 
-		const bulkQuote: BulkQuote = {
+		const quotesNotProcessedIds: string[] = [];
+
+		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
+
+		const bulkQuote: IBulkQuote = {
 			bulkQuoteId: message.payload.bulkQuoteId,
 			payer: message.payload.payer as any,
 			geoCode: message.payload.geoCode,
 			expiration: message.payload.expiration,
-			individualQuotes: message.payload.individualQuotes as any,
+			individualQuotes: message.payload.individualQuotes.map(q => q.quoteId),
 			extensionList: message.payload.extensionList,
 			quotesNotProcessed: [],
-			status: QuoteStatus.PENDING
 		};
 
-		const addedBulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
+		const bulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
 
-		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
+		await this._quotesRepo.addBulkQuotes(quotes);
 		
-		const quotesDictionary = this.groupBulkQuotesByPartyIdentifier(message.payload);
+		const missingFspIds = await this.getMissingFspIds(quotes);
 
-		for await (const [ _ , quoteGroup] of quotesDictionary) {
-			let destinationFspIdToUse = quoteGroup.destinationFspId;
+		for await (const quote of quotes) {
+			let destinationFspIdToUse = quote.payee?.partyIdInfo?.fspId;
 
 			if(!destinationFspIdToUse){
-				const payeePartyId = quoteGroup.partyId;
-				const payeePartyIdType = quoteGroup.partyIdType;
-				const payeePartySubIdOrType = quoteGroup.partySubIdOrType;
-				const currency = quoteGroup.currency;
-				destinationFspIdToUse = await this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+				destinationFspIdToUse = missingFspIds[quote.quoteId];
 			}	
 			try {
 				await this.validateParticipant(destinationFspIdToUse);
 				
+				quote.status = QuoteStatus.PENDING;
+
+				await this._quotesRepo.updateQuote(quote);
+
 				const payload : BulkQuoteReceivedEvtPayload = {
 					bulkQuoteId: message.payload.bulkQuoteId,
 					payer: message.payload.payer,
 					geoCode: message.payload.geoCode,
 					expiration: message.payload.expiration,
-					individualQuotes: quoteGroup.quoteList,
+					individualQuotes: quotes as any,
 					extensionList: message.payload.extensionList
 				};
 		
@@ -398,14 +401,14 @@ export class QuotingAggregate  {
 
 				events.push(event);
 			} catch (e) {
-				quotesNotProcessed.push(...quoteGroup.quoteList);
+				quotesNotProcessedIds.push(quote.quoteId);
 			}	
 		}
 
-		if(quotesNotProcessed.length > 0) {
-			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(addedBulkQuoteId);
+		if(quotesNotProcessedIds.length > 0) {
+			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
 			if(bulkQuote) {
-				bulkQuote.quotesNotProcessed = quotesNotProcessed;
+				bulkQuote.quotesNotProcessed = quotesNotProcessedIds;
 				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 			}
 		}
@@ -414,30 +417,27 @@ export class QuotingAggregate  {
 
 	}
 
-	private groupBulkQuotesByPartyIdentifier(payload: BulkQuoteRequestedEvtPayload): BulkQuotesMap {
-		const map: BulkQuotesMap = new Map();
-		payload.individualQuotes.map(quote => {
-			const partyId = quote.payee.partyIdInfo.partyIdentifier;
-			const partyIdType = quote.payee.partyIdInfo.partyIdType;
-			const partySubIdOrType = quote.payee.partyIdInfo.partySubIdOrType;
-			const currency = quote.amount.currency;
-			const destinationFspId = quote.payee.partyIdInfo.fspId;
-			const key = `${partyId}-${partyIdType}-${partySubIdOrType}-${currency}`;
-			const quoteGroup = map.get(key);
-			if(quoteGroup) {
-				quoteGroup.quoteList.push(quote);
-			} else {
-				map.set(key, {
-					partyId,
-					partyIdType,
-					partySubIdOrType,
-					currency,
-					destinationFspId,
-					quoteList: [quote]
-				});
+	private async getMissingFspIds(quotes: IQuote[]): Promise<{[key:string]:string|null}> {
+		
+		const destinationFspIdsToDiscover: AccountLookupBulkQuoteFspIdRequest[] = [];
+		
+		for await (const quote of quotes) {
+			let destinationFspId = quote.payee?.partyIdInfo?.fspId;
+			if(!destinationFspId) {
+				const quoteId = quote.quoteId;
+				destinationFspIdsToDiscover.push({ 
+					quoteId : {
+					partyId: quote.payee?.partyIdInfo?.partyIdentifier,
+					partyType: quote.payee?.partyIdInfo?.partyIdType,
+					partySubType: quote.payee?.partyIdInfo?.partySubIdOrType,
+					currency: quote.amount?.currency,
+				}});
+			}
 		}
-		});
-		return map;
+
+		const destinationFspIds = await this._accountLookupService.getBulkAccountFspId(destinationFspIdsToDiscover);
+
+		return destinationFspIds;
 	}
 
 	private async validateParticipant(participantId: string | null):Promise<void>{
