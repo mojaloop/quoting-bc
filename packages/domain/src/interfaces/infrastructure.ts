@@ -38,7 +38,7 @@ export interface IQuoteRepo {
     init(): Promise<void>;
 	destroy(): Promise<void>;
     addQuote(quote: IQuote):Promise<string>;
-    addBulkQuotes(quotes: IQuote[]):Promise<void>;
+    addQuotes(quotes: IQuote[]):Promise<void>;
     updateQuote(quote: IQuote):Promise<void>;
     removeQuote(id: string):Promise<void>;
     getQuoteById(id:string):Promise<IQuote|null>;

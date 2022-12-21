@@ -54,7 +54,7 @@ export class MemoryQuoteRepo implements IQuoteRepo {
         this._quotes.push(quote);
         return Promise.resolve(quote.quoteId);
     }
-    addBulkQuotes(quotes: IQuote[]): Promise<void> {
+    addQuotes(quotes: IQuote[]): Promise<void> {
         this._quotes.push(...quotes);
         return Promise.resolve();
     }

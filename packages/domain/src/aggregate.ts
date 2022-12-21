@@ -375,9 +375,7 @@ export class QuotingAggregate  {
 		};
 
 		const bulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
-
-		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
-		
+	
 		const missingFspIds = await this.getMissingFspIds(quotes);
 
 		for await (const quote of quotes) {
@@ -385,7 +383,9 @@ export class QuotingAggregate  {
 
 			if(!destinationFspIdToUse){
 				destinationFspIdToUse = missingFspIds[quote.quoteId];
-			}	
+			}
+			
+			quote.bulkQuoteId = bulkQuoteId;
 
 			try {
 				await this.validateParticipant(destinationFspIdToUse);
@@ -408,8 +408,12 @@ export class QuotingAggregate  {
 				event.fspiopOpaqueState = message.fspiopOpaqueState;
 
 				events.push(event);
+
+				this._quotesRepo.addQuote(quote);
+
 			} catch (e) {
 				quotesNotProcessedIds.push(quote.quoteId);
+				this._quotesRepo.addQuote(quote);
 			}	
 		}
 

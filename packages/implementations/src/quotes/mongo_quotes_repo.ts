@@ -98,7 +98,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 		}
 	}
 
-	async addBulkQuotes(quotes: IQuote[]): Promise<void> {
+	async addQuotes(quotes: IQuote[]): Promise<void> {
 		try{
 			await this.quotes.insertMany(quotes);
 		}
