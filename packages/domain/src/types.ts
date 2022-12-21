@@ -94,6 +94,12 @@ export interface IExtensionList {
     extension: { key: string; value: string;}[];
 }
 
+export interface IErrorInformation {
+    errorCode: string;
+    errorDescription: string;
+    extensionList: IExtensionList
+}
+
 export interface IParticipant {
     id: string;
     type: string;
@@ -105,6 +111,7 @@ export interface IQuote {
     requesterFspId:string;
     destinationFspId:string;
     quoteId: string;
+    bulkQuoteId: string | null;
     transactionId: string;
     payee: IParty;
     payer: IParty;
@@ -117,6 +124,7 @@ export interface IQuote {
     note: string | null;
     expiration: string | null;
     extensionList: IExtensionList | null;
+    errorInformation: IErrorInformation | null;
     status: QuoteStatus | null;
     totalTransferAmount: IMoney | null;
     ilpPacket: string | null;
@@ -136,15 +144,6 @@ export interface IBulkQuote {
     extensionList: IExtensionList | null;
 }
 
-// export type BulkQuotesMap = Map<string,
-// {
-//         partyId:string, 
-//         partyIdType:string, 
-//         destinationFspId: string | null, 
-//         partySubIdOrType: string| null, 
-//         currency: string|null, 
-//         quoteList:IndividualBulkQuote[]
-// }>;
 
 
 

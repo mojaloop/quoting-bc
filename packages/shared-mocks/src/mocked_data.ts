@@ -38,6 +38,7 @@ export const mockedQuote1 : IQuote = {
     requesterFspId: "1",
     destinationFspId: "10",
     quoteId: "1",
+    bulkQuoteId: null,
     transactionId: "2",
     transactionRequestId: "11",
     payee: {
@@ -128,6 +129,22 @@ export const mockedQuote1 : IQuote = {
     totalTransferAmount: {
       currency: "EUR",
       amount: "200"
+    },
+    errorInformation: {
+      errorCode: "8562",
+      errorDescription: "aliquip",
+      extensionList: {
+        extension: [
+          {
+            key: "ad aliqua dolor reprehende",
+            value: "ipsum aliq"
+          },
+          {
+            key: "la",
+            value: "commodo dolore et"
+          }
+        ]
+      }
     }
 };
 
@@ -135,6 +152,7 @@ export const mockedQuote2 : IQuote = {
   requesterFspId: "2",
   destinationFspId: "11",
   quoteId: "2",
+  bulkQuoteId: null,
   transactionId: "3",
   transactionRequestId: "12",
   payee: {
@@ -225,6 +243,22 @@ export const mockedQuote2 : IQuote = {
   totalTransferAmount: {
     currency: "USD",
     amount: "304.2"
+  },
+  errorInformation: {
+    errorCode: "8562",
+    errorDescription: "aliquip",
+    extensionList: {
+      extension: [
+        {
+          key: "ad aliqua dolor reprehende",
+          value: "ipsum aliq"
+        },
+        {
+          key: "la",
+          value: "commodo dolore et"
+        }
+      ]
+    }
   }
 };
 
@@ -232,6 +266,7 @@ export const mockedQuote3 : IQuote = {
   requesterFspId: "3",
   destinationFspId: "12",
   quoteId: "3",
+  bulkQuoteId: null,
   transactionId: "3",
   transactionRequestId: "13",
   payee: {
@@ -322,6 +357,22 @@ export const mockedQuote3 : IQuote = {
   totalTransferAmount: {
     currency: "USD",
     amount: "404.2"
+  },
+  errorInformation: {
+    errorCode: "8562",
+    errorDescription: "aliquip",
+    extensionList: {
+      extension: [
+        {
+          key: "ad aliqua dolor reprehende",
+          value: "ipsum aliq"
+        },
+        {
+          key: "la",
+          value: "commodo dolore et"
+        }
+      ]
+    }
   }
 };
 
@@ -329,6 +380,7 @@ export const mockedQuote4 : IQuote = {
   requesterFspId: "4",
   destinationFspId: "13",
   quoteId: "4",
+  bulkQuoteId: null,
   transactionId: "4",
   transactionRequestId: "14",
   payee: {
@@ -419,6 +471,22 @@ export const mockedQuote4 : IQuote = {
   totalTransferAmount: {
     currency: "EUR",
     amount: "1010.2"
+  },
+  errorInformation: {
+    errorCode: "8562",
+    errorDescription: "aliquip",
+    extensionList: {
+      extension: [
+        {
+          key: "ad aliqua dolor reprehende",
+          value: "ipsum aliq"
+        },
+        {
+          key: "la",
+          value: "commodo dolore et"
+        }
+      ]
+    }
   }
 };
 

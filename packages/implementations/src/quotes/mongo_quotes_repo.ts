@@ -170,6 +170,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 	private mapToQuote(quote: WithId<Document>): IQuote {
 		const quoteMapped: IQuote = { 
 			quoteId: quote.quoteId ?? null,
+			bulkQuoteId: quote.bulkQuoteId ?? null,
 			transactionId: quote.transactionId ?? null,
 			payee: quote.payee ?? null,
 			payer: quote.payer ?? null,
@@ -191,6 +192,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			payeeFspFee: quote.payeeFspFee ?? null,
 			payeeReceiveAmount: quote.payeeReceiveAmount ?? null,
 			requesterFspId: quote.requesterFspId ?? null,
+			errorInformation: quote.errorInformation ?? null
 		};
 		return quoteMapped;
 	}

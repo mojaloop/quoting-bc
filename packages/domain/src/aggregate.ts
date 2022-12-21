@@ -44,7 +44,8 @@ import {
 	NoSuchQuoteError,
 	InvalidRequesterFspIdError,
 	InvalidDestinationFspIdError,
-	InvalidDestinationPartyInformationError
+	InvalidDestinationPartyInformationError,
+	NoSuchBulkQuoteError
 } from "./errors";
 import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
@@ -62,7 +63,11 @@ import {
 	BulkQuoteRequestedEvt,
 	BulkQuoteReceivedEvt,
 	BulkQuoteReceivedEvtPayload,
-	BulkQuoteRequestedEvtPayload
+	BulkQuoteRequestedEvtPayload,
+	BulkQuotePendingReceivedEvt,
+	BulkQuoteAcceptedEvt,
+	BulkQuoteAcceptedEvtPayload,
+	BulkQuotePendingReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IBulkQuote, IExtensionList, IQuote, QuoteStatus } from "./types";
@@ -164,7 +169,7 @@ export class QuotingAggregate  {
 				for await (const event of eventToPublish){
 					await this._messageProducer.send(event);
 				}
-			}else{
+			}else {
 				await this._messageProducer.send(eventToPublish);
 			}
 		}else{
@@ -185,19 +190,20 @@ export class QuotingAggregate  {
 			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType;
 			const payeePartySubIdOrType = message.payload.payer?.partyIdInfo?.partySubIdOrType ?? null;
 			const currency = message.payload.amount?.currency ?? null;
-			destinationFspIdToUse = this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+			destinationFspIdToUse = await this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
 		}
 
 		await this.validateParticipant(destinationFspIdToUse);
 
 		const quote: IQuote = {
 			quoteId: message.payload.quoteId,
+			bulkQuoteId: null,
 			requesterFspId: message.fspiopOpaqueState.requesterFspId,
             destinationFspId: message.fspiopOpaqueState.destinationFspId,
 			transactionId: message.payload.transactionId,
 			// TODO: correct in shared tip libs
-			payee: message.payload.payee as any,
-			payer: message.payload.payer as any,
+			payee: message.payload.payee,
+			payer: message.payload.payer,
 			amountType: message.payload.amountType,
 			amount: message.payload.amount,
 			transactionType: message.payload.transactionType,
@@ -214,6 +220,7 @@ export class QuotingAggregate  {
 			condition: null,
 			totalTransferAmount: null,
 			ilpPacket: null,
+			errorInformation: null
 		};
 
 		await this._quotesRepo.addQuote(quote);
@@ -359,7 +366,7 @@ export class QuotingAggregate  {
 
 		const bulkQuote: IBulkQuote = {
 			bulkQuoteId: message.payload.bulkQuoteId,
-			payer: message.payload.payer as any,
+			payer: message.payload.payer,
 			geoCode: message.payload.geoCode,
 			expiration: message.payload.expiration,
 			individualQuotes: message.payload.individualQuotes.map(q => q.quoteId),
@@ -369,7 +376,7 @@ export class QuotingAggregate  {
 
 		const bulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
 
-		await this._quotesRepo.addBulkQuotes(quotes);
+		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
 		
 		const missingFspIds = await this.getMissingFspIds(quotes);
 
@@ -379,6 +386,7 @@ export class QuotingAggregate  {
 			if(!destinationFspIdToUse){
 				destinationFspIdToUse = missingFspIds[quote.quoteId];
 			}	
+
 			try {
 				await this.validateParticipant(destinationFspIdToUse);
 				
@@ -422,7 +430,7 @@ export class QuotingAggregate  {
 		const destinationFspIdsToDiscover: AccountLookupBulkQuoteFspIdRequest[] = [];
 		
 		for await (const quote of quotes) {
-			let destinationFspId = quote.payee?.partyIdInfo?.fspId;
+			const destinationFspId = quote.payee?.partyIdInfo?.fspId;
 			if(!destinationFspId) {
 				const quoteId = quote.quoteId;
 				destinationFspIdsToDiscover.push({ 
@@ -464,7 +472,6 @@ export class QuotingAggregate  {
 	}
 
 	private async getDestinationFspIdUsingAccountLookup(payeePartyId: string | null, payeePartyIdType: string | null, payeePartySubIdOrType: string | null, currency: string | null) {
-
 		if (!payeePartyId || !payeePartyIdType) {
 			throw new InvalidDestinationPartyInformationError();
 		}

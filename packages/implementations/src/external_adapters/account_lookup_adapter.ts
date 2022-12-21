@@ -54,21 +54,21 @@ export class AccountLookupAdapter implements IAccountLookupService {
 	}
 	getBulkAccountFspId(partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest[]): Promise<{ [key: string]: string | null; }> {
 		const result: { [key: string]: string | null; } = {};
-		const identifiersListNotCached = partyIdentifiersList.map(partyIdentifier => {
-			const partyId = partyIdentifier.partyId;
-			const partyType = partyIdentifier.partyIdType;
-			const partySubIdOrType = partyIdentifier.partySubIdOrType ?? "";
-			const currency = partyIdentifier.currency ?? "";
-			const cachedResult = this._localCache.get(partyId, partyType, partySubIdOrType, currency);
+		// const identifiersListNotCached = partyIdentifiersList.map(partyIdentifier => {
+		// 	const partyId = partyIdentifier.partyId;
+		// 	const partyType = partyIdentifier.partyIdType;
+		// 	const partySubIdOrType = partyIdentifier.partySubIdOrType ?? "";
+		// 	const currency = partyIdentifier.currency ?? "";
+		// 	const cachedResult = this._localCache.get(partyId, partyType, partySubIdOrType, currency);
 			
-			if (!cachedResult) {
-				return partyIdentifier;
-			};
-			return;
+		// 	if (!cachedResult) {
+		// 		return partyIdentifier;
+		// 	};
+		// 	return;
 
-		});
+		// });
 
-		
+
 
 
 
