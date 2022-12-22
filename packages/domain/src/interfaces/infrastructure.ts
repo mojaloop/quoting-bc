@@ -62,7 +62,7 @@ export interface IParticipantService {
 export type AccountLookupBulkQuoteFspIdRequest = { [key:string] : { partyId: string, partyType:string, partySubType: string | null, currency:string | null} };
 
 export interface IAccountLookupService {
-    getAccountFspId(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null>;
-    getBulkAccountFspId( partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest []): Promise<{[key:string]:string | null}>;
+    getAccountLookup(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null>;
+    getBulkAccountLookup( partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null} | null>;
 }
 

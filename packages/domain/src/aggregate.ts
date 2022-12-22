@@ -190,7 +190,7 @@ export class QuotingAggregate  {
 			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType;
 			const payeePartySubIdOrType = message.payload.payer?.partyIdInfo?.partySubIdOrType ?? null;
 			const currency = message.payload.amount?.currency ?? null;
-			destinationFspIdToUse = await this.getDestinationFspIdUsingAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+			destinationFspIdToUse = await this.getMissingFspId(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
 		}
 
 		await this.validateParticipant(destinationFspIdToUse);
@@ -376,13 +376,13 @@ export class QuotingAggregate  {
 
 		const bulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
 	
-		const missingFspIds = await this.getMissingFspIds(quotes);
+		const missingFspIds = await this.getMissingFspIds(quotes) ?? {};
 
 		for await (const quote of quotes) {
 			let destinationFspIdToUse = quote.payee?.partyIdInfo?.fspId;
 
 			if(!destinationFspIdToUse){
-				destinationFspIdToUse = missingFspIds[quote.quoteId];
+				destinationFspIdToUse = missingFspIds[quote.quoteId] ;
 			}
 			
 			quote.bulkQuoteId = bulkQuoteId;
@@ -429,27 +429,51 @@ export class QuotingAggregate  {
 
 	}
 
-	private async getMissingFspIds(quotes: IQuote[]): Promise<{[key:string]:string|null}> {
+	private async getMissingFspId(payeePartyId: string | null, payeePartyIdType: string | null, payeePartySubIdOrType: string | null, currency: string | null) {
+		if (!payeePartyId || !payeePartyIdType) {
+			throw new InvalidDestinationPartyInformationError();
+		}
+
+		this._logger.debug(`No destinationFspId found in message, trying to get it from account lookup service for payee: ${payeePartyId}`);
+
+		const destinationFspIdToUse = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+
+		if (destinationFspIdToUse) {
+			this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspIdToUse}`);
+		}
+		else {
+			this._logger.error(`Unable to get destinationFspId from account lookup service for payee: ${payeePartyId}`);
+		}
+		return destinationFspIdToUse;
+	}
+
+	private async getMissingFspIds(quotes: IQuote[]): Promise<{[key:string]:string|null}| null> {
 		
-		const destinationFspIdsToDiscover: AccountLookupBulkQuoteFspIdRequest[] = [];
+		const destinationFspIdsToDiscover: AccountLookupBulkQuoteFspIdRequest= {};
 		
 		for await (const quote of quotes) {
 			const destinationFspId = quote.payee?.partyIdInfo?.fspId;
 			if(!destinationFspId) {
 				const quoteId = quote.quoteId;
-				destinationFspIdsToDiscover.push({ 
-					quoteId : {
+				destinationFspIdsToDiscover[quoteId] = {
 					partyId: quote.payee?.partyIdInfo?.partyIdentifier,
 					partyType: quote.payee?.partyIdInfo?.partyIdType,
 					partySubType: quote.payee?.partyIdInfo?.partySubIdOrType,
 					currency: quote.amount?.currency,
-				}});
+				};
 			}
 		}
 
-		const destinationFspIds = await this._accountLookupService.getBulkAccountFspId(destinationFspIdsToDiscover);
-
-		return destinationFspIds;
+		try{
+			this._logger.debug(`No destinationFspId found in message, trying to get it from account lookup service for payee: ${JSON.stringify(destinationFspIdsToDiscover)}`);
+			const destinationFspIds = await this._accountLookupService.getBulkAccountLookup(destinationFspIdsToDiscover);
+			this._logger.debug(`Got destinationFspId from account lookup service: ${JSON.stringify(destinationFspIds)}`);
+			return destinationFspIds;
+		}
+		catch(error:any){
+			this._logger.error(`Unable to get destinationFspId from account lookup service for payee: ${JSON.stringify(destinationFspIdsToDiscover)} - ${error.message}`);
+			return null;
+		}
 	}
 
 	private async validateParticipant(participantId: string | null):Promise<void>{
@@ -475,22 +499,6 @@ export class QuotingAggregate  {
 		return;
 	}
 
-	private async getDestinationFspIdUsingAccountLookup(payeePartyId: string | null, payeePartyIdType: string | null, payeePartySubIdOrType: string | null, currency: string | null) {
-		if (!payeePartyId || !payeePartyIdType) {
-			throw new InvalidDestinationPartyInformationError();
-		}
-
-		this._logger.debug(`No destinationFspId found in message, trying to get it from account lookup service for payee: ${payeePartyId}`);
-
-		const destinationFspIdToUse = await this._accountLookupService.getAccountFspId(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
-
-		if (destinationFspIdToUse) {
-			this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspIdToUse}`);
-		}
-		else {
-			this._logger.error(`Unable to get destinationFspId from account lookup service for payee: ${payeePartyId}`);
-		}
-		return destinationFspIdToUse;
-	}
+	
 
 }

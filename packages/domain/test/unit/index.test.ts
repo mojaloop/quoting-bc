@@ -40,7 +40,7 @@ import {QuoteErrorEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayloa
 import {IAccountLookupService, IParticipantService, IQuoteRepo} from "../../src/interfaces/infrastructure";
 import {InvalidMessageTypeError, InvalidMessagePayloadError, InvalidParticipantIdError, InvalidRequesterFspIdError, NoSuchParticipantError, InvalidDestinationFspIdError, NoSuchQuoteError} from '../../src/errors';
 import { QuotingAggregate } from "../../src/aggregate";
-import {IMoney, Quote, QuoteStatus} from '../../src/types';
+import {IMoney, IQuote, QuoteStatus} from '../../src/types';
 import { IBulkQuoteRepo } from "../../dist";
 
 const logger: ILogger = new ConsoleLogger();
@@ -262,7 +262,7 @@ describe("Domain - Unit Tests for event handler", () => {
 
     });
 
-    test("handleQuoteRequestReceivedEvt - should call getAccountFspId if fspId not provided", async () => {
+    test("handleQuoteRequestReceivedEvt - should call getAccountLookup if fspId not provided", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
@@ -276,7 +276,7 @@ describe("Domain - Unit Tests for event handler", () => {
 
         const message: IMessage = createMessage(payload, QuoteRequestReceivedEvt.name,fspiopOpaqueState);
 
-        const accountLookupServiceSpy = jest.spyOn(accountLookupService, "getAccountFspId")
+        const accountLookupServiceSpy = jest.spyOn(accountLookupService, "getAccountLookup")
             .mockResolvedValueOnce("payee");
         
         jest.spyOn(participantService, "getParticipantInfo")
@@ -587,7 +587,7 @@ describe("Domain - Unit Tests for event handler", () => {
             .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as Participant as any);
         
         jest.spyOn(quoteRepo, "getQuoteById")
-            .mockResolvedValueOnce({} as unknown as Quote);
+            .mockResolvedValueOnce({} as unknown as IQuote);
 
         jest.spyOn(quoteRepo, "updateQuote")
             .mockResolvedValue();
@@ -799,7 +799,7 @@ describe("Domain - Unit Tests for event handler", () => {
 
 });
 
-function createQuoteResponseReceivedEvtPayload(mockedQuote: Quote): QuoteResponseReceivedEvtPayload {
+function createQuoteResponseReceivedEvtPayload(mockedQuote: IQuote): QuoteResponseReceivedEvtPayload {
     return {
         expiration: mockedQuote.expiration as string,
         geoCode: mockedQuote.geoCode,
@@ -814,7 +814,7 @@ function createQuoteResponseReceivedEvtPayload(mockedQuote: Quote): QuoteRespons
     };
 }
 
-function createQuoteRequestReceivedEvtPayload(mockedQuote: Quote): QuoteRequestReceivedEvtPayload {
+function createQuoteRequestReceivedEvtPayload(mockedQuote: IQuote): QuoteRequestReceivedEvtPayload {
     return {
         amount: mockedQuote.amount,
         expiration: mockedQuote.expiration,

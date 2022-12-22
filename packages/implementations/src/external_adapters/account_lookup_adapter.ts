@@ -52,48 +52,61 @@ export class AccountLookupAdapter implements IAccountLookupService {
 		this._externalAccountClient = new AccountLookupHttpClient(this._logger, this._clientBaseUrl);
 		this._localCache = localCache ?? new LocalCache(logger);
 	}
-	getBulkAccountFspId(partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest[]): Promise<{ [key: string]: string | null; }> {
+
+	async getBulkAccountLookup(partyIdentifiers: AccountLookupBulkQuoteFspIdRequest): Promise<{[key: string]: string | null} | null> {
 		const result: { [key: string]: string | null; } = {};
-		// const identifiersListNotCached = partyIdentifiersList.map(partyIdentifier => {
-		// 	const partyId = partyIdentifier.partyId;
-		// 	const partyType = partyIdentifier.partyIdType;
-		// 	const partySubIdOrType = partyIdentifier.partySubIdOrType ?? "";
-		// 	const currency = partyIdentifier.currency ?? "";
-		// 	const cachedResult = this._localCache.get(partyId, partyType, partySubIdOrType, currency);
+		
+		for (const key of Object.keys(partyIdentifiers)) {
+			const partyId = partyIdentifiers[key].partyId;
+			const partyType = partyIdentifiers[key].partyType;
+			const partySubIdOrType = partyIdentifiers[key].partySubType ?? "";
+			const currency = partyIdentifiers[key].currency ?? "";
 			
-		// 	if (!cachedResult) {
-		// 		return partyIdentifier;
-		// 	};
-		// 	return;
+			this._logger.debug(`getBulkAccountLookup: checking cache for key: ${key} or partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
+			const cachedResult = this._localCache.get(key) ?? this._localCache.get(partyId, partyType, partySubIdOrType, currency);
 
-		// });
+			if (cachedResult) {
+				this._logger.debug(`getBulkAccountLookup: returning cached result for key: ${key}`);
+				result[key] = cachedResult.toString();
+				delete partyIdentifiers[key];
+			}
+		}
+
+		try {
+			this._logger.debug(`getBulkAccountLookup: calling external account lookup service for partyIdentifiers: ${JSON.stringify(partyIdentifiers)}`);
+			const result = await this._externalAccountClient.participantBulkLookUp(partyIdentifiers);
+			this._logger.debug(`getBulkAccountLookup: calling external account lookup service for partyIdentifiers: ${JSON.stringify(partyIdentifiers)}`);
 
 
+			this._logger.debug("getBulkAccountLookup: caching result for partyIdentifiers");
+			for (const [key, value] of Object.keys(partyIdentifiers)) {
+				this._localCache.set(key, value);
+			}
+			return result;
 
-
-
-		return Promise.resolve(result);
-
+		} catch (e: unknown) {
+			this._logger.error(`getBulkAccountLookup: error calling external account lookup service for partyIdentifiers: ${JSON.stringify(partyIdentifiers)}, error: ${e}`);
+			return null;
+		}
 	}
 
-	async getAccountFspId(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null> {
+	async getAccountLookup(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null> {
 		const cachedResult = this._localCache.get(partyId, partyType, partySubIdOrType ?? '', currency ?? '');
 		if (cachedResult) {
-			this._logger.info(`getAccountFspId: returning cached result for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
+			this._logger.info(`getAccountLookup: returning cached result for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
 			return cachedResult.toString();
 		}
 		try {
-			this._logger.info(`getAccountFspId: calling external account lookup service for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
-			const result = partySubIdOrType ? await this._externalAccountClient.getFspIdByTypeAndIdAndSubId(partyId, partyType, partySubIdOrType, currency) 
-				: await this._externalAccountClient.getFspIdByTypeAndId(partyId, partyType, currency);
+			this._logger.info(`getAccountLookup: calling external account lookup service for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
+			const result = await this._externalAccountClient.participantLookUp(partyId, partyType, partySubIdOrType, currency);
 			
 			if(result) {
-				this._logger.info(`getAccountFspId: caching result for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
+				this._logger.info(`getAccountLookup: caching result for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
 				this._localCache.set(partyId, partyType, partySubIdOrType ?? '', currency ?? '', result);
 			}
 			return result;
 		} catch (e: unknown) {
-			this._logger.error(`getAccountFspId: error getting for partyId: ${partyId}, partyType: ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency} - ${e}`);
+			this._logger.error(`getAccountLookup: error getting for partyId: ${partyId}, partyType: ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency} - ${e}`);
 			return null;
 		}
 	}

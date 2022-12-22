@@ -37,15 +37,13 @@ import { AccountLookupAdapter } from '../../src/external_adapters/account_lookup
 const BASE_URL_ACCOUNT_LOOKUP_CLIENT: string = "http://localhost:1234";
 const FAKE_TOKEN = "fakeToken";
 
-const getFspIdByTypeAndIdSpy = jest.fn();
-const getFspIdByTypeAndIdAndSubIdSpy = jest.fn();
+const participantLookUpSpy = jest.fn();
 
 jest.mock("@mojaloop/account-lookup-bc-client-lib", () => {
         return {
             AccountLookupHttpClient: jest.fn().mockImplementation(() => { 
                 return {
-                    getFspIdByTypeAndId: getFspIdByTypeAndIdSpy,
-                    getFspIdByTypeAndIdAndSubId: getFspIdByTypeAndIdAndSubIdSpy
+                    participantLookUp: participantLookUpSpy,
             }
         })
     }
@@ -78,10 +76,10 @@ describe("Account Lookup Client - Unit Tests", () => {
  
     test("should return null if couldnt get fspId by partyId and partyType", async () => {
         // Arrange
-        getFspIdByTypeAndIdSpy.mockResolvedValueOnce(null);
+        participantLookUpSpy.mockResolvedValueOnce(null);
 
         // Act
-        const fspId = await accountLookupClient.getAccountFspId("MSISDN", "partyType", null,null);
+        const fspId = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null,null);
 
         // Assert
         expect(fspId).toBeNull();
@@ -90,10 +88,10 @@ describe("Account Lookup Client - Unit Tests", () => {
     test("should return fspId by partyId and partyType", async () => {
         // Arrange
         const fspId = "fspId";
-        getFspIdByTypeAndIdSpy.mockResolvedValueOnce(fspId);
+        participantLookUpSpy.mockResolvedValueOnce(fspId);
 
         // Act
-        const fspIdResult = await accountLookupClient.getAccountFspId("MSISDN", "partyType", null,null);
+        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null,null);
 
         // Assert
         expect(fspIdResult).toEqual(fspId);
@@ -106,7 +104,7 @@ describe("Account Lookup Client - Unit Tests", () => {
             .mockReturnValueOnce(fspId);
 
         // Act
-        const fspIdResult = await accountLookupClient.getAccountFspId("MSISDN", "partyType", null,null);
+        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null,null);
 
         // Assert
         expect(cacheSpy).toBeCalledTimes(1);
@@ -115,10 +113,10 @@ describe("Account Lookup Client - Unit Tests", () => {
 
     test("should return null if couldnt get fspId by partyId, partyType and partySubId", async () => {
         // Arrange
-        getFspIdByTypeAndIdAndSubIdSpy.mockResolvedValueOnce(null);
+        participantLookUpSpy.mockResolvedValueOnce(null);
 
         // Act
-        const fspId = await accountLookupClient.getAccountFspId("MSISDN", "partyType", "partySubId",null);
+        const fspId = await accountLookupClient.getAccountLookup("MSISDN", "partyType", "partySubId",null);
 
         // Assert
         expect(fspId).toBeNull();
@@ -127,10 +125,10 @@ describe("Account Lookup Client - Unit Tests", () => {
     test("should return fspId by partyId, partyType and partySubId", async () => {
         // Arrange
         const fspId = "fspId";
-        getFspIdByTypeAndIdAndSubIdSpy.mockResolvedValueOnce(fspId);
+        participantLookUpSpy.mockResolvedValueOnce(fspId);
 
         // Act
-        const fspIdResult = await accountLookupClient.getAccountFspId("MSISDN", "partyType", "partySubId",null);
+        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", "partySubId",null);
 
         // Assert
         expect(fspIdResult).toEqual(fspId);
@@ -143,37 +141,13 @@ describe("Account Lookup Client - Unit Tests", () => {
             .mockReturnValueOnce(fspId);
 
         // Act
-        const fspIdResult = await accountLookupClient.getAccountFspId("MSISDN", "partyType", "partySubId",null);
+        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", "partySubId",null);
 
         // Assert
         expect(cacheSpy).toBeCalledTimes(1);
         expect(fspIdResult).toEqual(fspId);
     });
 
-    test("should call getFspIdByTypeAndIdAndSubId if partySubId is null", async () => {
-        // Arrange
-        const fspId = "fspId";
-        getFspIdByTypeAndIdSpy.mockResolvedValueOnce(fspId);
-
-        // Act
-        await accountLookupClient.getAccountFspId("MSISDN", "partyType", null, null);
-
-        // Assert
-        expect(getFspIdByTypeAndIdAndSubIdSpy).toBeCalledTimes(0);
-        expect(getFspIdByTypeAndIdSpy).toBeCalledTimes(1);
-    });
-
-    test("should call getFspIdByTypeAndIdAndSubId if partySubId is not null", async () => {
-        // Arrange
-        const fspId = "fspId";
-        getFspIdByTypeAndIdAndSubIdSpy.mockResolvedValueOnce(fspId);
-
-        // Act
-        await accountLookupClient.getAccountFspId("MSISDN", "partyType", "partySubId", null);
-
-        // Assert
-        expect(getFspIdByTypeAndIdAndSubIdSpy).toBeCalledTimes(1);
-        expect(getFspIdByTypeAndIdSpy).toBeCalledTimes(0);
-    });
+   
     
 });

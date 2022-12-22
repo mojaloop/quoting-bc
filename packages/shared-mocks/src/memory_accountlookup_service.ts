@@ -42,10 +42,12 @@ export class MemoryAccountLookupService implements IAccountLookupService {
 	) {
 		this.logger = logger;
 	}
-	getBulkAccountFspId(partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest[]): Promise<{ [key: string]: string | null; }> {
+
+	getBulkAccountLookup( partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null} | null> {
 		return Promise.resolve({});
 	}
-	getAccountFspId(partyId: string, partyType: string, partySubIdOrType: string | null, currency: string | null): Promise<string | null> {
+	
+	getAccountLookup(partyId: string, partyType: string, partySubIdOrType: string | null, currency: string | null): Promise<string | null> {
 		return Promise.resolve(null);
 	}
 	

@@ -34,7 +34,7 @@
     "test:unit": "jest --detectOpenHandles --verbose"
   },
   "dependencies": {
-    "@mojaloop/account-lookup-bc-client-lib": "~0.1.1",
+    "@mojaloop/account-lookup-bc-client-lib": "~0.1.5",
     "@mojaloop/quoting-bc-domain": "*",
     "@mojaloop/participant-bc-public-types-lib": "~0.0.3",
     "@mojaloop/participants-bc-client-lib": "~0.0.5",
