@@ -42,6 +42,7 @@ export interface IQuoteRepo {
     updateQuote(quote: IQuote):Promise<void>;
     removeQuote(id: string):Promise<void>;
     getQuoteById(id:string):Promise<IQuote|null>;
+    getQuotesByBulkQuoteId(id:string):Promise<IQuote[]>;
 }
 
 export interface IBulkQuoteRepo {
@@ -63,6 +64,6 @@ export type AccountLookupBulkQuoteFspIdRequest = { [key:string] : { partyId: str
 
 export interface IAccountLookupService {
     getAccountLookup(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null>;
-    getBulkAccountLookup( partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null} | null>;
+    getBulkAccountLookup(partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null} | null>;
 }
 

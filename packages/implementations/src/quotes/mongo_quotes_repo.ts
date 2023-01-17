@@ -167,6 +167,19 @@ export class MongoQuotesRepo implements IQuoteRepo {
 		}
 	}
 
+	async getQuotesByBulkQuoteId(bulkQuoteId:string):Promise<IQuote[]>{
+		const quotes = await this.quotes.find({ bulkQuoteId: bulkQuoteId });
+
+
+		const mappedQuotes = [];
+		
+		for(let i=0 ; i<quotes.length ; i+=1) {
+			mappedQuotes.push(this.mapToQuote(quotes[i])) 
+		}
+
+		return mappedQuotes;
+	}
+
 	private mapToQuote(quote: WithId<Document>): IQuote {
 		const quoteMapped: IQuote = { 
 			quoteId: quote.quoteId ?? null,

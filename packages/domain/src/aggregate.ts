@@ -159,6 +159,9 @@ export class QuotingAggregate  {
 			case BulkQuoteRequestedEvt.name:
 				eventToPublish = await this.handleBulkQuoteRequestedEvt(message as BulkQuoteRequestedEvt);
 				break;
+			case BulkQuotePendingReceivedEvt.name:
+				eventToPublish = await this.handleBulkQuotePendingReceivedEvt(message as BulkQuotePendingReceivedEvt);
+				break;
 			default:
 				this._logger.error(`message type has invalid format or value ${message.msgName}`);
 				throw new InvalidMessageTypeError();
@@ -392,8 +395,6 @@ export class QuotingAggregate  {
 				
 				quote.status = QuoteStatus.PENDING;
 
-				await this._quotesRepo.updateQuote(quote);
-
 				const payload : BulkQuoteReceivedEvtPayload = {
 					bulkQuoteId: message.payload.bulkQuoteId,
 					payer: message.payload.payer,
@@ -426,6 +427,87 @@ export class QuotingAggregate  {
 		}
 
 		return events;
+
+	}
+
+	private async handleBulkQuotePendingReceivedEvt(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | null> {
+		this._logger.debug(`Got BulkQuotePendingReceivedEvt msg for bulkQuotes: ${message.payload.individualQuoteResults}`);
+		
+		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
+		
+		if(!requesterFspId){
+			throw new InvalidRequesterFspIdError();
+		}
+
+		const destinationFspId = message.fspiopOpaqueState?.destinationFspId;
+
+		if(!destinationFspId){
+			throw new InvalidDestinationFspIdError();
+		}
+
+		await this.validateParticipant(requesterFspId);
+		await this.validateParticipant(destinationFspId);
+		
+		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(message.payload.bulkQuoteId);
+
+		if(!bulkQuote){
+			throw new NoSuchBulkQuoteError();
+		}
+
+		const quotes = message.payload.individualQuoteResults;
+
+		// Update the status and fields of each quote that was processed/has new data
+		for await (const individualQuote of quotes) {
+			const quote = await this._quotesRepo.getQuoteById(individualQuote.quoteId);
+
+			if(!quote){
+				throw new NoSuchQuoteError();
+			}
+	
+			quote.requesterFspId = message.fspiopOpaqueState.requesterFspId;
+			quote.destinationFspId = message.fspiopOpaqueState.destinationFspId;
+			quote.quoteId = individualQuote.quoteId;
+			quote.totalTransferAmount = individualQuote.transferAmount;
+			quote.expiration = message.payload.expiration;
+			quote.ilpPacket = individualQuote.ilpPacket;
+			quote.condition = individualQuote.condition;
+			quote.payeeReceiveAmount = individualQuote.payeeReceiveAmount;
+			quote.payeeFspFee = individualQuote.payeeFspFee;
+			quote.payeeFspCommission = individualQuote.payeeFspCommission;
+			quote.extensionList = individualQuote.extensionList;
+			quote.errorInformation = individualQuote.errorInformation;
+			quote.status = QuoteStatus.ACCEPTED;
+	
+			await this._quotesRepo.updateQuote(quote);
+		}
+
+		const quotesProcessed = await this._quotesRepo.getQuotesByBulkQuoteId(bulkQuote.bulkQuoteId);
+
+		const totalProcessedQuotes = quotesProcessed.length + bulkQuote.quotesNotProcessed.length;
+
+		if(bulkQuote.individualQuotes.length !== totalProcessedQuotes) {
+
+			// Only update it here so that we save an extra DB transaction
+			// when all the quotes of the bulk are processed
+			await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+
+			const payload : BulkQuoteAcceptedEvtPayload = {
+				bulkQuoteId: bulkQuote.bulkQuoteId,
+				individualQuoteResults: [],
+				expiration: message.payload.expiration,
+				extensionList: message.payload.extensionList
+			};
+
+			const event = new BulkQuoteAcceptedEvt(payload);
+
+			event.fspiopOpaqueState = message.fspiopOpaqueState;
+
+			return event;
+		} else {
+			await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+		}
+
+		return null;
 
 	}
 
