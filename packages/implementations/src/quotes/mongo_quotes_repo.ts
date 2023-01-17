@@ -40,7 +40,7 @@ import {
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError, UnableToAddBulkQuotesError } from '../errors';
-import { IQuoteRepo, IQuote } from "@mojaloop/quoting-bc-domain";
+import { IQuoteRepo, IQuote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
 import { randomUUID } from 'crypto';
 
 export class MongoQuotesRepo implements IQuoteRepo {
@@ -168,8 +168,10 @@ export class MongoQuotesRepo implements IQuoteRepo {
 	}
 
 	async getQuotesByBulkQuoteId(bulkQuoteId:string):Promise<IQuote[]>{
-		const quotes = await this.quotes.find({ bulkQuoteId: bulkQuoteId });
-
+		const quotes = await this.quotes.find({ 
+			bulkQuoteId: bulkQuoteId, 
+			status: QuoteStatus.ACCEPTED 
+		}).toArray();
 
 		const mappedQuotes = [];
 		

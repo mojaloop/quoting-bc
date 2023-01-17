@@ -142,6 +142,7 @@ export interface IBulkQuote {
     individualQuotes: string[];
     quotesNotProcessed: string[];
     extensionList: IExtensionList | null;
+    status: QuoteStatus | null;
 }
 
 

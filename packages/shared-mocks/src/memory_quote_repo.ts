@@ -77,4 +77,7 @@ export class MemoryQuoteRepo implements IQuoteRepo {
         return Promise.resolve(this._quotes.find(q => q.quoteId === id) || null);
     }
 	
+    getQuotesByBulkQuoteId(id: string): Promise<IQuote[]> {
+        return Promise.resolve(this._quotes.filter(q => q.bulkQuoteId === id));
+    }
 }

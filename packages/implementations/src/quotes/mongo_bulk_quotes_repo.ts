@@ -167,6 +167,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 			extensionList: bulkQuote.extensionList ?? null,
 			individualQuotes: bulkQuote.individualQuotes ?? [],
 			quotesNotProcessed: bulkQuote.quotesNotProcessed ?? [],
+			status: bulkQuote.status ?? null,
 		};
 		return quoteMapped;
 	}

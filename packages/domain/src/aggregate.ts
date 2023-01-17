@@ -176,7 +176,7 @@ export class QuotingAggregate  {
 				await this._messageProducer.send(eventToPublish);
 			}
 		}else{
-			throw new UnableToProcessMessageError();
+			// throw new UnableToProcessMessageError();
 		}
 
 	}
@@ -356,13 +356,12 @@ export class QuotingAggregate  {
 		return event;
 	}
 	
-	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt[]> {
+	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt> {
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
 		
-		const events:BulkQuoteReceivedEvt[] = [];
-
 		const quotes = message.payload.individualQuotes as any as IQuote[];
-
+		
+		const validQuotes:IQuote[] = [];
 		const quotesNotProcessedIds: string[] = [];
 
 		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
@@ -375,6 +374,7 @@ export class QuotingAggregate  {
 			individualQuotes: message.payload.individualQuotes.map(q => q.quoteId),
 			extensionList: message.payload.extensionList,
 			quotesNotProcessed: [],
+			status: QuoteStatus.PENDING
 		};
 
 		const bulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
@@ -384,49 +384,57 @@ export class QuotingAggregate  {
 		for await (const quote of quotes) {
 			let destinationFspIdToUse = quote.payee?.partyIdInfo?.fspId;
 
-			if(!destinationFspIdToUse){
-				destinationFspIdToUse = missingFspIds[quote.quoteId] ;
+			if(!destinationFspIdToUse) {
+				destinationFspIdToUse = missingFspIds[quote.quoteId];
 			}
 			
-			quote.bulkQuoteId = bulkQuoteId;
-
-			try {
-				await this.validateParticipant(destinationFspIdToUse);
-				
-				quote.status = QuoteStatus.PENDING;
-
-				const payload : BulkQuoteReceivedEvtPayload = {
-					bulkQuoteId: message.payload.bulkQuoteId,
-					payer: message.payload.payer,
-					geoCode: message.payload.geoCode,
-					expiration: message.payload.expiration,
-					individualQuotes: quotes as any,
-					extensionList: message.payload.extensionList
-				};
-		
-				const event = new BulkQuoteReceivedEvt(payload);
-		
-				event.fspiopOpaqueState = message.fspiopOpaqueState;
-
-				events.push(event);
-
-				this._quotesRepo.addQuote(quote);
-
-			} catch (e) {
+			if(!destinationFspIdToUse) {
+				quote.status = QuoteStatus.REJECTED;
 				quotesNotProcessedIds.push(quote.quoteId);
-				this._quotesRepo.addQuote(quote);
-			}	
+			} else {
+				try {
+					await this.validateParticipant(destinationFspIdToUse);
+					
+					quote.bulkQuoteId = bulkQuoteId;
+					quote.status = QuoteStatus.PENDING;
+
+					validQuotes.push(quote);
+				} catch (e) {
+					quotesNotProcessedIds.push(quote.quoteId);
+				}	
+			}
+
+			this._quotesRepo.addQuote(quote);
 		}
 
 		if(quotesNotProcessedIds.length > 0) {
 			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
+				
 			if(bulkQuote) {
 				bulkQuote.quotesNotProcessed = quotesNotProcessedIds;
+
+				if(quotes.length === quotesNotProcessedIds.length) {
+					bulkQuote.status = QuoteStatus.REJECTED;
+				}
+
 				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 			}
 		}
 
-		return events;
+		const payload : BulkQuoteReceivedEvtPayload = {
+			bulkQuoteId: message.payload.bulkQuoteId,
+			payer: message.payload.payer,
+			geoCode: message.payload.geoCode,
+			expiration: message.payload.expiration,
+			individualQuotes: validQuotes as any,
+			extensionList: message.payload.extensionList
+		};
+
+		const event = new BulkQuoteReceivedEvt(payload);
+
+		event.fspiopOpaqueState = message.fspiopOpaqueState;
+
+		return event;
 
 	}
 
@@ -485,7 +493,9 @@ export class QuotingAggregate  {
 
 		const totalProcessedQuotes = quotesProcessed.length + bulkQuote.quotesNotProcessed.length;
 
-		if(bulkQuote.individualQuotes.length !== totalProcessedQuotes) {
+		if(bulkQuote.individualQuotes.length === totalProcessedQuotes) {
+
+			bulkQuote.status = QuoteStatus.ACCEPTED;
 
 			// Only update it here so that we save an extra DB transaction
 			// when all the quotes of the bulk are processed
