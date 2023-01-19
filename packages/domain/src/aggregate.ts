@@ -121,7 +121,7 @@ export class QuotingAggregate  {
 			await this._messageProducer.send(messageToPublish);
 		}
 	}
-	
+
 
 	private validateMessage(message:IMessage): boolean {
 		if(!message.payload){
@@ -143,9 +143,9 @@ export class QuotingAggregate  {
 	}
 
 	private async handleEvent(message:IMessage):Promise<void> {
-		
+
 		let eventToPublish = null;
-		
+
 		switch(message.msgName){
 			case QuoteRequestReceivedEvt.name:
 				eventToPublish = await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
@@ -183,7 +183,7 @@ export class QuotingAggregate  {
 
 	private async handleQuoteRequestReceivedEvt(message: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`);
-		
+
 		await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
 
 		let destinationFspIdToUse = message.fspiopOpaqueState?.destinationFspId ?? message.payload?.payee?.partyIdInfo?.fspId;
@@ -254,9 +254,9 @@ export class QuotingAggregate  {
 
 	private async handleQuoteResponseReceivedEvt(message: QuoteResponseReceivedEvt):Promise<QuoteResponseAccepted> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`);
-		
+
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
-		
+
 		if(!requesterFspId){
 			throw new InvalidRequesterFspIdError();
 		}
@@ -269,7 +269,7 @@ export class QuotingAggregate  {
 
 		await this.validateParticipant(requesterFspId);
 		await this.validateParticipant(destinationFspId);
-		
+
 		const quote = await this._quotesRepo.getQuoteById(message.payload.quoteId);
 
 		if(!quote){
@@ -315,7 +315,7 @@ export class QuotingAggregate  {
 
 	private async handleQuoteQueryReceivedEvt(message: QuoteQueryReceivedEvt):Promise<QuoteQueryResponseEvt> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`);
-		
+
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
 		if(!requesterFspId){
 			throw new InvalidRequesterFspIdError();
@@ -329,18 +329,18 @@ export class QuotingAggregate  {
 
 		await this.validateParticipant(requesterFspId);
 		await this.validateParticipant(destinationFspId);
-		
+
 		const quote = await this._quotesRepo.getQuoteById(message.payload.quoteId);
 
 		if(!quote) {
 			throw new NoSuchQuoteError();
 		}
 
-		const payload: QuoteQueryResponseEvtPayload = { 
+		const payload: QuoteQueryResponseEvtPayload = {
 			quoteId: quote.quoteId,
 			transferAmount: quote.totalTransferAmount!,
 			expiration: quote.expiration!,
-			ilpPacket: quote.ilpPacket!, 
+			ilpPacket: quote.ilpPacket!,
 			condition:	quote.condition!,
 			payeeReceiveAmount: quote.amount,
 			payeeFspFee: quote.payeeFspFee,
@@ -355,12 +355,12 @@ export class QuotingAggregate  {
 
 		return event;
 	}
-	
+
 	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt> {
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
-		
-		const quotes = message.payload.individualQuotes as any as IQuote[];
-		
+
+		const quotes = message.payload.individualQuotes as unknown as IQuote[];
+
 		const validQuotes:IQuote[] = [];
 		const quotesNotProcessedIds: string[] = [];
 
@@ -378,7 +378,7 @@ export class QuotingAggregate  {
 		};
 
 		const bulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
-	
+
 		const missingFspIds = await this.getMissingFspIds(quotes) ?? {};
 
 		for await (const quote of quotes) {
@@ -387,29 +387,30 @@ export class QuotingAggregate  {
 			if(!destinationFspIdToUse) {
 				destinationFspIdToUse = missingFspIds[quote.quoteId];
 			}
-			
+
 			if(!destinationFspIdToUse) {
 				quote.status = QuoteStatus.REJECTED;
 				quotesNotProcessedIds.push(quote.quoteId);
 			} else {
 				try {
 					await this.validateParticipant(destinationFspIdToUse);
-					
+
 					quote.bulkQuoteId = bulkQuoteId;
 					quote.status = QuoteStatus.PENDING;
 
 					validQuotes.push(quote);
 				} catch (e) {
 					quotesNotProcessedIds.push(quote.quoteId);
-				}	
+				}
 			}
 
 			this._quotesRepo.addQuote(quote);
 		}
 
+
 		if(quotesNotProcessedIds.length > 0) {
 			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
-				
+
 			if(bulkQuote) {
 				bulkQuote.quotesNotProcessed = quotesNotProcessedIds;
 
@@ -420,6 +421,7 @@ export class QuotingAggregate  {
 				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 			}
 		}
+
 
 		const payload : BulkQuoteReceivedEvtPayload = {
 			bulkQuoteId: message.payload.bulkQuoteId,
@@ -440,9 +442,9 @@ export class QuotingAggregate  {
 
 	private async handleBulkQuotePendingReceivedEvt(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | null> {
 		this._logger.debug(`Got BulkQuotePendingReceivedEvt msg for bulkQuotes: ${message.payload.individualQuoteResults}`);
-		
+
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
-		
+
 		if(!requesterFspId){
 			throw new InvalidRequesterFspIdError();
 		}
@@ -455,7 +457,7 @@ export class QuotingAggregate  {
 
 		await this.validateParticipant(requesterFspId);
 		await this.validateParticipant(destinationFspId);
-		
+
 		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(message.payload.bulkQuoteId);
 
 		if(!bulkQuote){
@@ -471,7 +473,7 @@ export class QuotingAggregate  {
 			if(!quote){
 				throw new NoSuchQuoteError();
 			}
-	
+
 			quote.requesterFspId = message.fspiopOpaqueState.requesterFspId;
 			quote.destinationFspId = message.fspiopOpaqueState.destinationFspId;
 			quote.quoteId = individualQuote.quoteId;
@@ -485,7 +487,7 @@ export class QuotingAggregate  {
 			quote.extensionList = individualQuote.extensionList;
 			quote.errorInformation = individualQuote.errorInformation;
 			quote.status = QuoteStatus.ACCEPTED;
-	
+
 			await this._quotesRepo.updateQuote(quote);
 		}
 
@@ -540,9 +542,9 @@ export class QuotingAggregate  {
 	}
 
 	private async getMissingFspIds(quotes: IQuote[]): Promise<{[key:string]:string|null}| null> {
-		
+
 		const destinationFspIdsToDiscover: AccountLookupBulkQuoteFspIdRequest= {};
-		
+
 		for await (const quote of quotes) {
 			const destinationFspId = quote.payee?.partyIdInfo?.fspId;
 			if(!destinationFspId) {
@@ -576,12 +578,12 @@ export class QuotingAggregate  {
 				this._logger.debug(`No participant found`);
 				throw new NoSuchParticipantError();
 			}
-		
+
 			if(participant.id !== participantId){
 				this._logger.debug(`Participant id mismatch ${participant.id} ${participantId}`);
 				throw new InvalidParticipantIdError();
 			}
-		
+
 			if(!participant.isActive) {
 				this._logger.debug(`${participant.id} is not active`);
 				throw new RequiredParticipantIsNotActive();
@@ -591,6 +593,6 @@ export class QuotingAggregate  {
 		return;
 	}
 
-	
+
 
 }
