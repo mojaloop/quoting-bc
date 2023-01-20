@@ -22,7 +22,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -54,7 +54,7 @@ export interface IBulkQuoteRepo {
     getBulkQuoteById(id:string):Promise<IBulkQuote|null>;
 }
 
-export interface IParticipantService { 
+export interface IParticipantService {
     getParticipantInfo(fspId: string): Promise<Participant| null>;
     getParticipantsInfo(fspIds: string[]): Promise<Participant[]|null>;
 }
@@ -64,6 +64,6 @@ export type AccountLookupBulkQuoteFspIdRequest = { [key:string] : { partyId: str
 
 export interface IAccountLookupService {
     getAccountLookup(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null>;
-    getBulkAccountLookup(partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null} | null>;
+    getBulkAccountLookup(partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null}>;
 }
 

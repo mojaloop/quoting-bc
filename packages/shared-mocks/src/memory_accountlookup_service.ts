@@ -18,7 +18,7 @@
  Gates Foundation organization for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
- 
+
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
@@ -36,19 +36,19 @@ import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService } from "@moja
 
 export class MemoryAccountLookupService implements IAccountLookupService {
 	private readonly logger: ILogger;
-	
+
 	constructor(
 		logger: ILogger,
 	) {
 		this.logger = logger;
 	}
 
-	getBulkAccountLookup( partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null} | null> {
+	getBulkAccountLookup( partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null}> {
 		return Promise.resolve({});
 	}
-	
+
 	getAccountLookup(partyId: string, partyType: string, partySubIdOrType: string | null, currency: string | null): Promise<string | null> {
 		return Promise.resolve(null);
 	}
-	
+
 }

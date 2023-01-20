@@ -22,7 +22,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -37,6 +37,6 @@ export type MongoQueryError = {
 };
 
 export interface LocalCacheResult {
-    value: NonNullable<string|number|object>;
+    value: null|string|number|object;
     timestamp: number;
 }

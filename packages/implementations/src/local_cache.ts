@@ -30,7 +30,7 @@
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  * Gonçalo Garcia <goncalogarcia99@gmail.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -45,9 +45,9 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { LocalCacheError } from "./errors";
 
 export interface ILocalCache {
-    get(...keys: string[]):string|number|object|null;
-    set(value:NonNullable<string|number|object>,...keys: string[]):void;
-    delete(...keys: string[]):void;
+    get(...keys: (string | null)[]):string|number|object|null;
+    set(value: null |string|number|object ,...keys: (string | null)[]):void;
+    delete(...keys: (string | null)[]):void;
     destroy():void;
 }
 
@@ -62,7 +62,7 @@ export class LocalCache implements ILocalCache{
         this._logger = logger;
         this.ttl = ttl;
     }
-    get(...keys: string[]): object | string | number | null {
+    get(...keys: (string | null)[]): object | string | number | null {
         const key = this.createKey(...keys);
         this._logger.debug(`LocalCache: get ${key}`);
         const currentTime = Math.round(Date.now() / 1000);
@@ -82,7 +82,7 @@ export class LocalCache implements ILocalCache{
         return null;
     }
 
-    set(value: NonNullable<string|number|object>,...keys: string[]): void {
+    set(value: null| string|number|object,...keys: (string | null)[]): void {
         const key = this.createKey(...keys);
         if(this._cache.has(key)){
             this._logger.error(`LocalCache: set ${key} - already exists`);
@@ -93,7 +93,7 @@ export class LocalCache implements ILocalCache{
         this._logger.debug(`LocalCache: set ${key} - ${value}`);
     }
 
-    delete(...keys: string[]): void {
+    delete(...keys: (string | null)[]): void {
         const key = this.createKey(...keys);
         this._cache.delete(key);
         this._logger.debug(`LocalCache: deleted ${key}`);
@@ -104,9 +104,9 @@ export class LocalCache implements ILocalCache{
        this._logger.debug(`LocalCache: destroyed`);
     }
 
-    private createKey(...keys: string[]): string {
+    private createKey(...keys: (string | null)[]): string {
         try{
-            return keys.filter(x => typeof x === 'string' && x.length > 0).join(":");
+            return keys.filter(x => typeof x === 'string' && x?.length > 0).join(":");
         }
         catch(err){
             throw new LocalCacheError(`Error creating key: ${err}`);
