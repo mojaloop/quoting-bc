@@ -227,7 +227,7 @@ describe("Account Lookup Adapter - Unit Tests", () => {
     });
 
 
-    test("getBulkAccountLookup - should retrieve data from cache by key and if not succeed, try with partyIdentifiers", async () => {
+    test("getBulkAccountLookup - should retrieve data from cache", async () => {
         // Arrange
         const request: AccountLookupBulkQuoteFspIdRequest = {
             "key1":{
@@ -239,14 +239,13 @@ describe("Account Lookup Adapter - Unit Tests", () => {
         };
 
         const cacheSpy = jest.spyOn(localCache, "get")
-            .mockReturnValueOnce(null)
             .mockReturnValueOnce("fspId2");
 
         // Act
         const result = await accountLookupClient.getBulkAccountLookup(request);
 
         // Assert
-        expect(cacheSpy).toBeCalledTimes(2);
+        expect(cacheSpy).toBeCalledTimes(1);
         expect(result).not.toBeNull();
         expect(result?.key1).toBe("fspId2");
     });
@@ -358,9 +357,7 @@ describe("Account Lookup Adapter - Unit Tests", () => {
 
         // Assert
         expect(cacheSpy).toBeCalledWith("fspId1", "partyId", "partyType", "partySubType", "USD");
-        expect(cacheSpy).toBeCalledWith("fspId1", "key1");
         expect(cacheSpy).toBeCalledWith("fspId2", "partyId2", "partyType2", "partySubType2", "USD");
-        expect(cacheSpy).toBeCalledWith("fspId2", "key2");
 
     });
 

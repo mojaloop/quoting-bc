@@ -131,3 +131,8 @@ devspace*
 # --------------- #
 .idea
 **/*.iml
+
+# --------------- #
+# Visual Studio Code #
+# --------------- #
+.vscode/*

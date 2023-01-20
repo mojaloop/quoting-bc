@@ -106,7 +106,8 @@ export class LocalCache implements ILocalCache{
 
     private createKey(...keys: (string | null)[]): string {
         try{
-            return keys.filter(x => typeof x === 'string' && x?.length > 0).join(":");
+            // convert null to null string and undefined to undefined string and stringify the rest and join with ":" maintaining the order
+            return keys.map((key) => key === null ? "null" : key.length === 0 ? "" : key.toString()).join(":");
         }
         catch(err){
             throw new LocalCacheError(`Error creating key: ${err}`);

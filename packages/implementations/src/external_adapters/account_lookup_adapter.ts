@@ -67,7 +67,7 @@ export class AccountLookupAdapter implements IAccountLookupService {
 			const currency = partyIdentifiers[key]?.currency;
 
 			this._logger.debug(`getBulkAccountLookup: checking cache for key: ${key} or partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
-			const cachedResult = this._localCache.get(key) ?? this._localCache.get(partyId, partyType, partySubIdOrType, currency);
+			const cachedResult = this._localCache.get(partyId, partyType, partySubIdOrType, currency);
 
 			if (cachedResult) {
 				this._logger.debug(`getBulkAccountLookup: returning cached result for key: ${key}`);
@@ -95,8 +95,6 @@ export class AccountLookupAdapter implements IAccountLookupService {
 
 		try {
 			for (const [key, value] of Object.entries(partyIdentifiers)) {
-				this._logger.debug(`getBulkAccountLookup: caching result for key: ${key}`);
-				this._localCache.set(result[key], key);
 				this._logger.debug(`getBulkAccountLookup: caching result for partyId: ${partyIdentifiers[key]?.partyId}, partyType ${partyIdentifiers[key]?.partyType}, partySubIdOrType: ${partyIdentifiers[key]?.partySubType}, currency: ${partyIdentifiers[key]?.currency}`);
 				this._localCache.set(result[key],  partyIdentifiers[key]?.partyId, partyIdentifiers[key]?.partyType, partyIdentifiers[key]?.partySubType, partyIdentifiers[key]?.currency);
 			}

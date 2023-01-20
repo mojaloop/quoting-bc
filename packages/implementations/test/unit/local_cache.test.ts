@@ -50,7 +50,7 @@ describe("Implementations - Local Cache Unit Tests", () => {
 
          //Arrange && Act
          localCache = new LocalCache(logger);
-         localCache.set(1,"type","key");
+         localCache.set(1, "type","key");
 
          //Assert
          expect(localCache).toBeDefined();
@@ -144,11 +144,27 @@ describe("Implementations - Local Cache Unit Tests", () => {
         localCache.set(1, null,"key");
 
         //Act
-        const result = localCache.get("key");
+        const result = localCache.get("null:key");
 
         //Assert
         expect(result).toBe(1);
 
+    });
+
+    test("should accept null and empty string as key values", async()=>{
+        //Arrange
+        localCache = new LocalCache(logger);
+
+        localCache.set(1, null,"key");
+        localCache.set(2,"","key");
+
+        //Act
+        const result1 = localCache.get("null:key");
+        const result2 = localCache.get(":key");
+
+        //Assert
+        expect(result1).toBe(1);
+        expect(result2).toBe(2);
     });
 
 });
