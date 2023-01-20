@@ -22,7 +22,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -45,7 +45,7 @@ export interface IPartyComplexName {
     middleName: string | null;
     lastName: string | null;
 }
-  
+
 export interface IPartyPersonalInfo {
     complexName: IPartyComplexName | null;
     dateOfBirth: string | null
@@ -88,7 +88,7 @@ export type IAmountType = "SEND" | "RECEIVE";
 
 export interface IGeoCode {
     latitude: string;
-    longitude: string; 
+    longitude: string;
 }
 export interface IExtensionList {
     extension: { key: string; value: string;}[];
@@ -133,14 +133,14 @@ export interface IQuote {
     payeeFspFee: IMoney | null;
     payeeFspCommission: IMoney | null;
 }
-    
+
 export interface IBulkQuote {
     bulkQuoteId: string;
     payer: IParty;
     geoCode: IGeoCode | null;
     expiration: string | null;
     individualQuotes: string[];
-    quotesNotProcessed: string[];
+    quotesNotProcessedIds: string[];
     extensionList: IExtensionList | null;
     status: QuoteStatus | null;
 }

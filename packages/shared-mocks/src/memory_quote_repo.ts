@@ -21,7 +21,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -33,12 +33,12 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuoteRepo, IQuote } from "@mojaloop/quoting-bc-domain";
+import { IQuoteRepo, IQuote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
 
 export class MemoryQuoteRepo implements IQuoteRepo {
 	private readonly _logger: ILogger;
     private readonly _quotes: IQuote[] = [];
-	
+
 	constructor(
 		logger: ILogger,
 	) {
@@ -76,8 +76,8 @@ export class MemoryQuoteRepo implements IQuoteRepo {
     getQuoteById(id: string): Promise<IQuote | null> {
         return Promise.resolve(this._quotes.find(q => q.quoteId === id) || null);
     }
-	
-    getQuotesByBulkQuoteId(id: string): Promise<IQuote[]> {
-        return Promise.resolve(this._quotes.filter(q => q.bulkQuoteId === id));
+
+    getQuotesByBulkQuoteIdAndStatus(id: string, status: QuoteStatus): Promise<IQuote[]> {
+        return Promise.resolve(this._quotes.filter(q => q.bulkQuoteId === id && q.status === status));
     }
 }

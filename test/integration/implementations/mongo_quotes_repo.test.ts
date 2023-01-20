@@ -22,7 +22,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -34,27 +34,26 @@
 
 import { ILogger,ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {  MongoQuotesRepo, NoSuchQuoteError, QuoteAlreadyExistsError } from "@mojaloop/quoting-bc-implementations";
-//  import { NoSuchOracleError, Oracle } from "@mojaloop/quoting-bc-domain";
 import { MongoClient, Collection } from "mongodb";
 import { mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4 } from "@mojaloop/quoting-shared-mocks";
-import { NonExistingQuoteError } from "@mojaloop/quoting-bc-domain";
+import { QuoteStatus } from "@mojaloop/quoting-bc-domain";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
- 
+
 const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
 //const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://localhost:27017/";
 const COLLECTION_NAME = "quotes";
- 
+
 let mongoQuotesRepo : MongoQuotesRepo;
- 
+
 let mongoClient: MongoClient;
 let collection : Collection;
 const connectionString = `${CONNECTION_STRING}/${DB_NAME}`;
- 
+
 describe("Implementations - Mongo Quotes Repo Integration tests", () => {
- 
+
     beforeAll(async () => {
         mongoClient = await MongoClient.connect(connectionString);
         collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
@@ -62,56 +61,55 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         await mongoQuotesRepo.init();
         await collection.deleteMany({});
     });
- 
+
     afterEach(async () => {
         await collection.deleteMany({});
 
     });
- 
+
     afterAll(async () => {
         await collection.deleteMany({});
         await mongoQuotesRepo.destroy();
         await mongoClient.close();
     });
- 
+
     test("should be able to init mongo quotes repo", async () => {
         expect(mongoQuotesRepo).toBeDefined();
     });
- 
+
     test("should throw error when is unable to init quotes repo", async () => {
         // Arrange
         const badMongoRepository = new MongoQuotesRepo(logger, "invalid connection", "invalid_db_name");
-         
+
         // Act
         await expect(badMongoRepository.init()).rejects.toThrowError();
- 
+
     });
- 
+
     test("should throw error when is unable to destroy mongo quote repo", async () => {
         // Arrange
         const badMongoRepository = new MongoQuotesRepo(logger, "invalid connection", "invalid_db_name");
-         
+
         // Act
         await expect(badMongoRepository.destroy()).rejects.toThrowError();
     });
- 
+
     test("should insert a quote in the database", async () => {
         // Arrange
         const quote1 = mockedQuote1;
- 
+
         // Act
         const quoteId = await mongoQuotesRepo.addQuote(quote1);
 
         // Assert
         expect(quoteId).toBeDefined();
         expect(quoteId).toEqual(quote1.quoteId);
-         
+
     });
 
     test("should throw error when trying to insert a quote with an existing id", async () => {
         // Arrange
         const quote1 = mockedQuote1;
-        const quote2 = mockedQuote2;
 
         // Act
         await mongoQuotesRepo.addQuote(quote1);
@@ -121,12 +119,51 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
 
     });
 
+    test("should insert multiple quotes in the database", async () => {
+        // Arrange
+        const quotes = [mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4];
+
+        // Act
+        await mongoQuotesRepo.addQuotes(quotes);
+
+        // Assert
+        const quote1 = await mongoQuotesRepo.getQuoteById(quotes[0].quoteId);
+        const quote2 = await mongoQuotesRepo.getQuoteById(quotes[1].quoteId);
+        const quote3 = await mongoQuotesRepo.getQuoteById(quotes[2].quoteId);
+        const quote4 = await mongoQuotesRepo.getQuoteById(quotes[3].quoteId);
+
+        expect(quote1).toBeDefined();
+        expect(quote1).toEqual(quotes[0]);
+        expect(quote2).toBeDefined();
+        expect(quote2).toEqual(quotes[1]);
+        expect(quote3).toBeDefined();
+        expect(quote3).toEqual(quotes[2]);
+        expect(quote4).toBeDefined();
+        expect(quote4).toEqual(quotes[3]);
+
+    });
+
+    test("should throw error when trying to insert multiple quotes with an existing id", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+        const quote2 = mockedQuote2;
+        const quote3 = mockedQuote3;
+        const quote4 = mockedQuote4;
+        quote4.quoteId = quote1.quoteId;
+        await mongoQuotesRepo.addQuote(quote1);
+
+        // Act && Assert
+        await expect(mongoQuotesRepo.addQuotes([quote1, quote2, quote3, quote4])).rejects.toThrowError(QuoteAlreadyExistsError);
+
+    });
+
+
     test("should throw an error when trying to update a quote that does not exist", async () => {
         // Arrange
         const quote1 = mockedQuote1;
 
         // Act && Assert
-        await expect(mongoQuotesRepo.updateQuote(quote1)).rejects.toThrowError(NonExistingQuoteError);
+        await expect(mongoQuotesRepo.updateQuote(quote1)).rejects.toThrowError(NoSuchQuoteError);
 
     });
 
@@ -136,7 +173,7 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         const newQuote = mockedQuote2;
         await mongoQuotesRepo.addQuote(quote1);
         newQuote.quoteId = quote1.quoteId;
-        
+
         // Act
         await mongoQuotesRepo.updateQuote(newQuote);
 
@@ -154,7 +191,7 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         newQuote.payee = newPayee;
 
         await mongoQuotesRepo.addQuote(quote1);
-        
+
         // Act
         await mongoQuotesRepo.updateQuote(newQuote);
 
@@ -209,9 +246,32 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         const result = await mongoQuotesRepo.getQuoteById(quote1.quoteId);
         expect(result).toBeNull();
     });
-     
+
+    test("should get a list of quotes by bulk quote identifier and status", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+        const quote2 = mockedQuote2;
+        const quote3 = mockedQuote3;
+        const quote4 = mockedQuote4;
+        quote4.bulkQuoteId = quote1.bulkQuoteId;
+        quote4.status = QuoteStatus.ACCEPTED;
+        quote1.status = QuoteStatus.ACCEPTED;
+
+        await mongoQuotesRepo.addQuotes([quote1, quote2, quote3, quote4]);
+
+        // Act
+        const result = await mongoQuotesRepo.getQuotesByBulkQuoteIdAndStatus(quote1.bulkQuoteId as string,QuoteStatus.ACCEPTED);
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result).toHaveLength(2);
+        expect(result).toEqual([quote1, quote4]);
+        expect(result[0].status).toEqual(QuoteStatus.ACCEPTED);
+        expect(result[1].status).toEqual(QuoteStatus.ACCEPTED);
+
+    });
+
  });
- 
- 
- 
- 
+
+
+

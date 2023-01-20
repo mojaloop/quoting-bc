@@ -33,7 +33,7 @@
 "use strict";
 
 import { Participant } from "@mojaloop/participant-bc-public-types-lib";
-import {IQuote, IBulkQuote } from "../types";
+import {IQuote, IBulkQuote, QuoteStatus } from "../types";
 export interface IQuoteRepo {
     init(): Promise<void>;
 	destroy(): Promise<void>;
@@ -42,7 +42,7 @@ export interface IQuoteRepo {
     updateQuote(quote: IQuote):Promise<void>;
     removeQuote(id: string):Promise<void>;
     getQuoteById(id:string):Promise<IQuote|null>;
-    getQuotesByBulkQuoteId(id:string):Promise<IQuote[]>;
+    getQuotesByBulkQuoteIdAndStatus(id:string, status: QuoteStatus):Promise<IQuote[]>;
 }
 
 export interface IBulkQuoteRepo {

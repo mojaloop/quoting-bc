@@ -36,6 +36,7 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { AccountLookupHttpClient } from "@mojaloop/account-lookup-bc-client-lib";
 import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService } from "@mojaloop/quoting-bc-domain";
 import { ILocalCache, LocalCache } from "../local_cache";
+import { GetAccountLookupAdapterError, GetBulkAccountLookupAdapterError } from "../errors";
 
 export class AccountLookupAdapter implements IAccountLookupService {
 	private readonly _logger: ILogger;
@@ -88,7 +89,7 @@ export class AccountLookupAdapter implements IAccountLookupService {
 			result = {...result, ...externalFspIds};
 		} catch (e: unknown) {
 			this._logger.error(`getBulkAccountLookup: error calling external account lookup service for partyIdentifiers: ${JSON.stringify(partyIdentifiers)}, error: ${e}`);
-			throw new Error();
+			throw new GetBulkAccountLookupAdapterError();
 		}
 
 		this._logger.debug("getBulkAccountLookup: caching result for partyIdentifiers");
@@ -124,7 +125,7 @@ export class AccountLookupAdapter implements IAccountLookupService {
 			return result;
 		} catch (e: unknown) {
 			this._logger.error(`getAccountLookup: error getting for partyId: ${partyId}, partyType: ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency} - ${e}`);
-			throw new Error();
+			throw new GetAccountLookupAdapterError();
 		}
 	}
 

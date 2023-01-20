@@ -22,7 +22,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -32,7 +32,7 @@
 
 "use strict";
 
-import { IQuote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
+import { IBulkQuote, IQuote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
 
 export const mockedQuote1 : IQuote = {
     requesterFspId: "1",
@@ -496,6 +496,123 @@ export const mockedQuotes : IQuote[] = [
   mockedQuote3,
   mockedQuote4
 ];
+
+export const mockedBulkQuote1 : IBulkQuote = {
+  bulkQuoteId: "1",
+  payer: {
+    merchantClassificationCode: "1",
+    name: "John Doe",
+    personalInfo: {
+      complexName: {
+        firstName: "John",
+        middleName: "Doe",
+        lastName: "John Doe"
+      },
+      dateOfBirth: "1980-01-01"
+    },
+    partyIdInfo: {
+      fspId: "1",
+      partyIdentifier: "1",
+      partyIdType: "partyType1",
+      partySubIdOrType: "partySubIdOrType1"
+    }
+  },
+  expiration: "2018-08-15T08:43:25.699Z",
+  individualQuotes: [ "1", "2" ],
+  extensionList: {
+    extension: [
+      {
+        key: "key",
+        value: "value"
+      }
+    ]
+  },
+  geoCode: {
+    latitude: "1",
+    longitude: "2"
+  },
+  status: QuoteStatus.RECEIVED,
+  quotesNotProcessedIds: ["3", "4"],
+};
+
+export const mockedBulkQuote2 : IBulkQuote = {
+  bulkQuoteId: "2",
+  payer: {
+    merchantClassificationCode: "2",
+    name: "John Smith",
+    personalInfo: {
+      complexName: {
+        firstName: "John",
+        middleName: "Smith",
+        lastName: "John Smith"
+      },
+      dateOfBirth: "1980-01-01"
+    },
+    partyIdInfo: {
+      fspId: "2",
+      partyIdentifier: "2",
+      partyIdType: "partyType2",
+      partySubIdOrType: "partySubIdOrType2"
+    }
+  },
+  expiration: "2018-08-15T08:43:25.699Z",
+  individualQuotes: [ "3", "4" ],
+  extensionList: {
+    extension: [
+      {
+        key: "key",
+        value: "value"
+      }
+    ]
+  },
+  geoCode: {
+    latitude: "1",
+    longitude: "2"
+  },
+  status: QuoteStatus.RECEIVED,
+  quotesNotProcessedIds: ["1", "2"],
+};
+
+export const mockedBulkQuote3 : IBulkQuote = {
+  bulkQuoteId: "3",
+  payer: {
+    merchantClassificationCode: "3",
+    name: "John Third",
+    personalInfo: {
+      complexName: {
+        firstName: "John",
+        middleName: "Third",
+        lastName: "John Third"
+      },
+      dateOfBirth: "1980-01-01"
+    },
+    partyIdInfo: {
+      fspId: "3",
+      partyIdentifier: "3",
+      partyIdType: "partyType3",
+      partySubIdOrType: "partySubIdOrType3"
+    }
+  },
+  expiration: "2018-08-15T08:43:25.699Z",
+  individualQuotes: [ "5", "6" ],
+  extensionList: {
+    extension: [
+      {
+        key: "key",
+        value: "value"
+      }
+    ]
+  },
+  geoCode: {
+    latitude: "1",
+    longitude: "2"
+  },
+  status: QuoteStatus.REJECTED,
+  quotesNotProcessedIds: ["7", "8"],
+};
+
+
+
 
 
 

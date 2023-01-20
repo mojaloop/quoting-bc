@@ -37,7 +37,6 @@ import { IMessageProducer, MessageTypes } from "@mojaloop/platform-shared-lib-me
 import {
 	InvalidMessagePayloadError,
 	InvalidMessageTypeError,
-	UnableToProcessMessageError,
 	NoSuchParticipantError,
 	InvalidParticipantIdError,
 	RequiredParticipantIsNotActive,
@@ -373,7 +372,7 @@ export class QuotingAggregate  {
 			expiration: message.payload.expiration,
 			individualQuotes: message.payload.individualQuotes.map(q => q.quoteId),
 			extensionList: message.payload.extensionList,
-			quotesNotProcessed: [],
+			quotesNotProcessedIds: [],
 			status: QuoteStatus.PENDING
 		};
 
@@ -412,7 +411,7 @@ export class QuotingAggregate  {
 			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
 
 			if(bulkQuote) {
-				bulkQuote.quotesNotProcessed = quotesNotProcessedIds;
+				bulkQuote.quotesNotProcessedIds = quotesNotProcessedIds;
 
 				if(quotes.length === quotesNotProcessedIds.length) {
 					bulkQuote.status = QuoteStatus.REJECTED;
@@ -491,9 +490,9 @@ export class QuotingAggregate  {
 			await this._quotesRepo.updateQuote(quote);
 		}
 
-		const quotesProcessed = await this._quotesRepo.getQuotesByBulkQuoteId(bulkQuote.bulkQuoteId);
+		const quotesProcessed = await this._quotesRepo.getQuotesByBulkQuoteIdAndStatus(bulkQuote.bulkQuoteId, QuoteStatus.ACCEPTED);
 
-		const totalProcessedQuotes = quotesProcessed.length + bulkQuote.quotesNotProcessed.length;
+		const totalProcessedQuotes = quotesProcessed.length + bulkQuote.quotesNotProcessedIds.length;
 
 		if(bulkQuote.individualQuotes.length === totalProcessedQuotes) {
 

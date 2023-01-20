@@ -51,7 +51,7 @@ let localCache: ILocalCache;
 describe("Account Lookup Adapter - Unit Tests", () => {
     beforeAll(async () => {
          const logger: ILogger = new ConsoleLogger();
-         logger.setLogLevel(LogLevel.DEBUG);
+         logger.setLogLevel(LogLevel.FATAL);
          localCache = new LocalCache(logger);
          accountLookupClient = new AccountLookupAdapter(
              logger,

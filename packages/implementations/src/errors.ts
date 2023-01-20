@@ -30,7 +30,7 @@
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  * Gonçalo Garcia <goncalogarcia99@gmail.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -70,7 +70,13 @@ export class UnableToGetQuoteError extends Error {
     constructor(message?: string) {
         super(message || 'Unable to get quote');
     }
-}   
+}
+
+export class UnableToGetQuotesError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to get quotes');
+    }
+}
 export class QuoteAlreadyExistsError extends Error {
     constructor(message?:string) {
         super(message || 'Quote already registered');
@@ -79,6 +85,12 @@ export class QuoteAlreadyExistsError extends Error {
 export class UnableToDeleteQuoteError extends Error {
     constructor(message?:string) {
         super(message || 'Unable to delete quote');
+    }
+}
+
+export class UnableToAddManyQuotesError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to add many quotes');
     }
 }
 
@@ -108,7 +120,7 @@ export class UnableToGetBulkQuoteError extends Error {
     constructor(message?: string) {
         super(message || 'Unable to get bulk quote');
     }
-}   
+}
 export class BulkQuoteAlreadyExistsError extends Error {
     constructor(message?:string) {
         super(message || 'BulkQuote already registered');
@@ -142,5 +154,19 @@ export class UnableToInitQuoteRegistryError extends Error {
 export class UnableToInitBulkQuoteRegistryError extends Error {
     constructor(message?: string) {
         super(message || 'Unable to initialize quote registry');
+    }
+}
+
+// Account Lookup Adapter
+
+export class GetAccountLookupAdapterError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to get account lookup');
+    }
+}
+
+export class GetBulkAccountLookupAdapterError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to get bulk account lookup');
     }
 }

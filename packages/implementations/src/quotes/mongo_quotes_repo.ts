@@ -39,7 +39,7 @@ import {
 	WithId
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
-import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError, UnableToAddBulkQuotesError } from '../errors';
+import { QuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError, UnableToAddBulkQuotesError, UnableToAddManyQuotesError, UnableToGetQuotesError } from '../errors';
 import { IQuoteRepo, IQuote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
 import { randomUUID } from 'crypto';
 
@@ -83,29 +83,35 @@ export class MongoQuotesRepo implements IQuoteRepo {
 	}
 
 	async addQuote(quote: IQuote): Promise<string> {
-		if(quote.quoteId){
+		const quoteToAdd = {...quote};
+		if(quoteToAdd.quoteId){
 			await this.checkIfQuoteExists(quote);
 		}
 
-		try {
-			quote.quoteId = quote.quoteId || randomUUID();
-			await this.quotes.insertOne(quote);
-			return quote.quoteId;
-			
-		} catch (e: any) {
+		quoteToAdd.quoteId = quoteToAdd.quoteId || randomUUID();
+		await this.quotes.insertOne(quoteToAdd).catch((e: any) => {
 			this._logger.error(`Unable to insert quote: ${e.message}`);
 			throw new UnableToAddQuoteError();
-		}
+
+		});
+
+		return quoteToAdd.quoteId;
 	}
 
 	async addQuotes(quotes: IQuote[]): Promise<void> {
-		try{
-			await this.quotes.insertMany(quotes);
+		const quotesToAdd = quotes.map(quote => {
+			return {...quote, quoteId: quote.quoteId || randomUUID()};
+		});
+
+		// Check if any of the quotes already exists
+		for await (const quote of quotesToAdd){
+			await this.checkIfQuoteExists(quote);
 		}
-		catch(e: any){
-			this._logger.error(`Unable to insert bulk quotes: ${e.message}`);
-			throw new UnableToAddBulkQuotesError();
-		}
+
+		await this.quotes.insertMany(quotesToAdd).catch((e: any) => {
+			this._logger.error(`Unable to insert many quotes: ${e.message}`);
+			throw new UnableToAddManyQuotesError();
+		});
 	}
 
 	async updateQuote(quote: IQuote): Promise<void> {
@@ -117,15 +123,11 @@ export class MongoQuotesRepo implements IQuoteRepo {
 
 		const updatedQuote: IQuote = {...existingQuote, ...quote};
 		updatedQuote.quoteId = existingQuote.quoteId;
-			
-		try {
-			await this.quotes.updateOne({
-				quoteId: quote.quoteId,
-			}, { $set: updatedQuote });
-		} catch (e: any) {
+
+		await this.quotes.updateOne({quoteId: quote.quoteId, }, { $set: updatedQuote }).catch((e: any) => {
 			this._logger.error(`Unable to insert quote: ${e.message}`);
 			throw new UnableToUpdateQuoteError();
-		}
+		});
 	}
 
 	async removeQuote(quoteId: string): Promise<void> {
@@ -133,6 +135,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			this._logger.error(`Unable to delete quote: ${e.message}`);
 			throw new UnableToDeleteQuoteError();
 		});
+
 		if(deleteResult.deletedCount == 1){
 			return;
 		}
@@ -146,10 +149,29 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			this._logger.error(`Unable to get quote by id: ${e.message}`);
 			throw new UnableToGetQuoteError();
 		});
+
 		if(!quote){
 			return null;
-		} 
+		}
 		return this.mapToQuote(quote);
+	}
+
+	async getQuotesByBulkQuoteIdAndStatus(bulkQuoteId:string, status: QuoteStatus):Promise<IQuote[]>{
+		const quotes = await this.quotes.find({
+			bulkQuoteId: bulkQuoteId,
+			status
+		}).toArray().catch((e: any) => {
+			this._logger.error(`Unable to get quotes by bulk quote id: ${e.message}`);
+			throw new UnableToGetQuotesError();
+		});
+
+		const mappedQuotes = [];
+
+		for (const quote of quotes){
+			mappedQuotes.push(this.mapToQuote(quote));
+		}
+
+		return mappedQuotes;
 	}
 
 	private async checkIfQuoteExists(quote: IQuote) {
@@ -167,23 +189,8 @@ export class MongoQuotesRepo implements IQuoteRepo {
 		}
 	}
 
-	async getQuotesByBulkQuoteId(bulkQuoteId:string):Promise<IQuote[]>{
-		const quotes = await this.quotes.find({ 
-			bulkQuoteId: bulkQuoteId, 
-			status: QuoteStatus.ACCEPTED 
-		}).toArray();
-
-		const mappedQuotes = [];
-		
-		for(let i=0 ; i<quotes.length ; i+=1) {
-			mappedQuotes.push(this.mapToQuote(quotes[i])) 
-		}
-
-		return mappedQuotes;
-	}
-
 	private mapToQuote(quote: WithId<Document>): IQuote {
-		const quoteMapped: IQuote = { 
+		const quoteMapped: IQuote = {
 			quoteId: quote.quoteId ?? null,
 			bulkQuoteId: quote.bulkQuoteId ?? null,
 			transactionId: quote.transactionId ?? null,
