@@ -355,12 +355,14 @@ export class QuotingAggregate  {
 		return event;
 	}
 
-	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt> {
+	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt[]> {
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
+		
+		const events:BulkQuoteReceivedEvt[] = [];
 
-		const quotes = message.payload.individualQuotes as unknown as IQuote[];
-
-		const validQuotes:IQuote[] = [];
+		const quotes = message.payload.individualQuotes as any as IQuote[];
+		
+		const validQuotes:any = [];
 		const quotesNotProcessedIds: string[] = [];
 
 		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
@@ -380,11 +382,21 @@ export class QuotingAggregate  {
 
 		const missingFspIds = await this.getMissingFspIds(quotes) ?? {};
 
+		for (const fspId in missingFspIds) {
+			const existingFspId = missingFspIds[fspId] as string;
+			
+			if(existingFspId) {
+				validQuotes[existingFspId] = [];
+			}
+		}
+		
 		for await (const quote of quotes) {
 			let destinationFspIdToUse = quote.payee?.partyIdInfo?.fspId;
 
 			if(!destinationFspIdToUse) {
 				destinationFspIdToUse = missingFspIds[quote.quoteId];
+			} else {
+				validQuotes[destinationFspIdToUse] = [];
 			}
 
 			if(!destinationFspIdToUse) {
@@ -396,8 +408,8 @@ export class QuotingAggregate  {
 
 					quote.bulkQuoteId = bulkQuoteId;
 					quote.status = QuoteStatus.PENDING;
-
-					validQuotes.push(quote);
+					quote.payee.partyIdInfo.fspId = destinationFspIdToUse;
+					validQuotes[destinationFspIdToUse].push(quote);
 				} catch (e) {
 					quotesNotProcessedIds.push(quote.quoteId);
 				}
@@ -421,25 +433,29 @@ export class QuotingAggregate  {
 			}
 		}
 
+		for (const fspId in validQuotes) {
+			const payload : BulkQuoteReceivedEvtPayload = {
+				bulkQuoteId: message.payload.bulkQuoteId,
+				payer: message.payload.payer,
+				geoCode: message.payload.geoCode,
+				expiration: message.payload.expiration,
+				individualQuotes: validQuotes[fspId] as any,
+				extensionList: message.payload.extensionList
+			};
 
-		const payload : BulkQuoteReceivedEvtPayload = {
-			bulkQuoteId: message.payload.bulkQuoteId,
-			payer: message.payload.payer,
-			geoCode: message.payload.geoCode,
-			expiration: message.payload.expiration,
-			individualQuotes: validQuotes as any,
-			extensionList: message.payload.extensionList
-		};
+			const event = new BulkQuoteReceivedEvt(payload);
 
-		const event = new BulkQuoteReceivedEvt(payload);
+			event.fspiopOpaqueState = { ...message.fspiopOpaqueState };
+			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": fspId } 
 
-		event.fspiopOpaqueState = message.fspiopOpaqueState;
+			events.push(event);
+		}
 
-		return event;
+		return events;
 
 	}
 
-	private async handleBulkQuotePendingReceivedEvt(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | null> {
+	private async handleBulkQuotePendingReceivedEvt(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | BulkQuoteAcceptedEvt[]> {
 		this._logger.debug(`Got BulkQuotePendingReceivedEvt msg for bulkQuotes: ${message.payload.individualQuoteResults}`);
 
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
@@ -503,8 +519,8 @@ export class QuotingAggregate  {
 			await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 
 			const payload : BulkQuoteAcceptedEvtPayload = {
-				bulkQuoteId: bulkQuote.bulkQuoteId,
-				individualQuoteResults: [],
+				bulkQuoteId: message.payload.bulkQuoteId,
+				individualQuoteResults: message.payload.individualQuoteResults,
 				expiration: message.payload.expiration,
 				extensionList: message.payload.extensionList
 			};
@@ -512,13 +528,14 @@ export class QuotingAggregate  {
 			const event = new BulkQuoteAcceptedEvt(payload);
 
 			event.fspiopOpaqueState = message.fspiopOpaqueState;
+			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": message.fspiopOpaqueState.destinationFspId, } 
 
 			return event;
 		} else {
 			await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 		}
 
-		return null;
+		return [];
 
 	}
 
