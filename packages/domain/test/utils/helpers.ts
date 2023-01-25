@@ -33,7 +33,8 @@
 "use strict";
 
 import { IMessage, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { QuoteResponseReceivedEvtPayload, QuoteRequestReceivedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { QuoteResponseReceivedEvtPayload, QuoteRequestReceivedEvtPayload, BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { IBulkQuote } from "../../dist";
 import { IMoney, IQuote } from '../../src/types';
 
 export function createQuoteResponseReceivedEvtPayload(mockedQuote: IQuote): QuoteResponseReceivedEvtPayload {
@@ -67,6 +68,26 @@ export function createQuoteRequestReceivedEvtPayload(mockedQuote: IQuote): Quote
         transactionType: mockedQuote.transactionType,
         transactionRequestId: mockedQuote.transactionRequestId,
     };
+}
+
+export function createBulkQuoteRequestedEvtPayload(mockedBulkQuote: IBulkQuote): BulkQuoteRequestedEvtPayload {
+    return {
+        bulkQuoteId: mockedBulkQuote.bulkQuoteId,
+        payer: mockedBulkQuote.payer,
+        geoCode: mockedBulkQuote.geoCode,
+        expiration: mockedBulkQuote.expiration,
+        individualQuotes: mockedBulkQuote.individualQuotes as any,
+        extensionList: mockedBulkQuote.extensionList
+    }
+}
+
+export function createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote: IBulkQuote): BulkQuotePendingReceivedEvtPayload {
+    return {
+        bulkQuoteId: mockedBulkQuote.bulkQuoteId,
+        expiration: mockedBulkQuote.expiration,
+        extensionList: mockedBulkQuote.extensionList,
+        individualQuoteResults: mockedBulkQuote.individualQuotes as any,
+      }
 }
 
 export function createMessage(payload: object | null, messageName:string, fspiopOpaqueState:object|null): IMessage {

@@ -511,14 +511,54 @@ export const mockedBulkQuote1 : IBulkQuote = {
       dateOfBirth: "1980-01-01"
     },
     partyIdInfo: {
-      fspId: "1",
-      partyIdentifier: "1",
       partyIdType: "partyType1",
+      partyIdentifier: "111",
       partySubIdOrType: "partySubIdOrType1"
     }
   },
   expiration: "2018-08-15T08:43:25.699Z",
-  individualQuotes: [ "1", "2" ],
+  individualQuotes: [
+    {
+        "quoteId": "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+        "transactionId": "7f5d9784-3a57-5865-9aa0-7dde7791548a",
+        "payee": {
+            "partyIdInfo": {
+                "partyIdType": "MSISDN",
+                "partyIdentifier": "1",
+            }
+        },
+        "amountType": "SEND",
+        "amount": {
+            "currency": "EUR",
+            "amount": "1"
+        },
+        "transactionType": {
+            "scenario": "DEPOSIT",
+            "initiator": "PAYER",
+            "initiatorType": "BUSINESS"
+        }
+    },
+    {
+      "quoteId": "1243fdbe-5dea-3abd-a210-3780e7f2f1f4",
+      "transactionId": "7f5d9784-3a57-5865-9aa0-7dde7791548a",
+      "payee": {
+          "partyIdInfo": {
+              "partyIdType": "MSISDN",
+              "partyIdentifier": "1",
+          }
+      },
+      "amountType": "SEND",
+      "amount": {
+          "currency": "EUR",
+          "amount": "1"
+      },
+      "transactionType": {
+          "scenario": "DEPOSIT",
+          "initiator": "PAYER",
+          "initiatorType": "BUSINESS"
+      }
+    }
+  ],
   extensionList: {
     extension: [
       {
@@ -533,7 +573,7 @@ export const mockedBulkQuote1 : IBulkQuote = {
   },
   status: QuoteStatus.RECEIVED,
   quotesNotProcessedIds: ["3", "4"],
-};
+} as any;
 
 export const mockedBulkQuote2 : IBulkQuote = {
   bulkQuoteId: "2",

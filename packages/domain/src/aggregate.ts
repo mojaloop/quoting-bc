@@ -109,12 +109,13 @@ export class QuotingAggregate  {
 
 			const errorPayload: QuoteErrorEvtPayload = {
 				errorMsg: errorMessage,
-				quoteId: message.payload?.quoteId,
+				quoteId: message.payload?.bulkQuoteId ? message.payload?.bulkQuoteId : message.payload?.quoteId,
 				sourceEvent: message.msgName,
 				requesterFspId: message.fspiopOpaqueState?.requesterFspId ?? null,
 				destinationFspId: message.fspiopOpaqueState?.destinationFspId ?? null,
 
 			};
+
 			const messageToPublish = new QuoteErrorEvt(errorPayload);
 			messageToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
 			await this._messageProducer.send(messageToPublish);
