@@ -44,7 +44,8 @@ import {
 	InvalidRequesterFspIdError,
 	InvalidDestinationFspIdError,
 	InvalidDestinationPartyInformationError,
-	NoSuchBulkQuoteError
+	NoSuchBulkQuoteError,
+	UnableToProcessMessageError
 } from "./errors";
 import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
@@ -176,7 +177,7 @@ export class QuotingAggregate  {
 				await this._messageProducer.send(eventToPublish);
 			}
 		}else{
-			// throw new UnableToProcessMessageError();
+			throw new UnableToProcessMessageError();
 		}
 
 	}
