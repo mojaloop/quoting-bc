@@ -162,7 +162,13 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			throw new UnableToGetQuotesError();
 		});
 
-		return quotes.map((quote: any) => this.mapToQuote(quote));
+		const mappedQuotes = [];
+
+		for (const quote of quotes){
+			mappedQuotes.push(this.mapToQuote(quote));
+		}
+
+		return mappedQuotes;
 	}
 
 	async getQuotesByBulkQuoteIdAndStatus(bulkQuoteId:string, status: QuoteStatus):Promise<IQuote[]>{

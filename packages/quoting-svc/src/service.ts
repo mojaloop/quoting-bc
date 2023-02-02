@@ -96,7 +96,7 @@ const ACCOUNT_LOOKUP_SVC_BASEURL = process.env["ACCOUNT_LOOKUP_SVC_BASEURL"] || 
 let accountLookupService: IAccountLookupService;
 
 // Express Server
-const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3035;
+const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3033;
 let expressApp: Express;
 let expressServer: Server;
 
@@ -143,7 +143,7 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
 
     // Add admin and client http routes
     quotingAdminRoutes = new QuotingAdminExpressRoutes(aggregate, logger);
-    expressApp.use("/", quotingAdminRoutes.mainRouter);
+    expressApp.use("", quotingAdminRoutes.mainRouter);
 
     expressApp.use((req, res) => {
       // catch all

@@ -52,6 +52,10 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         super(logger, quotingAggregate);
         this.logger.createChild(this.constructor.name);
 
+        this.mainRouter.get("/quotes" ,this.getAllQuotes.bind(this));
+
+        this.mainRouter.get("/bulkQuotes" ,this.getAllBulkQuotes.bind(this));
+
         this.mainRouter.get("/quotes/:id",[
             check("id").isString().notEmpty().withMessage("id must be a non empty string")
         ],this.getQuoteById.bind(this));

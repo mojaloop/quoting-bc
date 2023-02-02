@@ -618,7 +618,8 @@ export class QuotingAggregate  {
 			throw new Error("Invalid quote id");
 		}
 
-		return this._quotesRepo.getQuoteById(id);
+		const quote = await this._quotesRepo.getQuoteById(id);
+		return quote;
 	}
 
 	public async getBulkQuoteById(id: string): Promise<IBulkQuote | null> {
@@ -626,15 +627,19 @@ export class QuotingAggregate  {
 			throw new Error("Invalid bulk quote id");
 		}
 
-		return this._bulkQuotesRepo.getBulkQuoteById(id);
+		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(id);
+
+		return bulkQuote;
 	}
 
 	public async getQuotes(): Promise<IQuote[]> {
-		return this._quotesRepo.getQuotes();
+		const quotes = await this._quotesRepo.getQuotes();
+		return quotes;
 	}
 
 	public async getBulkQuotes(): Promise<IBulkQuote[]> {
-		return this._bulkQuotesRepo.getBulkQuotes();
+		const bulkQUotes =  await this._bulkQuotesRepo.getBulkQuotes();
+		return bulkQUotes;
 	}
 
 	//#endregion

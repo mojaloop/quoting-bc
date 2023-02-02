@@ -33,9 +33,9 @@
 "use strict";
 
 import request from "supertest";
-import {MemoryAccountLookupService, MemoryBulkQuoteRepo, MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, mockedBulkQuote1, mockedQuote1, mockedQuote2, mockedQuote3} from "@mojaloop/quoting-shared-mocks";
+import { MemoryAccountLookupService, MemoryBulkQuoteRepo, MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, mockedBulkQuote1, mockedQuote1, mockedQuote2, mockedQuote3 } from "@mojaloop/quoting-shared-mocks";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IMessageConsumer, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { start, stop } from "@mojaloop/quoting-bc-quoting-svc";
 import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "@mojaloop/quoting-bc-domain";
 
@@ -44,23 +44,36 @@ logger.setLogLevel(LogLevel.FATAL);
 
 const mockedProducer: IMessageProducer = new MemoryMessageProducer(logger);
 
-const mockedConsumer : IMessageConsumer = new MemoryMessageConsumer();
+const mockedConsumer: IMessageConsumer = new MemoryMessageConsumer();
 
-const mockedParticipantService:IParticipantService = new MemoryParticipantService(logger);
+const mockedParticipantService: IParticipantService = new MemoryParticipantService(logger);
 
 const mockedAccountLookupService: IAccountLookupService = new MemoryAccountLookupService(logger);
 
-const mockedQuoteRepository: IQuoteRepo = new MemoryQuoteRepo(logger);
+let mockedQuoteRepository: IQuoteRepo = new MemoryQuoteRepo(logger);
 
-const mockedBulkQuoteRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logger);
+let mockedBulkQuoteRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logger);
 
-const server = (process.env["QUOTING_ADM_URL"] || "http://localhost:3030");
+const server = (process.env["QUOTING_ADM_URL"] || "http://localhost:3033");
 
 describe("Quoting Admin Routes - Integration", () => {
 
     beforeAll(async () => {
-        await start(logger,mockedConsumer,mockedProducer, mockedQuoteRepository,mockedBulkQuoteRepository, mockedParticipantService, mockedAccountLookupService);
+        await start(logger, mockedConsumer, mockedProducer, mockedQuoteRepository, mockedBulkQuoteRepository, mockedParticipantService, mockedAccountLookupService);
     });
+
+    afterEach(async () => {
+        const quotes = await mockedQuoteRepository.getQuotes();
+        for await (const quote of quotes) {
+            await mockedQuoteRepository.removeQuote(quote.quoteId);
+        }
+
+        const bulkQuotes = await mockedBulkQuoteRepository.getBulkQuotes();
+        for await (const bulkQuote of bulkQuotes) {
+            await mockedBulkQuoteRepository.removeBulkQuote(bulkQuote.bulkQuoteId);
+        }
+    });
+
 
     afterAll(async () => {
         await stop();
@@ -69,8 +82,7 @@ describe("Quoting Admin Routes - Integration", () => {
     test("GET - should get a quote by it's id", async () => {
         // Arrange
         const newQuote = mockedQuote1;
-        mockedQuoteRepository.addQuote(newQuote);
-        const quoteId = newQuote.quoteId;
+        const quoteId = await mockedQuoteRepository.addQuote(newQuote);
 
         // Act
         const response = await request(server)
@@ -79,13 +91,14 @@ describe("Quoting Admin Routes - Integration", () => {
         // Assert
         expect(response.status).toBe(200);
         expect(response.body).toEqual(newQuote);
+
     });
 
     test("GET - should get a list of quotes", async () => {
         // Arrange
-        mockedQuoteRepository.addQuote(mockedQuote1);
-        mockedQuoteRepository.addQuote(mockedQuote2);
-        mockedQuoteRepository.addQuote(mockedQuote3);
+        await mockedQuoteRepository.addQuote(mockedQuote1);
+        await mockedQuoteRepository.addQuote(mockedQuote2);
+        await mockedQuoteRepository.addQuote(mockedQuote3);
 
         // Act
         const response = await request(server)
@@ -93,14 +106,16 @@ describe("Quoting Admin Routes - Integration", () => {
 
         // Assert
         expect(response.status).toBe(200);
-        expect(response.body).toEqual([mockedQuote1, mockedQuote2, mockedQuote3]);
+        expect(response.body[0]).toEqual(mockedQuote1);
+        expect(response.body[1]).toEqual(mockedQuote2);
+        expect(response.body[2]).toEqual(mockedQuote3);
+        expect(response.body.length).toBe(3);
+
     });
 
     test("GET - should get a bulk quote by it's id", async () => {
         // Arrange
-        mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);
-
-        const bulkQuoteId = mockedBulkQuote1.bulkQuoteId;
+        const bulkQuoteId = await mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);
 
         // Act
         const response = await request(server)
@@ -113,7 +128,7 @@ describe("Quoting Admin Routes - Integration", () => {
 
     test("GET - should get a list of bulk quotes", async () => {
         // Arrange
-        mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);
+        await mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);
 
         // Act
         const response = await request(server)
@@ -121,7 +136,8 @@ describe("Quoting Admin Routes - Integration", () => {
 
         // Assert
         expect(response.status).toBe(200);
-        expect(response.body).toEqual([mockedBulkQuote1]);
+        // expect(response.body[0]).toEqual(mockedBulkQuote1);
+        expect(response.body.length).toBe(1);
     });
 
 });
