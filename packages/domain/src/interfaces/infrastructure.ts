@@ -42,6 +42,7 @@ export interface IQuoteRepo {
     updateQuote(quote: IQuote):Promise<void>;
     removeQuote(id: string):Promise<void>;
     getQuoteById(id:string):Promise<IQuote|null>;
+    getQuotes():Promise<IQuote[]>;
     getQuotesByBulkQuoteIdAndStatus(id:string, status: QuoteStatus):Promise<IQuote[]>;
 }
 
@@ -52,6 +53,7 @@ export interface IBulkQuoteRepo {
     updateBulkQuote(bulkQuote: IBulkQuote):Promise<void>;
     removeBulkQuote(id: string):Promise<void>;
     getBulkQuoteById(id:string):Promise<IBulkQuote|null>;
+    getBulkQuotes():Promise<IBulkQuote[]>;
 }
 
 export interface IParticipantService {

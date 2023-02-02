@@ -22,7 +22,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -35,6 +35,7 @@ import { IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib
 import { start, stop } from "../../src/service";
 import { MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, MemoryAccountLookupService, MemoryBulkQuoteRepo } from "@mojaloop/quoting-shared-mocks";
 import { IBulkQuoteRepo, IParticipantService, IQuoteRepo, QuotingAggregate } from "@mojaloop/quoting-bc-domain";
+const express = require("express");
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
@@ -60,8 +61,32 @@ const mockedAggregate: QuotingAggregate = new QuotingAggregate(
     mockedAccountLookupService
 );
 
+// Express mock
+const useSpy = jest.fn();
+const closeSpy = jest.fn();
+const listenSpy = jest.fn().mockReturnValue({ close: closeSpy });
+const routerSpy = {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+};
+
+
+jest.mock('express', () => {
+  return () => ({
+    listen: listenSpy,
+    close: jest.fn(),
+    use: useSpy
+    });
+});
+
+express.json = jest.fn();
+express.urlencoded = jest.fn();
+express.Router = jest.fn().mockImplementation(() => { return routerSpy });
+
 describe("Quoting Service", () => {
-    
+
     afterEach(async () => {
         jest.restoreAllMocks()
     });
@@ -78,18 +103,20 @@ describe("Quoting Service", () => {
         const spyConsumerCallback = jest.spyOn(mockedConsumer, "setCallbackFn");
         const spyProducerInit = jest.spyOn(mockedProducer, "connect");
         const spyQuoteRegistryInit = jest.spyOn(mockedQuoteRepository, "init");
-     
+
         // Act
         await start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
 
         // Assert
-        expect(spyConsumerSetTopics).toBeCalledTimes(1); 
+        expect(spyConsumerSetTopics).toBeCalledTimes(1);
         expect(spyConsumerConnect).toBeCalledTimes(1);
         expect(spyConsumerStart).toBeCalledTimes(1);
-        expect(spyConsumerCallback).toBeCalledTimes(1); 
+        expect(spyConsumerCallback).toBeCalledTimes(1);
         expect(spyProducerInit).toBeCalledTimes(1);
         expect(spyQuoteRegistryInit).toBeCalledTimes(1);
-        
+        expect(useSpy).toBeCalledWith("", routerSpy);
+        expect(listenSpy).toBeCalledTimes(1);
+
     });
 
     test("should teardown instances when server stopped", async()=>{
@@ -101,12 +128,12 @@ describe("Quoting Service", () => {
 
         // Act
         await stop();
-        
+
         // Assert
         expect(spyConsumerDestroy).toBeCalledTimes(1);
         expect(spyProducerDestroy).toBeCalledTimes(1);
         expect(spyQuoteRegistryDestroy).toBeCalledTimes(1);
     });
 
-    
+
 });

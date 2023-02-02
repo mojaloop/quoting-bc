@@ -32,7 +32,6 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { Participant } from "@mojaloop/participant-bc-public-types-lib";
 import { IQuoteRepo, IQuote, QuoteStatus } from "@mojaloop/quoting-bc-domain";
 
 export class MemoryQuoteRepo implements IQuoteRepo {
@@ -44,6 +43,7 @@ export class MemoryQuoteRepo implements IQuoteRepo {
 	) {
 		this._logger = logger;
 	}
+
     init(): Promise<void> {
         return Promise.resolve();
     }
@@ -79,5 +79,9 @@ export class MemoryQuoteRepo implements IQuoteRepo {
 
     getQuotesByBulkQuoteIdAndStatus(id: string, status: QuoteStatus): Promise<IQuote[]> {
         return Promise.resolve(this._quotes.filter(q => q.bulkQuoteId === id && q.status === status));
+    }
+
+    getQuotes(): Promise<IQuote[]> {
+        return Promise.resolve(this._quotes);
     }
 }

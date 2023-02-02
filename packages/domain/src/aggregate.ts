@@ -359,11 +359,11 @@ export class QuotingAggregate  {
 
 	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt[]> {
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
-		
+
 		const events:BulkQuoteReceivedEvt[] = [];
 
 		const quotes = message.payload.individualQuotes as any as IQuote[];
-		
+
 		const validQuotes:any = [];
 		const quotesNotProcessedIds: string[] = [];
 
@@ -386,12 +386,12 @@ export class QuotingAggregate  {
 
 		for (const fspId in missingFspIds) {
 			const existingFspId = missingFspIds[fspId] as string;
-			
+
 			if(existingFspId) {
 				validQuotes[existingFspId] = [];
 			}
 		}
-		
+
 		for await (const quote of quotes) {
 			let destinationFspIdToUse = quote.payee?.partyIdInfo?.fspId;
 
@@ -448,7 +448,7 @@ export class QuotingAggregate  {
 			const event = new BulkQuoteReceivedEvt(payload);
 
 			event.fspiopOpaqueState = { ...message.fspiopOpaqueState };
-			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": fspId } 
+			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": fspId };
 
 			events.push(event);
 		}
@@ -530,7 +530,7 @@ export class QuotingAggregate  {
 			const event = new BulkQuoteAcceptedEvt(payload);
 
 			event.fspiopOpaqueState = message.fspiopOpaqueState;
-			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": message.fspiopOpaqueState.destinationFspId, } 
+			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": message.fspiopOpaqueState.destinationFspId, };
 
 			return event;
 		} else {
@@ -610,6 +610,34 @@ export class QuotingAggregate  {
 
 		return;
 	}
+
+	//#region Admin Routes
+
+	public async getQuoteById(id: string): Promise<IQuote | null> {
+		if(!id){
+			throw new Error("Invalid quote id");
+		}
+
+		return this._quotesRepo.getQuoteById(id);
+	}
+
+	public async getBulkQuoteById(id: string): Promise<IBulkQuote | null> {
+		if(!id){
+			throw new Error("Invalid bulk quote id");
+		}
+
+		return this._bulkQuotesRepo.getBulkQuoteById(id);
+	}
+
+	public async getQuotes(): Promise<IQuote[]> {
+		return this._quotesRepo.getQuotes();
+	}
+
+	public async getBulkQuotes(): Promise<IBulkQuote[]> {
+		return this._bulkQuotesRepo.getBulkQuotes();
+	}
+
+	//#endregion
 
 
 

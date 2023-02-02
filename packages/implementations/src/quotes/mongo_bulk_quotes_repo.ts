@@ -93,6 +93,15 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 		return this.mapToBulkQuote(bulkQuote);
 	}
 
+	async getBulkQuotes(): Promise<IBulkQuote[]> {
+		const bulkQuotes = await this.bulkQuotes.find({}).toArray().catch((e: any) => {
+			this._logger.error(`Unable to get bulkQuotes: ${e.message}`);
+			throw new UnableToGetBulkQuoteError();
+		});
+
+		return bulkQuotes.map((bulkQuote: any) => this.mapToBulkQuote(bulkQuote));
+	}
+
 	async addBulkQuote(bulkQuote: IBulkQuote): Promise<string> {
 		const bulkQuoteToAdd = {...bulkQuote};
 

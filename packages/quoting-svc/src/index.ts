@@ -32,8 +32,14 @@
 
 "use strict";
 
-import { start } from "./service";
+import { start, stop } from "./service";
 
-start().then(() => {
-    console.log("Started quoting service");
-});
+const argv = process.argv;
+
+if(!argv.includes("jest")) {
+    start().then(() => {
+        console.log("Started quoting service");
+    });
+}
+
+export { start, stop };

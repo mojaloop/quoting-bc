@@ -156,6 +156,15 @@ export class MongoQuotesRepo implements IQuoteRepo {
 		return this.mapToQuote(quote);
 	}
 
+	async getQuotes(): Promise<IQuote[]> {
+		const quotes = await this.quotes.find().toArray().catch((e: any) => {
+			this._logger.error(`Unable to get quotes: ${e.message}`);
+			throw new UnableToGetQuotesError();
+		});
+
+		return quotes.map((quote: any) => this.mapToQuote(quote));
+	}
+
 	async getQuotesByBulkQuoteIdAndStatus(bulkQuoteId:string, status: QuoteStatus):Promise<IQuote[]>{
 		const quotes = await this.quotes.find({
 			bulkQuoteId: bulkQuoteId,

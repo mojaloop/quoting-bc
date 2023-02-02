@@ -43,7 +43,7 @@ logger.setLogLevel(LogLevel.FATAL);
 
 const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
 //const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
-const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://localhost:27017/";
+const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017/";
 const COLLECTION_NAME = "bulk_quotes";
 
 let mongoBulkQuotesRepo : IBulkQuoteRepo;
@@ -204,5 +204,29 @@ describe("Implementations - Mongo Bulk Quotes Repo Integration tests", () => {
         expect(result).toBeNull();
     });
 
+    test("should return empty array when there are no bulk quotes", async () => {
+        // Act
+        const result = await mongoBulkQuotesRepo.getBulkQuotes();
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result).toEqual([]);
+    });
+
+    test("should return all bulk quotes in the database", async () => {
+        // Arrange
+        const bulkQuote1 = mockedBulkQuote1;
+        const bulkQuote2 = mockedBulkQuote2;
+        bulkQuote2.bulkQuoteId = "bulk_quote_2";
+        await mongoBulkQuotesRepo.addBulkQuote(bulkQuote1);
+        await mongoBulkQuotesRepo.addBulkQuote(bulkQuote2);
+
+        // Act
+        const result = await mongoBulkQuotesRepo.getBulkQuotes();
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result).toEqual([bulkQuote1, bulkQuote2]);
+    });
 
  });

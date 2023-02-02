@@ -21,7 +21,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -37,13 +37,13 @@ import { IBulkQuote, IBulkQuoteRepo, IQuote } from "@mojaloop/quoting-bc-domain"
 export class MemoryBulkQuoteRepo implements IBulkQuoteRepo {
 	private readonly _logger: ILogger;
     private readonly _bulkQuotes: IBulkQuote[] = [];
-	
+
 	constructor(
 		logger: ILogger,
 	) {
 		this._logger = logger;
 	}
-    
+
     init(): Promise<void> {
         return Promise.resolve();
     }
@@ -72,5 +72,9 @@ export class MemoryBulkQuoteRepo implements IBulkQuoteRepo {
     }
     getBulkQuoteById(id: string): Promise<IBulkQuote | null> {
         return Promise.resolve(this._bulkQuotes.find(q => q.bulkQuoteId === id) || null);
-    }	
+    }
+
+    getBulkQuotes(): Promise<IBulkQuote[]> {
+        return Promise.resolve(this._bulkQuotes);
+    }
 }

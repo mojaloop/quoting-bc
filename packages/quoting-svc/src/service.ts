@@ -22,7 +22,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -39,6 +39,9 @@ import { MLKafkaJsonConsumer, MLKafkaJsonProducer, MLKafkaJsonConsumerOptions, M
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { MongoQuotesRepo, MongoBulkQuotesRepo, ParticipantAdapter, AccountLookupAdapter } from "@mojaloop/quoting-bc-implementations";
+import { QuotingAdminExpressRoutes } from "./routes/quote_admin_routes";
+import express, {Express} from "express";
+import { Server } from "net";
 
 // Global vars
 const BC_NAME = "quoting-bc";
@@ -49,7 +52,7 @@ const APP_VERSION = "0.0.1";
 let logger: ILogger;
 const DEFAULT_LOGLEVEL = LogLevel.DEBUG;
 
-// Message Consumer/Publisher 
+// Message Consumer/Publisher
 const KAFKA_LOGS_TOPIC = process.env["QUOTING_KAFKA_LOG_TOPIC"] || "logs";
 const KAFKA_URL = process.env["QUOTING_KAFKA_URL"] || "localhost:9092";
 
@@ -64,11 +67,10 @@ const producerOptions : MLKafkaJsonProducerOptions = {
   kafkaBrokerList: KAFKA_URL,
   producerClientId: `${BC_NAME}_${APP_NAME}`,
   skipAcknowledgements: true,
-  
+
 };
 
 // DB
-
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 
 // Quotes
@@ -89,9 +91,17 @@ const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http:
 const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Iml2SC1pVUVDRHdTVnVGS0QtRzdWc0MzS0pnLXN4TFgteWNvSjJpOTFmLTgifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIjI2ODBjYTRhLTRhM2EtNGU5YS1iMWZhLTY1MDAyMjkyMTAwOSJdLCJpYXQiOjE2NzE1MzYyNTYsImV4cCI6MTY3MjE0MTA1NiwiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjp1c2VyIiwianRpIjoiMWYxMzhkZjctMjg1OC00MWNmLThkYTctYTRiYTNhZTZkMGZlIn0.WSn0M73nMXRQhZ1nzpc2YEOBcV5uUupR5aMvxhiAHKylGChzB_gEtikijnUFDw2o5tVYVeiyeKe2_CRPOQ5KTt3VxCBXheMIxekmNE6U9pZY5fsUrphfMb5j886IMiiR-ai25-MplCoaKmsbd1M4HFT8bcjongiXFVkSUmKgG4Q1YyrjnROxH5-xMjDGL1icZNlTjRxYC5BbfiTfw8TSgfdrBVY_v7tE-MRdoI6bVaMfwib_bNfpTHMLt0tx2ca90WKU0IuXOqNMuZv0s-AwmstVA0qiM10Jc4p5A7nQjnLH3cX_X17Gz6lFd8hpDzl7gtSJGD-YvCg-xQn_cGAO0g";
 let participantService: IParticipantService;
 
-// Participant service
+// Account Lookup service
 const ACCOUNT_LOOKUP_SVC_BASEURL = process.env["ACCOUNT_LOOKUP_SVC_BASEURL"] || "http://localhost:3030";
 let accountLookupService: IAccountLookupService;
+
+// Express Server
+const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3035;
+let expressApp: Express;
+let expressServer: Server;
+
+// Admin routes
+let quotingAdminRoutes: QuotingAdminExpressRoutes;
 
 export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer,
   quoteRegistryParam?:IQuoteRepo, bulkQuoteRegistryParam?:IBulkQuoteRepo, participantServiceParam?:IParticipantService, accountLookupServiceParam?:IAccountLookupService, aggregateParam?:QuotingAggregate,
@@ -99,7 +109,7 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
   console.log(`Quoting-svc - service starting with PID: ${process.pid}`);
 
   try{
-    
+
     await initExternalDependencies(loggerParam, messageConsumerParam, messageProducerParam, quoteRegistryParam, bulkQuoteRegistryParam, participantServiceParam, accountLookupServiceParam);
 
     messageConsumer.setTopics([QuotingBCTopics.DomainRequests]);
@@ -108,23 +118,42 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
     logger.info("Kafka Consumer Initialized");
 
     await messageProducer.connect();
-    logger.info("Kafka Producer Initialized");    
+    logger.info("Kafka Producer Initialized");
 
     await quotesRepo.init();
     logger.info("Quote Registry Repo Initialized");
-    
+
     await bulkQuotesRepo.init();
     logger.info("Bulk Quote Registry Repo Initialized");
 
-    aggregate = aggregateParam ?? new QuotingAggregate(logger, quotesRepo, bulkQuotesRepo, messageProducer, participantService, accountLookupService);    
+    aggregate = aggregateParam ?? new QuotingAggregate(logger, quotesRepo, bulkQuotesRepo, messageProducer, participantService, accountLookupService);
     logger.info("Aggregate Initialized");
 
     const callbackFunction = async (message:IMessage):Promise<void> => {
       logger.debug(`Got message in handler: ${JSON.stringify(message, null, 2)}`);
       await aggregate.handleQuotingEvent(message);
     };
-    
+
     messageConsumer.setCallbackFn(callbackFunction);
+
+    // Start express server
+    expressApp = express();
+    expressApp.use(express.json()); // for parsing application/json
+    expressApp.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
+
+    // Add admin and client http routes
+    quotingAdminRoutes = new QuotingAdminExpressRoutes(aggregate, logger);
+    expressApp.use("", quotingAdminRoutes.mainRouter);
+
+    expressApp.use((req, res) => {
+      // catch all
+      res.send(404);
+    });
+
+    expressServer = expressApp.listen(SVC_DEFAULT_HTTP_PORT, () => {
+      logger.info(`🚀 Server ready at: http://localhost:${SVC_DEFAULT_HTTP_PORT}`);
+      logger.info("Quoting Admin server started");
+    });
 
   }
   catch(err){
@@ -133,11 +162,11 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
   }
 }
 
-async function initExternalDependencies(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer, 
+async function initExternalDependencies(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer,
     quoteRegistryParam?:IQuoteRepo, bulkQuoteRegistryParam?:IBulkQuoteRepo, participantServiceParam?: IParticipantService, accountLookupServiceParam?: IAccountLookupService):Promise<void>  {
 
     logger = loggerParam ?? new KafkaLogger(BC_NAME, APP_NAME, APP_VERSION,{kafkaBrokerList: KAFKA_URL}, KAFKA_LOGS_TOPIC,DEFAULT_LOGLEVEL);
-    
+
     if (!loggerParam) {
         await (logger as KafkaLogger).init();
         logger.info("Kafka Logger Initialized");
@@ -148,15 +177,13 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
     bulkQuotesRepo = bulkQuoteRegistryParam ?? new MongoBulkQuotesRepo(logger,MONGO_URL, DB_NAME_BULK_QUOTES);
 
     messageProducer = messageProducerParam ?? new MLKafkaJsonProducer(producerOptions, logger);
-    
+
     messageConsumer = messageConsumerParam ?? new MLKafkaJsonConsumer(consumerOptions, logger);
 
     participantService = participantServiceParam ?? new ParticipantAdapter(logger, PARTICIPANT_SVC_BASEURL, fixedToken);
 
     accountLookupService = accountLookupServiceParam ?? new AccountLookupAdapter(logger, ACCOUNT_LOOKUP_SVC_BASEURL, fixedToken);
 }
-
-
 
 export async function stop(): Promise<void> {
   logger.debug("Tearing down quote Registry");

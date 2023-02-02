@@ -43,7 +43,7 @@ logger.setLogLevel(LogLevel.FATAL);
 
 const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
 //const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
-const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://localhost:27017/";
+const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017/";
 const COLLECTION_NAME = "quotes";
 
 let mongoQuotesRepo : MongoQuotesRepo;
@@ -269,6 +269,32 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         expect(result[0].status).toEqual(QuoteStatus.ACCEPTED);
         expect(result[1].status).toEqual(QuoteStatus.ACCEPTED);
 
+    });
+
+    test("should return a empty array when there are no quotes", async () => {
+         // Act
+         const result = await mongoQuotesRepo.getQuotes();
+
+         // Assert
+         expect(result).toBeDefined();
+         expect(result).toEqual([]);
+    });
+
+    test("should return a list of quotes", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+        const quote2 = mockedQuote2;
+        const quote3 = mockedQuote3;
+        const quote4 = mockedQuote4;
+        await mongoQuotesRepo.addQuotes([quote1, quote2, quote3, quote4]);
+
+        // Act
+        const result = await mongoQuotesRepo.getQuotes();
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result).toHaveLength(4);
+        expect(result).toEqual([quote1, quote2, quote3, quote4]);
     });
 
  });
