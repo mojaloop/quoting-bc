@@ -54,7 +54,7 @@ const mockedQuoteRepository: IQuoteRepo = new MemoryQuoteRepo(logger);
 
 const mockedBulkQuoteRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logger);
 
-const server = (process.env["QUOTING_ADMIN_URL"] || "http://localhost:3035");
+const server = (process.env["QUOTING_ADM_URL"] || "http://localhost:3030");
 
 describe("Quoting Admin Routes - Integration", () => {
 
@@ -78,7 +78,7 @@ describe("Quoting Admin Routes - Integration", () => {
 
         // Assert
         expect(response.status).toBe(200);
-        expect(response.text).toEqual(newQuote);
+        expect(response.body).toEqual(newQuote);
     });
 
     test("GET - should get a list of quotes", async () => {
@@ -93,7 +93,7 @@ describe("Quoting Admin Routes - Integration", () => {
 
         // Assert
         expect(response.status).toBe(200);
-        expect(response.text).toEqual([mockedQuote1, mockedQuote2, mockedQuote3]);
+        expect(response.body).toEqual([mockedQuote1, mockedQuote2, mockedQuote3]);
     });
 
     test("GET - should get a bulk quote by it's id", async () => {
@@ -108,7 +108,7 @@ describe("Quoting Admin Routes - Integration", () => {
 
         // Assert
         expect(response.status).toBe(200);
-        expect(response.text).toEqual(mockedBulkQuote1);
+        expect(response.body).toEqual(mockedBulkQuote1);
     });
 
     test("GET - should get a list of bulk quotes", async () => {
@@ -121,7 +121,7 @@ describe("Quoting Admin Routes - Integration", () => {
 
         // Assert
         expect(response.status).toBe(200);
-        expect(response.text).toEqual([mockedBulkQuote1]);
+        expect(response.body).toEqual([mockedBulkQuote1]);
     });
 
 });

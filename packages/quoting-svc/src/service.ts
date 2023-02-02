@@ -143,7 +143,7 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
 
     // Add admin and client http routes
     quotingAdminRoutes = new QuotingAdminExpressRoutes(aggregate, logger);
-    expressApp.use("", quotingAdminRoutes.mainRouter);
+    expressApp.use("/", quotingAdminRoutes.mainRouter);
 
     expressApp.use((req, res) => {
       // catch all

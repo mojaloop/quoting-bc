@@ -114,7 +114,7 @@ describe("Quoting Service", () => {
         expect(spyConsumerCallback).toBeCalledTimes(1);
         expect(spyProducerInit).toBeCalledTimes(1);
         expect(spyQuoteRegistryInit).toBeCalledTimes(1);
-        expect(useSpy).toBeCalledWith("", routerSpy);
+        expect(useSpy).toBeCalledWith("/", routerSpy);
         expect(listenSpy).toBeCalledTimes(1);
 
     });
