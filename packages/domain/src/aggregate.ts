@@ -185,7 +185,7 @@ export class QuotingAggregate  {
 	private async handleQuoteRequestReceivedEvt(message: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`);
 
-		await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
+		// await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
 
 		let destinationFspIdToUse = message.fspiopOpaqueState?.destinationFspId ?? message.payload?.payee?.partyIdInfo?.fspId;
 
@@ -197,7 +197,7 @@ export class QuotingAggregate  {
 			destinationFspIdToUse = await this.getMissingFspId(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
 		}
 
-		await this.validateParticipant(destinationFspIdToUse);
+		// await this.validateParticipant(destinationFspIdToUse);
 
 		const quote: IQuote = {
 			quoteId: message.payload.quoteId,
@@ -394,10 +394,11 @@ export class QuotingAggregate  {
 
 		for await (const quote of quotes) {
 			let destinationFspIdToUse = quote.payee?.partyIdInfo?.fspId;
-
+			quote.payer = message.payload.payer;
+			
 			if(!destinationFspIdToUse) {
 				destinationFspIdToUse = missingFspIds[quote.quoteId];
-			} else {
+			} else if(!validQuotes[destinationFspIdToUse]) {
 				validQuotes[destinationFspIdToUse] = [];
 			}
 
@@ -417,7 +418,7 @@ export class QuotingAggregate  {
 				}
 			}
 
-			this._quotesRepo.addQuote(quote);
+			await this._quotesRepo.addQuote(quote);
 		}
 
 
@@ -589,24 +590,24 @@ export class QuotingAggregate  {
 	}
 
 	private async validateParticipant(participantId: string | null):Promise<void>{
-		if(participantId){
-			const participant = await this._participantService.getParticipantInfo(participantId);
+		// if(participantId){
+		// 	const participant = await this._participantService.getParticipantInfo(participantId);
 
-			if(!participant) {
-				this._logger.debug(`No participant found`);
-				throw new NoSuchParticipantError();
-			}
+		// 	if(!participant) {
+		// 		this._logger.debug(`No participant found`);
+		// 		throw new NoSuchParticipantError();
+		// 	}
 
-			if(participant.id !== participantId){
-				this._logger.debug(`Participant id mismatch ${participant.id} ${participantId}`);
-				throw new InvalidParticipantIdError();
-			}
+		// 	if(participant.id !== participantId){
+		// 		this._logger.debug(`Participant id mismatch ${participant.id} ${participantId}`);
+		// 		throw new InvalidParticipantIdError();
+		// 	}
 
-			if(!participant.isActive) {
-				this._logger.debug(`${participant.id} is not active`);
-				throw new RequiredParticipantIsNotActive();
-			}
-		}
+		// 	if(!participant.isActive) {
+		// 		this._logger.debug(`${participant.id} is not active`);
+		// 		throw new RequiredParticipantIsNotActive();
+		// 	}
+		// }
 
 		return;
 	}

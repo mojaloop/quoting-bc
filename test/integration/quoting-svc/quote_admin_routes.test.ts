@@ -119,7 +119,7 @@ describe("Quoting Admin Routes - Integration", () => {
 
         // Act
         const response = await request(server)
-            .get(`/bulkQuotes/${bulkQuoteId}`);
+            .get(`/bulk-quotes/${bulkQuoteId}`);
 
         // Assert
         expect(response.status).toBe(200);
@@ -132,7 +132,7 @@ describe("Quoting Admin Routes - Integration", () => {
 
         // Act
         const response = await request(server)
-            .get("/bulkQuotes");
+            .get("/bulk-quotes");
 
         // Assert
         expect(response.status).toBe(200);
