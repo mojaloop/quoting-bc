@@ -37,7 +37,8 @@
     "@mojaloop/account-lookup-bc-client-lib": "~0.1.7",
     "@mojaloop/quoting-bc-domain": "*",
     "@mojaloop/participant-bc-public-types-lib": "~0.0.3",
-    "@mojaloop/participants-bc-client-lib": "~0.0.5",
+    "@mojaloop/participants-bc-client-lib": "~0.1.2",
+    "@mojaloop/security-bc-client-lib": "^0.1.11",
     "mongodb": "^4.10.0"
   },
   "devDependencies": {

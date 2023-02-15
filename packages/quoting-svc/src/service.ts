@@ -42,6 +42,10 @@ import { MongoQuotesRepo, MongoBulkQuotesRepo, ParticipantAdapter, AccountLookup
 import { QuotingAdminExpressRoutes } from "./routes/quote_admin_routes";
 import express, {Express} from "express";
 import { Server } from "net";
+import {
+	AuthenticatedHttpRequester,
+	IAuthenticatedHttpRequester
+} from "@mojaloop/security-bc-client-lib";
 
 // Global vars
 const BC_NAME = "quoting-bc";
@@ -180,7 +184,20 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
 
     messageConsumer = messageConsumerParam ?? new MLKafkaJsonConsumer(consumerOptions, logger);
 
-    participantService = participantServiceParam ?? new ParticipantAdapter(logger, PARTICIPANT_SVC_BASEURL, fixedToken);
+    const participantLogger = logger.createChild("participantLogger");
+
+    const AUTH_TOKEN_ENPOINT = "http://localhost:3201/token";
+    const USERNAME = "admin";
+    const PASSWORD = "superMegaPass";
+    const CLIENT_ID = "security-bc-ui";
+    const PARTICIPANTS_BASE_URL: string = "http://localhost:3010";
+    const HTTP_CLIENT_TIMEOUT_MS: number = 10_000;
+
+    const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_TOKEN_ENPOINT);
+
+    authRequester.setUserCredentials(CLIENT_ID, USERNAME, PASSWORD);
+    participantLogger.setLogLevel(LogLevel.INFO);
+    participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_BASE_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
 
     accountLookupService = accountLookupServiceParam ?? new AccountLookupAdapter(logger, ACCOUNT_LOOKUP_SVC_BASEURL, fixedToken);
 }
