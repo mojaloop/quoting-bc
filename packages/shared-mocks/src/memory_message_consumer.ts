@@ -37,19 +37,19 @@
  export class MemoryMessageConsumer implements IMessageConsumer{
      
     
-    setCallbackFn(handlerCallback: (message: IMessage) => Promise<void>): void {
+    setCallbackFn(_handlerCallback: (message: IMessage) => Promise<void>): void {
          return;
     }
      
-    setFilteringFn(filterFn: (message: IMessage) => boolean): void{
+    setFilteringFn(_filterFn: (message: IMessage) => boolean): void{
          return;
     }
      
-    setTopics(topics: string[]): void {
+    setTopics(_topics: string[]): void {
          return;
     }
       
-     async destroy(force: boolean) : Promise<void>{
+     async destroy(_force: boolean) : Promise<void>{
          return;
     }
      
@@ -57,7 +57,7 @@
          return;
     }
      
-    async disconnect(force: boolean) : Promise<void> {
+    async disconnect(_force: boolean) : Promise<void> {
          return;
     }
      

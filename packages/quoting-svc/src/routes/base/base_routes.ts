@@ -27,7 +27,7 @@ export abstract class BaseRoutes {
         return this._quotingAggregate;
     }
 
-    public validateRequest(req: express.Request, res: express.Response<any, Record<string, any>>) : boolean {
+    public validateRequest(req: express.Request, res: express.Response) : boolean {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             res.status(422).json({ errors: errors.array() });

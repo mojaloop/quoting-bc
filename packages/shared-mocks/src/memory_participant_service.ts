@@ -44,11 +44,11 @@ export class MemoryParticipantService implements IParticipantService {
 		this.logger = logger;
 	}
 
-	async getParticipantInfo(fspId: string): Promise<Participant|null> {
+	async getParticipantInfo(_fspId: string): Promise<Participant|null> {
 		return Promise.resolve(null);
 	}
 
-	async getParticipantsInfo(fspIds: string[]): Promise<Participant[]> {
+	async getParticipantsInfo(_fspIds: string[]): Promise<Participant[]> {
 		return Promise.resolve([]);
 	}
 	

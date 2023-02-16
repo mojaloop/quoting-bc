@@ -39,7 +39,16 @@ import {
 	WithId
 } from 'mongodb';
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
-import { BulkQuoteAlreadyExistsError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToInitBulkQuoteRegistryError, UnableToAddQuoteError, NoSuchQuoteError, UnableToUpdateQuoteError, UnableToGetBulkQuoteError, UnableToAddBulkQuoteError, NoSuchBulkQuoteError, UnableToUpdateBulkQuoteError, UnableToDeleteBulkQuoteError } from '../errors';
+import { 
+	BulkQuoteAlreadyExistsError,
+	UnableToCloseDatabaseConnectionError, 
+	UnableToInitBulkQuoteRegistryError, 
+	UnableToGetBulkQuoteError, 
+	UnableToAddBulkQuoteError, 
+	NoSuchBulkQuoteError, 
+	UnableToUpdateBulkQuoteError, 
+	UnableToDeleteBulkQuoteError 
+} from '../errors';
 import { IBulkQuoteRepo, IBulkQuote } from "@mojaloop/quoting-bc-domain";
 import { randomUUID } from 'crypto';
 
@@ -66,8 +75,8 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 			this.mongoClient = new MongoClient(this._connectionString);
 			this.mongoClient.connect();
 			this.bulkQuotes = this.mongoClient.db(this._dbName).collection(this._collectionName);
-		} catch (e: any) {
-			this._logger.error(`Unable to connect to the database: ${e.message}`);
+		} catch (e: unknown) {
+			this._logger.error(`Unable to connect to the database: ${(e as Error).message}`);
 			throw new UnableToInitBulkQuoteRegistryError();
 		}
 	}
@@ -76,15 +85,15 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 		try{
 			await this.mongoClient.close();
 		}
-		catch(e: any){
-			this._logger.error(`Unable to close the database connection: ${e.message}`);
+		catch(e: unknown){
+			this._logger.error(`Unable to close the database connection: ${(e as Error).message}`);
 			throw new UnableToCloseDatabaseConnectionError();
 		}
 	}
 
 	async getBulkQuoteById(bulkQuoteId:string):Promise<IBulkQuote|null>{
-		const bulkQuote = await this.bulkQuotes.findOne({bulkQuoteId: bulkQuoteId }).catch((e: any) => {
-			this._logger.error(`Unable to get bulkQuote by id: ${e.message}`);
+		const bulkQuote = await this.bulkQuotes.findOne({bulkQuoteId: bulkQuoteId }).catch((e: unknown) => {
+			this._logger.error(`Unable to get bulkQuote by id: ${(e as Error).message}`);
 			throw new UnableToGetBulkQuoteError();
 		});
 		if(!bulkQuote){
@@ -94,8 +103,8 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 	}
 
 	async getBulkQuotes(): Promise<IBulkQuote[]> {
-		const bulkQuotes = await this.bulkQuotes.find({}).toArray().catch((e: any) => {
-			this._logger.error(`Unable to get bulkQuotes: ${e.message}`);
+		const bulkQuotes = await this.bulkQuotes.find({}).toArray().catch((e: unknown) => {
+			this._logger.error(`Unable to get bulkQuotes: ${(e as Error).message}`);
 			throw new UnableToGetBulkQuoteError();
 		});
 
@@ -116,8 +125,8 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 
 		bulkQuoteToAdd.bulkQuoteId = bulkQuoteToAdd.bulkQuoteId || randomUUID();
 
-		await this.bulkQuotes.insertOne(bulkQuoteToAdd).catch((e: any) => {
-			this._logger.error(`Unable to insert bulkQuote: ${e.message}`);
+		await this.bulkQuotes.insertOne(bulkQuoteToAdd).catch((e: unknown) => {
+			this._logger.error(`Unable to insert bulkQuote: ${(e as Error).message}`);
 			throw new UnableToAddBulkQuoteError();
 		});
 
@@ -135,15 +144,15 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 		const updatedQuote: IBulkQuote = {...existingBulkQuote, ...bulkQuote};
 		updatedQuote.bulkQuoteId = existingBulkQuote.bulkQuoteId;
 
-		await this.bulkQuotes.updateOne({bulkQuoteId: bulkQuote.bulkQuoteId,}, { $set: updatedQuote }).catch ((e: any)=> {
-			this._logger.error(`Unable to insert bulkQuote: ${e.message}`);
+		await this.bulkQuotes.updateOne({bulkQuoteId: bulkQuote.bulkQuoteId,}, { $set: updatedQuote }).catch ((e: unknown)=> {
+			this._logger.error(`Unable to insert bulkQuote: ${(e as Error).message}`);
 			throw new UnableToUpdateBulkQuoteError();
 		});
 	}
 
 	async removeBulkQuote(bulkQuoteId: string): Promise<void> {
-		const deleteResult = await this.bulkQuotes.deleteOne({bulkQuoteId}).catch((e: any) => {
-			this._logger.error(`Unable to delete bulkQuote: ${e.message}`);
+		const deleteResult = await this.bulkQuotes.deleteOne({bulkQuoteId}).catch((e: unknown) => {
+			this._logger.error(`Unable to delete bulkQuote: ${(e as Error).message}`);
 			throw new UnableToDeleteBulkQuoteError();
 		});
 		if(deleteResult.deletedCount == 1){
@@ -160,8 +169,8 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 			{
 				bulkQuoteId: bulkQuote.bulkQuoteId
 			}
-		).catch((e: any) => {
-			this._logger.error(`Unable to add bulk bulkQuote: ${e.message}`);
+		).catch((e: unknown) => {
+			this._logger.error(`Unable to add bulk bulkQuote: ${(e as Error).message}`);
 			throw new UnableToGetBulkQuoteError();
 		});
 

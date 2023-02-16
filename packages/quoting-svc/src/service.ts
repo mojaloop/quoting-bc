@@ -41,7 +41,6 @@ import { QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-l
 import { MongoQuotesRepo, MongoBulkQuotesRepo, ParticipantAdapter, AccountLookupAdapter } from "@mojaloop/quoting-bc-implementations";
 import { QuotingAdminExpressRoutes } from "./routes/quote_admin_routes";
 import express, {Express} from "express";
-import { Server } from "net";
 import {
 	AuthenticatedHttpRequester,
 	IAuthenticatedHttpRequester
@@ -91,7 +90,6 @@ let bulkQuotesRepo: IBulkQuoteRepo;
 let aggregate: QuotingAggregate;
 
 // Participant service
-const PARTICIPANT_SVC_BASEURL = process.env["PARTICIPANT_SVC_BASEURL"] || "http://localhost:3010";
 const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Iml2SC1pVUVDRHdTVnVGS0QtRzdWc0MzS0pnLXN4TFgteWNvSjJpOTFmLTgifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIjI2ODBjYTRhLTRhM2EtNGU5YS1iMWZhLTY1MDAyMjkyMTAwOSJdLCJpYXQiOjE2NzE1MzYyNTYsImV4cCI6MTY3MjE0MTA1NiwiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjp1c2VyIiwianRpIjoiMWYxMzhkZjctMjg1OC00MWNmLThkYTctYTRiYTNhZTZkMGZlIn0.WSn0M73nMXRQhZ1nzpc2YEOBcV5uUupR5aMvxhiAHKylGChzB_gEtikijnUFDw2o5tVYVeiyeKe2_CRPOQ5KTt3VxCBXheMIxekmNE6U9pZY5fsUrphfMb5j886IMiiR-ai25-MplCoaKmsbd1M4HFT8bcjongiXFVkSUmKgG4Q1YyrjnROxH5-xMjDGL1icZNlTjRxYC5BbfiTfw8TSgfdrBVY_v7tE-MRdoI6bVaMfwib_bNfpTHMLt0tx2ca90WKU0IuXOqNMuZv0s-AwmstVA0qiM10Jc4p5A7nQjnLH3cX_X17Gz6lFd8hpDzl7gtSJGD-YvCg-xQn_cGAO0g";
 let participantService: IParticipantService;
 
@@ -102,7 +100,6 @@ let accountLookupService: IAccountLookupService;
 // Express Server
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3033;
 let expressApp: Express;
-let expressServer: Server;
 
 // Admin routes
 let quotingAdminRoutes: QuotingAdminExpressRoutes;
@@ -154,7 +151,7 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
       res.send(404);
     });
 
-    expressServer = expressApp.listen(SVC_DEFAULT_HTTP_PORT, () => {
+    expressApp.listen(SVC_DEFAULT_HTTP_PORT, () => {
       logger.info(`🚀 Server ready at: http://localhost:${SVC_DEFAULT_HTTP_PORT}`);
       logger.info("Quoting Admin server started");
     });
@@ -190,8 +187,8 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
     const USERNAME = "admin";
     const PASSWORD = "superMegaPass";
     const CLIENT_ID = "security-bc-ui";
-    const PARTICIPANTS_BASE_URL: string = "http://localhost:3010";
-    const HTTP_CLIENT_TIMEOUT_MS: number = 10_000;
+    const PARTICIPANTS_BASE_URL = "http://localhost:3010";
+    const HTTP_CLIENT_TIMEOUT_MS = 10_000;
 
     const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_TOKEN_ENPOINT);
 

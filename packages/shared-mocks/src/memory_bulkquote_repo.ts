@@ -32,7 +32,7 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { IBulkQuote, IBulkQuoteRepo, IQuote } from "@mojaloop/quoting-bc-domain";
+import { IBulkQuote, IBulkQuoteRepo } from "@mojaloop/quoting-bc-domain";
 
 export class MemoryBulkQuoteRepo implements IBulkQuoteRepo {
 	private readonly _logger: ILogger;

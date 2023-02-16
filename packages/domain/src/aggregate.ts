@@ -63,14 +63,12 @@ import {
 	BulkQuoteRequestedEvt,
 	BulkQuoteReceivedEvt,
 	BulkQuoteReceivedEvtPayload,
-	BulkQuoteRequestedEvtPayload,
 	BulkQuotePendingReceivedEvt,
 	BulkQuoteAcceptedEvt,
 	BulkQuoteAcceptedEvtPayload,
-	BulkQuotePendingReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IBulkQuote, IExtensionList, IQuote, QuoteStatus } from "./types";
+import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -102,8 +100,8 @@ export class QuotingAggregate  {
 			if(isMessageValid) {
 				await this.handleEvent(message);
 			}
-		} catch(error:any) {
-			const errorMessage = error.constructor.name;
+		} catch(error:unknown) {
+			const errorMessage = error instanceof Error ? error.constructor.name : "Unexpected Error";
 			this._logger.error(`Error processing event : ${message.msgName} -> ` + errorMessage);
 
 			// TODO: find a way to publish the correct error event type
@@ -339,15 +337,15 @@ export class QuotingAggregate  {
 
 		const payload: QuoteQueryResponseEvtPayload = {
 			quoteId: quote.quoteId,
-			transferAmount: quote.totalTransferAmount!,
-			expiration: quote.expiration!,
-			ilpPacket: quote.ilpPacket!,
-			condition:	quote.condition!,
+			transferAmount: quote.totalTransferAmount as IMoney,
+			expiration: quote.expiration as string,
+			ilpPacket: quote.ilpPacket as string,
+			condition:	quote.condition as string,
 			payeeReceiveAmount: quote.amount,
 			payeeFspFee: quote.payeeFspFee,
 			extensionList: quote.extensionList as IExtensionList,
-			geoCode: quote.geoCode!,
-			payeeFspCommission:	quote.feesPayer!,
+			geoCode: quote.geoCode as IGeoCode,
+			payeeFspCommission:	quote.feesPayer as IMoney,
 		};
 
 		const event = new QuoteQueryResponseEvt(payload);
@@ -362,9 +360,9 @@ export class QuotingAggregate  {
 
 		const events:BulkQuoteReceivedEvt[] = [];
 
-		const quotes = message.payload.individualQuotes as any as IQuote[];
+		const quotes = message.payload.individualQuotes as unknown as IQuote[];
 
-		const validQuotes:any = [];
+		const validQuotes:{ [key: string]: IQuote[] } = {};
 		const quotesNotProcessedIds: string[] = [];
 
 		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
@@ -442,6 +440,7 @@ export class QuotingAggregate  {
 				payer: message.payload.payer,
 				geoCode: message.payload.geoCode,
 				expiration: message.payload.expiration,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				individualQuotes: validQuotes[fspId] as any,
 				extensionList: message.payload.extensionList
 			};
@@ -583,8 +582,8 @@ export class QuotingAggregate  {
 			this._logger.debug(`Got destinationFspId from account lookup service: ${JSON.stringify(destinationFspIds)}`);
 			return destinationFspIds;
 		}
-		catch(error:any){
-			this._logger.error(`Unable to get destinationFspId from account lookup service for payee: ${JSON.stringify(destinationFspIdsToDiscover)} - ${error.message}`);
+		catch(error:unknown){
+			this._logger.error(`Unable to get destinationFspId from account lookup service for payee: ${JSON.stringify(destinationFspIdsToDiscover)} - ${error instanceof Error ? error.message : "Unexpected Error"}`);
 			return null;
 		}
 	}

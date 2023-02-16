@@ -69,39 +69,39 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         this.mainRouter.get("/bulk-quotes" ,this.getAllBulkQuotes.bind(this));
     }
 
-    private async getAllQuotes(req: express.Request, res: express.Response, next: express.NextFunction) {
+    private async getAllQuotes(_req: express.Request, res: express.Response, _next: express.NextFunction) {
 
         this.logger.info("Fetching all quotes");
         try {
             const fetched = await this.quotingAggregate.getQuotes();
             res.send(fetched);
         }
-        catch (err: any) {
+        catch (err: unknown) {
             this.logger.error(err);
             res.status(500).json({
                 status: "error",
-                msg: err.message
+                msg: (err as Error).message
             });
         }
     }
 
-    private async getAllBulkQuotes(req: express.Request, res: express.Response, next: express.NextFunction) {
+    private async getAllBulkQuotes(_req: express.Request, res: express.Response, _next: express.NextFunction) {
 
         this.logger.info("Fetching all bulk quotes");
         try {
             const fetched = await this.quotingAggregate.getBulkQuotes();
             res.send(fetched);
         }
-        catch (err: any) {
+        catch (err: unknown) {
             this.logger.error(err);
             res.status(500).json({
                 status: "error",
-                msg: err.message
+                msg: (err as Error).message
             });
         }
     }
 
-    private async getQuoteById (req: express.Request, res: express.Response, next: express.NextFunction) {
+    private async getQuoteById (req: express.Request, res: express.Response, _next: express.NextFunction) {
         if (!this.validateRequest(req, res)) {
             return;
         }
@@ -123,16 +123,16 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
             }
             res.send(fetched);
         }
-        catch (err: any) {
+        catch (err: unknown) {
             this.logger.error(err);
             res.status(500).json({
                 status: "error",
-                msg: err.message
+                msg: (err as Error).message
             });
         }
     }
 
-    private async getBulkQuoteById (req: express.Request, res: express.Response, next: express.NextFunction) {
+    private async getBulkQuoteById (req: express.Request, res: express.Response, _next: express.NextFunction) {
         if (!this.validateRequest(req, res)) {
             return;
         }
@@ -154,11 +154,11 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
             }
             res.send(fetched);
         }
-        catch (err: any) {
+        catch (err: unknown) {
             this.logger.error(err);
             res.status(500).json({
                 status: "error",
-                msg: err.message
+                msg: (err as Error).message
             });
         }
     }

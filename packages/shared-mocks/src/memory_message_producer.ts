@@ -55,7 +55,8 @@ export class MemoryMessageProducer implements IMessageProducer {
 		return Promise.resolve();
 	}
 
-	async send(message: any): Promise<void>{
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	async send(_message: any): Promise<void>{
 		return Promise.resolve();
 	}
 

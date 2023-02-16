@@ -573,7 +573,7 @@ export const mockedBulkQuote1 : IBulkQuote = {
   },
   status: QuoteStatus.RECEIVED,
   quotesNotProcessedIds: ["3", "4"],
-} as any;
+} as unknown as IBulkQuote;
 
 export const mockedBulkQuote2 : IBulkQuote = {
   bulkQuoteId: "2",

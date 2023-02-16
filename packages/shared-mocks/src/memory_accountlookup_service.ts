@@ -43,11 +43,11 @@ export class MemoryAccountLookupService implements IAccountLookupService {
 		this.logger = logger;
 	}
 
-	getBulkAccountLookup( partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null}> {
+	getBulkAccountLookup( _partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null}> {
 		return Promise.resolve({});
 	}
 
-	getAccountLookup(partyId: string, partyType: string, partySubIdOrType: string | null, currency: string | null): Promise<string | null> {
+	getAccountLookup(_partyId: string, _partyType: string, _partySubIdOrType: string | null, _currency: string | null): Promise<string | null> {
 		return Promise.resolve(null);
 	}
 
