@@ -89,6 +89,10 @@ let bulkQuotesRepo: IBulkQuoteRepo;
 // Aggregate
 let aggregate: QuotingAggregate;
 
+// Auth Requester
+let authRequester: IAuthenticatedHttpRequester;
+
+
 // Participant service
 const fixedToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Iml2SC1pVUVDRHdTVnVGS0QtRzdWc0MzS0pnLXN4TFgteWNvSjJpOTFmLTgifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIjI2ODBjYTRhLTRhM2EtNGU5YS1iMWZhLTY1MDAyMjkyMTAwOSJdLCJpYXQiOjE2NzE1MzYyNTYsImV4cCI6MTY3MjE0MTA1NiwiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjp1c2VyIiwianRpIjoiMWYxMzhkZjctMjg1OC00MWNmLThkYTctYTRiYTNhZTZkMGZlIn0.WSn0M73nMXRQhZ1nzpc2YEOBcV5uUupR5aMvxhiAHKylGChzB_gEtikijnUFDw2o5tVYVeiyeKe2_CRPOQ5KTt3VxCBXheMIxekmNE6U9pZY5fsUrphfMb5j886IMiiR-ai25-MplCoaKmsbd1M4HFT8bcjongiXFVkSUmKgG4Q1YyrjnROxH5-xMjDGL1icZNlTjRxYC5BbfiTfw8TSgfdrBVY_v7tE-MRdoI6bVaMfwib_bNfpTHMLt0tx2ca90WKU0IuXOqNMuZv0s-AwmstVA0qiM10Jc4p5A7nQjnLH3cX_X17Gz6lFd8hpDzl7gtSJGD-YvCg-xQn_cGAO0g";
 let participantService: IParticipantService;
@@ -105,13 +109,13 @@ let expressApp: Express;
 let quotingAdminRoutes: QuotingAdminExpressRoutes;
 
 export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer,
-  quoteRegistryParam?:IQuoteRepo, bulkQuoteRegistryParam?:IBulkQuoteRepo, participantServiceParam?:IParticipantService, accountLookupServiceParam?:IAccountLookupService, aggregateParam?:QuotingAggregate,
+  quoteRegistryParam?:IQuoteRepo, bulkQuoteRegistryParam?:IBulkQuoteRepo, authRequesterParam?:IAuthenticatedHttpRequester, participantServiceParam?:IParticipantService, accountLookupServiceParam?:IAccountLookupService, aggregateParam?:QuotingAggregate,
   ):Promise<void> {
   console.log(`Quoting-svc - service starting with PID: ${process.pid}`);
 
   try{
 
-    await initExternalDependencies(loggerParam, messageConsumerParam, messageProducerParam, quoteRegistryParam, bulkQuoteRegistryParam, participantServiceParam, accountLookupServiceParam);
+    await initExternalDependencies(loggerParam, messageConsumerParam, messageProducerParam, quoteRegistryParam, bulkQuoteRegistryParam, authRequesterParam, participantServiceParam, accountLookupServiceParam);
 
     messageConsumer.setTopics([QuotingBCTopics.DomainRequests]);
     await messageConsumer.connect();
@@ -164,39 +168,51 @@ export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessage
 }
 
 async function initExternalDependencies(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer,
-    quoteRegistryParam?:IQuoteRepo, bulkQuoteRegistryParam?:IBulkQuoteRepo, participantServiceParam?: IParticipantService, accountLookupServiceParam?: IAccountLookupService):Promise<void>  {
 
-    logger = loggerParam ?? new KafkaLogger(BC_NAME, APP_NAME, APP_VERSION,{kafkaBrokerList: KAFKA_URL}, KAFKA_LOGS_TOPIC,DEFAULT_LOGLEVEL);
+  quoteRegistryParam?:IQuoteRepo, bulkQuoteRegistryParam?:IBulkQuoteRepo, authRequesterParam?: IAuthenticatedHttpRequester, participantServiceParam?: IParticipantService, accountLookupServiceParam?: IAccountLookupService):Promise<void>  {
 
-    if (!loggerParam) {
-        await (logger as KafkaLogger).init();
-        logger.info("Kafka Logger Initialized");
-    }
+  logger = loggerParam ?? new KafkaLogger(BC_NAME, APP_NAME, APP_VERSION,{kafkaBrokerList: KAFKA_URL}, KAFKA_LOGS_TOPIC,DEFAULT_LOGLEVEL);
 
-    quotesRepo = quoteRegistryParam ?? new MongoQuotesRepo(logger,MONGO_URL, DB_NAME_QUOTES);
+  if (!loggerParam) {
+      await (logger as KafkaLogger).init();
+      logger.info("Kafka Logger Initialized");
+  }
 
-    bulkQuotesRepo = bulkQuoteRegistryParam ?? new MongoBulkQuotesRepo(logger,MONGO_URL, DB_NAME_BULK_QUOTES);
+  quotesRepo = quoteRegistryParam ?? new MongoQuotesRepo(logger,MONGO_URL, DB_NAME_QUOTES);
 
-    messageProducer = messageProducerParam ?? new MLKafkaJsonProducer(producerOptions, logger);
+  bulkQuotesRepo = bulkQuoteRegistryParam ?? new MongoBulkQuotesRepo(logger,MONGO_URL, DB_NAME_BULK_QUOTES);
 
-    messageConsumer = messageConsumerParam ?? new MLKafkaJsonConsumer(consumerOptions, logger);
+  messageProducer = messageProducerParam ?? new MLKafkaJsonProducer(producerOptions, logger);
 
-    const participantLogger = logger.createChild("participantLogger");
+  messageConsumer = messageConsumerParam ?? new MLKafkaJsonConsumer(consumerOptions, logger);
 
+
+  if(!authRequesterParam){
     const AUTH_TOKEN_ENPOINT = "http://localhost:3201/token";
     const USERNAME = "admin";
     const PASSWORD = "superMegaPass";
     const CLIENT_ID = "security-bc-ui";
+    authRequester = new AuthenticatedHttpRequester(logger, AUTH_TOKEN_ENPOINT);
+    authRequester.setUserCredentials(CLIENT_ID, USERNAME, PASSWORD);
+  }
+  else {
+    authRequester = authRequesterParam;
+  }
+
+  if(!participantServiceParam){
+    const participantLogger = logger.createChild("participantLogger");
+    participantLogger.setLogLevel(LogLevel.INFO);
     const PARTICIPANTS_BASE_URL = "http://localhost:3010";
     const HTTP_CLIENT_TIMEOUT_MS = 10_000;
-
-    const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_TOKEN_ENPOINT);
-
-    authRequester.setUserCredentials(CLIENT_ID, USERNAME, PASSWORD);
-    participantLogger.setLogLevel(LogLevel.INFO);
     participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_BASE_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
 
-    accountLookupService = accountLookupServiceParam ?? new AccountLookupAdapter(logger, ACCOUNT_LOOKUP_SVC_BASEURL, fixedToken);
+  }
+  else {
+    participantService = participantServiceParam;
+  }
+
+  accountLookupService = accountLookupServiceParam ?? new AccountLookupAdapter(logger, ACCOUNT_LOOKUP_SVC_BASEURL, fixedToken);
+
 }
 
 export async function stop(): Promise<void> {

@@ -32,16 +32,17 @@ import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-type
 import { ParticipantAdapter} from "../../src/external_adapters/participant_adapter";
 import { ILocalCache, LocalCache } from "@mojaloop/quoting-bc-implementations";
 import { Participant} from "@mojaloop/participant-bc-public-types-lib";
+import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
+
 
 const BASE_URL_PARTICIPANT_CLIENT: string = "http://localhost:1234";
-const FAKE_TOKEN = "fakeToken";
 
 const getParticipantByIdSpy = jest.fn();
 const getParticipantsByIdsSpy = jest.fn();
 
 jest.mock("@mojaloop/participants-bc-client-lib", () => {
         return {
-            ParticipantsHttpClient: jest.fn().mockImplementation(() => { 
+            ParticipantsHttpClient: jest.fn().mockImplementation(() => {
                 return {
                     getParticipantById: getParticipantByIdSpy,
                     getParticipantsByIds: getParticipantsByIdsSpy
@@ -52,17 +53,20 @@ jest.mock("@mojaloop/participants-bc-client-lib", () => {
 
 let participantAdapter: ParticipantAdapter;
 let localCache: ILocalCache;
- 
+let authRequester: IAuthenticatedHttpRequester;
+let timeoutMs: number = 1000;
+
 describe("Participants Client - Unit Tests", () => {
     beforeAll(async () => {
          const logger: ILogger = new ConsoleLogger();
          logger.setLogLevel(LogLevel.FATAL);
-         localCache = new LocalCache(logger);         
+         localCache = new LocalCache(logger);
          participantAdapter = new ParticipantAdapter(
              logger,
              BASE_URL_PARTICIPANT_CLIENT,
-             FAKE_TOKEN,
-            localCache
+             authRequester,
+             timeoutMs,
+             localCache
          );
      });
 
@@ -74,7 +78,7 @@ describe("Participants Client - Unit Tests", () => {
     afterAll(async () => {
         jest.clearAllMocks();
     });
- 
+
      // Get participant.
     test("should receive null if participant doesnt exist", async () => {
         // Arrange
@@ -87,7 +91,7 @@ describe("Participants Client - Unit Tests", () => {
         // Assert
         expect(participantInfo).toBeNull();
     });
- 
+
     test("should get participant info", async () => {
         // Arrange
         const participantId: string = "existingParticipantId";
@@ -108,11 +112,11 @@ describe("Participants Client - Unit Tests", () => {
          // Act
          const participantInfo =
              await participantAdapter.getParticipantInfo(participantId);
-         
+
          // Assert
          expect(participantInfo).toEqual(participant);
         });
-    
+
     test("should throw null if getting an error while getting participant info", async () => {
         // Arrange
         const participantId: string = "existingParticipantId";
@@ -124,7 +128,7 @@ describe("Participants Client - Unit Tests", () => {
         // Assert
         expect(participantInfo).toBeNull();
     });
-    
+
     test("should get participants info", async () => {
         // Arrange
         const participantId1: string = "existingParticipantId1";
@@ -204,17 +208,17 @@ describe("Participants Client - Unit Tests", () => {
         // Assert
         expect(participantsInfo).toEqual([participant1, participant2]);
     });
- 
+
     test("should retrieve participant from cache", async () => {
          // Arrange
         const participantId: string = "existingParticipantId";
         jest.spyOn(localCache, "get").mockReturnValue({"id":1, "name":"cache"});
-        
+
          // Act
         const participantInfo = await participantAdapter.getParticipantInfo(participantId);
-         
+
          // Assert
          expect(participantInfo).toEqual({"id":1, "name":"cache"});
     });
- 
+
 });
