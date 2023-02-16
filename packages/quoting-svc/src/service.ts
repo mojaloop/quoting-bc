@@ -218,6 +218,8 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
 export async function stop(): Promise<void> {
   logger.debug("Tearing down quote Registry");
   await quotesRepo.destroy();
+  logger.debug("Tearing down bulk quote Registry");
+  await bulkQuotesRepo.destroy();
   logger.debug("Tearing down message consumer");
   await messageConsumer.destroy(true);
   logger.debug("Tearing down message producer");

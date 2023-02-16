@@ -91,10 +91,6 @@ express.Router = jest.fn().mockImplementation(() => { return routerSpy });
 
 describe("Quoting Service", () => {
 
-    afterEach(async () => {
-        jest.restoreAllMocks()
-    });
-
     afterAll(async () => {
         jest.clearAllMocks();
     });
@@ -128,14 +124,16 @@ describe("Quoting Service", () => {
         const spyConsumerDestroy = jest.spyOn(mockedConsumer, "destroy");
         const spyProducerDestroy = jest.spyOn(mockedProducer, "destroy");
         const spyQuoteRegistryDestroy = jest.spyOn(mockedQuoteRepository, "destroy");
+        const spyBulkQuoteRegistryDestroy = jest.spyOn(mockedBulkQuoteRepository, "destroy");
         await start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedAuthRequester, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
 
         // Act
         await stop();
 
         // Assert
-        expect(spyConsumerDestroy).toBeCalledTimes(1);
         expect(spyProducerDestroy).toBeCalledTimes(1);
+        expect(spyConsumerDestroy).toBeCalledTimes(1);
+        expect(spyBulkQuoteRegistryDestroy).toBeCalledTimes(1);
         expect(spyQuoteRegistryDestroy).toBeCalledTimes(1);
     });
 

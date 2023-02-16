@@ -33,7 +33,7 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { IMessageProducer, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IMessage, IMessageProducer, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
 	InvalidMessagePayloadError,
 	InvalidMessageTypeError,
@@ -45,7 +45,7 @@ import {
 	InvalidDestinationFspIdError,
 	InvalidDestinationPartyInformationError,
 	NoSuchBulkQuoteError,
-	UnableToProcessMessageError
+	UnableToProcessMessageError,
 } from "./errors";
 import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
@@ -67,7 +67,6 @@ import {
 	BulkQuoteAcceptedEvt,
 	BulkQuoteAcceptedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, QuoteStatus } from "./types";
 
 export class QuotingAggregate  {
@@ -393,7 +392,7 @@ export class QuotingAggregate  {
 		for await (const quote of quotes) {
 			let destinationFspIdToUse = quote.payee?.partyIdInfo?.fspId;
 			quote.payer = message.payload.payer;
-			
+
 			if(!destinationFspIdToUse) {
 				destinationFspIdToUse = missingFspIds[quote.quoteId];
 			} else if(!validQuotes[destinationFspIdToUse]) {

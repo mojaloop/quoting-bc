@@ -21,7 +21,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -38,5 +38,6 @@ export * from "./memory_quote_repo";
 export * from "./memory_bulkquote_repo";
 export * from "./memory_participant_service";
 export * from "./mocked_data";
+export * from "./memory_auth_requester";
 
 

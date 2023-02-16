@@ -48,7 +48,7 @@ export class MemoryAuthenticatedHttpRequesterMock implements IAuthenticatedHttpR
         this.authTokenUrl = authTokenUrl;
     }
 
-    initialized: boolean;
+    initialised: boolean;
 
     setUserCredentials(client_id: string, username: string, password: string): void {
         this.client_id = client_id;
