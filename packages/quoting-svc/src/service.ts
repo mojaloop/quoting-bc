@@ -92,8 +92,7 @@ let aggregate: QuotingAggregate;
 // Auth Requester
 let authRequester: IAuthenticatedHttpRequester;
 
-// Participant service
-let participantService: IParticipantService;
+
 
 // Account Lookup service
 const ACCOUNT_LOOKUP_SVC_BASEURL = process.env["ACCOUNT_LOOKUP_SVC_BASEURL"] || "http://localhost:3030";
@@ -105,6 +104,18 @@ let expressApp: Express;
 
 // Admin routes
 let quotingAdminRoutes: QuotingAdminExpressRoutes;
+
+// Auth requester
+const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-quoting-svc";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
+
+const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
+const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
+
+// Participant service
+let participantService: IParticipantService;
+const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
+const HTTP_CLIENT_TIMEOUT_MS = 10_000;
 
 export async function start(loggerParam?:ILogger, messageConsumerParam?:IMessageConsumer, messageProducerParam?:IMessageProducer,
   quoteRegistryParam?:IQuoteRepo, bulkQuoteRegistryParam?:IBulkQuoteRepo, authRequesterParam?:IAuthenticatedHttpRequester, participantServiceParam?:IParticipantService, accountLookupServiceParam?:IAccountLookupService, aggregateParam?:QuotingAggregate,
@@ -186,12 +197,8 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
 
 
   if(!authRequesterParam){
-    const AUTH_TOKEN_ENPOINT = "http://localhost:3201/token";
-    const USERNAME = "admin";
-    const PASSWORD = "superMegaPass";
-    const CLIENT_ID = "security-bc-ui";
-    authRequester = new AuthenticatedHttpRequester(logger, AUTH_TOKEN_ENPOINT);
-    authRequester.setUserCredentials(CLIENT_ID, USERNAME, PASSWORD);
+    authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+    authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
   }
   else {
     authRequester = authRequesterParam;
@@ -200,9 +207,7 @@ async function initExternalDependencies(loggerParam?:ILogger, messageConsumerPar
   if(!participantServiceParam){
     const participantLogger = logger.createChild("participantLogger");
     participantLogger.setLogLevel(LogLevel.INFO);
-    const PARTICIPANTS_BASE_URL = "http://localhost:3010";
-    const HTTP_CLIENT_TIMEOUT_MS = 10_000;
-    participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_BASE_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
+    participantService = new ParticipantAdapter(participantLogger, PARTICIPANTS_SVC_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
 
   }
   else {
