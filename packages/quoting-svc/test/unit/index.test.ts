@@ -1,4 +1,4 @@
-import {MemoryAuthenticatedHttpRequesterMock} from '../../../shared-mocks/src/memory_auth_requester';
+import {MemoryAuthenticatedHttpRequesterMock} from '../../../shared-mocks-lib/src/memory_auth_requester';
 /**
  License
  --------------
@@ -33,9 +33,9 @@ import {MemoryAuthenticatedHttpRequesterMock} from '../../../shared-mocks/src/me
 
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { start, stop } from "../../src/service";
-import { MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, MemoryAccountLookupService, MemoryBulkQuoteRepo } from "@mojaloop/quoting-shared-mocks";
-import { IBulkQuoteRepo, IParticipantService, IQuoteRepo, QuotingAggregate } from "@mojaloop/quoting-bc-domain";
+import { Service } from "../../src/service";
+import { MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, MemoryAccountLookupService, MemoryBulkQuoteRepo } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
 import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
 const express = require("express");
 
@@ -56,14 +56,6 @@ const mockedAccountLookupService = new MemoryAccountLookupService(logger);
 
 const mockedAuthRequester: IAuthenticatedHttpRequester = new MemoryAuthenticatedHttpRequesterMock(logger,"fake token");
 
-const mockedAggregate: QuotingAggregate = new QuotingAggregate(
-    logger,
-    mockedQuoteRepository,
-    mockedBulkQuoteRepository,
-    mockedProducer,
-    mockedParticipantService,
-    mockedAccountLookupService
-);
 
 // Express mock
 const useSpy = jest.fn();
@@ -105,7 +97,7 @@ describe("Quoting Service", () => {
         const spyQuoteRegistryInit = jest.spyOn(mockedQuoteRepository, "init");
 
         // Act
-        await start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedAuthRequester, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
+        await Service.start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedAuthRequester, mockedParticipantService,mockedAccountLookupService);
 
         // Assert
         expect(spyConsumerSetTopics).toBeCalledTimes(1);
@@ -125,10 +117,10 @@ describe("Quoting Service", () => {
         const spyProducerDestroy = jest.spyOn(mockedProducer, "destroy");
         const spyQuoteRegistryDestroy = jest.spyOn(mockedQuoteRepository, "destroy");
         const spyBulkQuoteRegistryDestroy = jest.spyOn(mockedBulkQuoteRepository, "destroy");
-        await start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedAuthRequester, mockedParticipantService,mockedAccountLookupService, mockedAggregate);
+        await Service.start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedAuthRequester, mockedParticipantService,mockedAccountLookupService);
 
         // Act
-        await stop();
+        await Service.stop();
 
         // Assert
         expect(spyProducerDestroy).toBeCalledTimes(1);

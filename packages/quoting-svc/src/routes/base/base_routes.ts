@@ -1,4 +1,4 @@
-import { QuotingAggregate } from "@mojaloop/quoting-bc-domain";
+import { QuotingAggregate } from "@mojaloop/quoting-bc-domain-lib";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import express from "express";
 import { validationResult } from "express-validator";

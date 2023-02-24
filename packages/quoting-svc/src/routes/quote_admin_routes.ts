@@ -42,7 +42,7 @@
 
 import express from "express";
 import { ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { QuotingAggregate } from "@mojaloop/quoting-bc-domain";
+import { QuotingAggregate } from "@mojaloop/quoting-bc-domain-lib";
 import { check } from "express-validator";
 import { BaseRoutes } from "./base/base_routes";
 

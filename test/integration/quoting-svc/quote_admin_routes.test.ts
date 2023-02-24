@@ -34,11 +34,11 @@ import {IAuthenticatedHttpRequester} from '@mojaloop/security-bc-client-lib';
 "use strict";
 
 import request from "supertest";
-import { MemoryAccountLookupService, MemoryBulkQuoteRepo, MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, mockedBulkQuote1, mockedQuote1, mockedQuote2, mockedQuote3 } from "@mojaloop/quoting-shared-mocks";
+import { MemoryAccountLookupService, MemoryBulkQuoteRepo, MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, mockedBulkQuote1, mockedQuote1, mockedQuote2, mockedQuote3 } from "@mojaloop/quoting-shared-mocks-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageConsumer, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { start, stop } from "@mojaloop/quoting-bc-quoting-svc";
-import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "@mojaloop/quoting-bc-domain";
+import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
 import { MemoryAuthenticatedHttpRequesterMock } from '@mojaloop/quoting-shared-mocks/src/memory_auth_requester';
 
 const logger: ILogger = new ConsoleLogger();

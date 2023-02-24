@@ -28,17 +28,28 @@
  - Rui Rocha <rui.rocha@arg.software>
 
  --------------
- **/
+**/
 
 "use strict";
 
-import { Service } from "./service";
-export {Service} from "./service";
+import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
+import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { MemoryQuoteRepo, MemoryBulkQuoteRepo, MemoryMessageProducer, MemoryParticipantService, MemoryAccountLookupService } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { IQuoteRepo, IBulkQuoteRepo, IParticipantService, IAccountLookupService, QuotingAggregate } from "../../dist";
 
+const logger: ILogger = new ConsoleLogger();
+logger.setLogLevel(LogLevel.FATAL);
 
-Service.start().then(() => {
-    console.log("Started quoting service");
-});
+const quoteRepo: IQuoteRepo = new MemoryQuoteRepo(logger,);
 
+const bulkQuoteRepo: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logger);
 
+const messageProducer: IMessageProducer = new MemoryMessageProducer(logger);
 
+const participantService: IParticipantService = new MemoryParticipantService(logger);
+
+const accountLookupService: IAccountLookupService = new MemoryAccountLookupService(logger);
+
+const aggregate: QuotingAggregate = new QuotingAggregate(logger,quoteRepo, bulkQuoteRepo, messageProducer,participantService,accountLookupService);
+
+export { aggregate, logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService };

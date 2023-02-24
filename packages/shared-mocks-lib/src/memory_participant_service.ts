@@ -1,11 +1,10 @@
 /**
  License
  --------------
- Copyright © 2021 Mojaloop Foundation
+ Copyright © 2017 Bill & Melinda Gates Foundation
+ The Mojaloop files are made available by the Bill & Melinda Gates Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
- The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License.
-
- You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
  Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
@@ -22,23 +21,35 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
-
+ 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
 
  --------------
- **/
+**/
 
 "use strict";
 
-import { Service } from "./service";
-export {Service} from "./service";
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
+import { IParticipantService } from "@mojaloop/quoting-bc-domain-lib";
 
+export class MemoryParticipantService implements IParticipantService {
+	private readonly logger: ILogger;
+	
+	constructor(
+		logger: ILogger,
+	) {
+		this.logger = logger;
+	}
 
-Service.start().then(() => {
-    console.log("Started quoting service");
-});
+	async getParticipantInfo(_fspId: string): Promise<IParticipant|null> {
+		return Promise.resolve(null);
+	}
 
-
-
+	async getParticipantsInfo(_fspIds: string[]): Promise<IParticipant[]> {
+		return Promise.resolve([]);
+	}
+	
+}
