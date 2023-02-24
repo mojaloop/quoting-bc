@@ -194,6 +194,7 @@ export class QuotingAggregate  {
 			const payeePartySubIdOrType = message.payload.payer?.partyIdInfo?.partySubIdOrType ?? null;
 			const currency = message.payload.amount?.currency ?? null;
 			destinationFspIdToUse = await this.getMissingFspId(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+			message.payload.payee.partyIdInfo.fspId = destinationFspIdToUse;
 		}
 
 		await this.validateParticipant(destinationFspIdToUse);
