@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc",
     "clean:dist": "rm -rf dist",
-    "clean:node-modules": "rm -rf node_modules",
+    "clean:npm": "rm -rf node_modules",
     "clean:dist-and-node-modules": "rm -rf dist node_modules",
     "clean": "npm run clean:dist",
     "audit:check": "npm npm audit",

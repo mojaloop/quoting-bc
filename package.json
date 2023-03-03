@@ -20,7 +20,7 @@
     "build": "npm -ws run build",
     "watch": "npm -ws run watch",
     "clean": "npm run clean:dist && npm run clean:node-modules",
-    "clean:node-modules": "rm -Rf node_modules && npm run clean:node-modules -ws",
+    "clean:npm": "rm -Rf node_modules && npm run clean:npm -ws",
     "clean:dist": "npm run clean:dist -ws",
     "pretest": "echo 'FIX ME'",
     "lint": "npm -ws run lint",

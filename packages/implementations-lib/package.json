@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc",
     "clean:dist": "rm -rf dist",
-    "clean:node-modules": "rm -rf node_modules",
+    "clean:npm": "rm -rf node_modules",
     "clean:dist-and-node-modules": "rm -rf dist node_modules",
     "clean": "npm run clean:dist",
     "audit:check": "npm npm audit",
@@ -34,12 +34,12 @@
     "test:unit": "jest --passWithNoTests --testMatch '**/test/unit/**/*.test.ts'"
   },
   "dependencies": {
+    "@mojaloop/quoting-bc-domain-lib": "*",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.15",
     "@mojaloop/account-lookup-bc-client-lib": "~0.1.15",
     "@mojaloop/participant-bc-public-types-lib": "~0.0.7",
     "@mojaloop/participants-bc-client-lib": "~0.1.3",
     "@mojaloop/security-bc-client-lib": "~0.1.12",
-    "@mojaloop/quoting-bc-domain-lib": "*",
     "mongodb": "^5.1.0"
   },
   "devDependencies": {

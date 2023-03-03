@@ -20,7 +20,7 @@
   "scripts": {
     "build": "tsc",
     "clean:dist": "rm -rf dist",
-    "clean:node-modules": "rm -rf node_modules",
+    "clean:npm": "rm -rf node_modules",
     "clean:dist-and-node-modules": "rm -rf dist node_modules",
     "clean": "npm run clean:dist",
     "audit:check": "npm npm audit",
@@ -30,11 +30,11 @@
     "lint:fix": "eslint ./src --fix"
   },
   "dependencies": {
+    "@mojaloop/quoting-bc-domain-lib": "*",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.15",
     "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.71",
     "@mojaloop/security-bc-client-lib": "~0.1.12",
-    "@mojaloop/participant-bc-public-types-lib": "~0.0.7",
-    "@mojaloop/quoting-bc-domain-lib": "*"
+    "@mojaloop/participant-bc-public-types-lib": "~0.0.7"
   },
   "devDependencies": {
     "eslint": "^8.34.0",

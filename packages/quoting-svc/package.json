@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/quoting-bc-quoting-svc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "mojaloop quoting service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/quoting-bc/tree/main/modules/quoting-svc",
@@ -20,6 +20,7 @@
   "files": [
     "/dist"
   ],
+  "build_docker": true,
   "scripts": {
     "start": "npm run service",
     "start:dev": "npm run build && MONGO_URL=mongodb://root:mongoDbPas42@127.0.0.1:27017 npm start",
@@ -27,7 +28,7 @@
     "build": "tsc",
     "watch": "tsc -w --pretty",
     "clean:dist": "rm -rf dist",
-    "clean:node-modules": "rm -rf node_modules",
+    "clean:npm": "rm -rf node_modules",
     "clean:dist-and-node-modules": "rm -rf dist node_modules",
     "clean": "npm run clean:dist",
     "pretest": "npm run build",

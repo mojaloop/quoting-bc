@@ -3,7 +3,9 @@ FROM node:18.13.0-alpine AS builder
 # Create the project directory inside the container.
 WORKDIR /app
 
-RUN apk add --no-cache -t build-dependencies git make gcc g++ python3 libtool autoconf pkgconfig automake bash # wget tar xz
+RUN apk add --no-cache -t build-dependencies git make gcc g++ python3 \
+    libtool autoconf pkgconfig automake librdkafka-dev bash # wget tar xz
+
 
 RUN cd $(npm root -g)/npm
 RUN npm config set unsafe-perm true
@@ -12,12 +14,13 @@ RUN npm install -g node-gyp
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
 COPY package*.json ./
 COPY packages/domain-lib/package*.json ./packages/domain-lib/
+COPY packages/shared-mocks-lib/package*.json ./packages/shared-mocks-lib/
 COPY packages/implementations-lib/package*.json ./packages/implementations-lib/
 COPY packages/quoting-svc/package*.json ./packages/quoting-svc/
 
 # If you are building your code for production
 #RUN npm ci --only=production
-RUN npm install
+RUN BUILD_LIBRDKAFKA=0 npm install
 
 ########################################
 # Copy code and build
@@ -26,6 +29,7 @@ RUN npm install
 COPY tsconfig.json ./
 
 # copy required supporting modules/packages (especially private ones not published to npm)
+COPY packages/shared-mocks-lib .packages/shared-mocks-lib
 COPY packages/domain-lib ./packages/domain-lib
 COPY packages/implementations-lib ./packages/implementations-lib
 
@@ -38,6 +42,8 @@ RUN npm run build
 
 FROM node:18.13-alpine
 WORKDIR /app
+
+RUN apk add librdkafka
 
 COPY --from=builder /app .
 
