@@ -604,10 +604,10 @@ export class QuotingAggregate  {
 				throw new InvalidParticipantIdError();
 			}
 
-			if(!participant.isActive) {
-				this._logger.debug(`${participant.id} is not active`);
-				throw new RequiredParticipantIsNotActive();
-			}
+			// if(!participant.isActive) {
+			// 	this._logger.debug(`${participant.id} is not active`);
+			// 	throw new RequiredParticipantIsNotActive();
+			// }
 		}
 
 		return;
