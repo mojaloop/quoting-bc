@@ -38,10 +38,18 @@ import {BulkQuoteAcceptedEvtPayload, BulkQuotePendingReceivedEvt, BulkQuotePendi
 import { InvalidParticipantIdError, InvalidRequesterFspIdError, NoSuchParticipantError, InvalidDestinationFspIdError, NoSuchBulkQuoteError} from "../../src/errors";
 import {QuoteStatus} from '../../src/types';
 import { createBulkQuotePendingReceivedEvtPayload, createBulkQuoteRequestedEvtPayload, createMessage } from "../utils/helpers";
-import { aggregate, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService } from "../utils/mocked_variables";
+import { logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService } from "../utils/mocked_variables";
 import { mockedBulkQuote1, mockedQuote2 } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { QuotingAggregate } from "../../src/aggregate";
+
+let aggregate: QuotingAggregate;
+
 
 describe("Domain - Unit Tests for Bulk Quote Events", () => {
+
+    beforeAll(async () => {
+        aggregate = new QuotingAggregate(logger,quoteRepo,bulkQuoteRepo,messageProducer,participantService,accountLookupService);
+    });
 
     afterEach(async () => {
         jest.restoreAllMocks();
@@ -77,7 +85,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             sourceEvent : BulkQuoteRequestedEvt.name,
 		};
 
-        
+
 
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({ id: "not matching", type: "DFSP", isActive: false} as IParticipant as any);
@@ -161,7 +169,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         }));
 
     });
-    
+
     test("handleBulkQuoteRequestedEvt - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
@@ -181,14 +189,14 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             "payer": mockedQuote.payer,
             "geoCode": mockedQuote.geoCode,
             "expiration": mockedQuote.expiration,
-            "individualQuotes": mockedQuote.individualQuotes as any,            
+            "individualQuotes": mockedQuote.individualQuotes as any,
             extensionList: mockedQuote.extensionList
         } as any;
 
         jest.spyOn(accountLookupService, "getBulkAccountLookup")
-            .mockResolvedValueOnce({ 
+            .mockResolvedValueOnce({
                 "2243fdbe-5dea-3abd-a210-3780e7f2f1f4": "payee",
-                "1243fdbe-5dea-3abd-a210-3780e7f2f1f4": "payee" 
+                "1243fdbe-5dea-3abd-a210-3780e7f2f1f4": "payee"
             });
 
         jest.spyOn(bulkQuoteRepo, "addBulkQuote")

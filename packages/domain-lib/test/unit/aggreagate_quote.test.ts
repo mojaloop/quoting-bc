@@ -38,10 +38,18 @@ import {QuoteErrorEvtPayload, QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayloa
 import { InvalidParticipantIdError, InvalidRequesterFspIdError, NoSuchParticipantError, InvalidDestinationFspIdError, NoSuchQuoteError} from "../../src/errors";
 import {IMoney, IQuote, QuoteStatus} from '../../src/types';
 import { createMessage, createQuoteRequestReceivedEvtPayload, createQuoteResponseReceivedEvtPayload } from "../utils/helpers";
-import { aggregate, quoteRepo, messageProducer, participantService, accountLookupService } from "../utils/mocked_variables";
+import { quoteRepo, messageProducer, participantService, accountLookupService, logger, bulkQuoteRepo } from "../utils/mocked_variables";
 import { mockedQuote1, mockedQuote2, mockedQuote4 } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { QuotingAggregate } from "../../src/aggregate";
+
+
+let aggregate: QuotingAggregate;
 
 describe("Domain - Unit Tests for Quote Events", () => {
+
+    beforeAll(async () => {
+        aggregate = new QuotingAggregate(logger,quoteRepo,bulkQuoteRepo,messageProducer,participantService,accountLookupService);
+    });
 
     afterEach(async () => {
         jest.restoreAllMocks();

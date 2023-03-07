@@ -1,4 +1,3 @@
-import {IAuthenticatedHttpRequester} from '@mojaloop/security-bc-client-lib';
 /**
  License
  --------------
@@ -34,12 +33,13 @@ import {IAuthenticatedHttpRequester} from '@mojaloop/security-bc-client-lib';
 "use strict";
 
 import request from "supertest";
-import { MemoryAccountLookupService, MemoryBulkQuoteRepo, MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, mockedBulkQuote1, mockedQuote1, mockedQuote2, mockedQuote3 } from "@mojaloop/quoting-shared-mocks-lib";
+import { MemoryAccountLookupService, MemoryBulkQuoteRepo, MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, mockedBulkQuote1, mockedQuote1, mockedQuote2, mockedQuote3 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageConsumer, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { start, stop } from "@mojaloop/quoting-bc-quoting-svc";
 import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
-import { MemoryAuthenticatedHttpRequesterMock } from '@mojaloop/quoting-shared-mocks/src/memory_auth_requester';
+import { MemoryAuthenticatedHttpRequesterMock } from '@mojaloop/quoting-bc-shared-mocks-lib';
+import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
+import {Service} from "@mojaloop/quoting-bc-quoting-svc";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
@@ -63,7 +63,7 @@ const server = (process.env["QUOTING_ADM_URL"] || "http://localhost:3033");
 describe("Quoting Admin Routes - Integration", () => {
 
     beforeAll(async () => {
-        await start(logger, mockedConsumer, mockedProducer, mockedQuoteRepository, mockedBulkQuoteRepository,mockedAuthRequester, mockedParticipantService, mockedAccountLookupService);
+        await Service.start(logger, mockedConsumer, mockedProducer, mockedQuoteRepository, mockedBulkQuoteRepository,mockedAuthRequester, mockedParticipantService, mockedAccountLookupService);
     });
 
     afterEach(async () => {
@@ -80,7 +80,7 @@ describe("Quoting Admin Routes - Integration", () => {
 
 
     afterAll(async () => {
-        await stop();
+        await Service.stop();
     });
 
     test("GET - should get a quote by it's id", async () => {

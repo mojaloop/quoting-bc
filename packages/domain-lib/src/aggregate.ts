@@ -392,34 +392,7 @@ export class QuotingAggregate  {
 			}
 		}
 
-		for await (const quote of quotes) {
-			let destinationFspIdToUse = quote.payee?.partyIdInfo?.fspId;
-			quote.payer = message.payload.payer;
-
-			if(!destinationFspIdToUse) {
-				destinationFspIdToUse = missingFspIds[quote.quoteId];
-			} else if(!validQuotes[destinationFspIdToUse]) {
-				validQuotes[destinationFspIdToUse] = [];
-			}
-
-			if(!destinationFspIdToUse) {
-				quote.status = QuoteStatus.REJECTED;
-				quotesNotProcessedIds.push(quote.quoteId);
-			} else {
-				try {
-					await this.validateParticipant(destinationFspIdToUse);
-
-					quote.bulkQuoteId = bulkQuoteId;
-					quote.status = QuoteStatus.PENDING;
-					quote.payee.partyIdInfo.fspId = destinationFspIdToUse;
-					validQuotes[destinationFspIdToUse].push(quote);
-				} catch (e) {
-					quotesNotProcessedIds.push(quote.quoteId);
-				}
-			}
-
-			await this._quotesRepo.addQuote(quote);
-		}
+		await this.processBulkQuotes(quotes, message, missingFspIds, validQuotes, quotesNotProcessedIds, bulkQuoteId);
 
 
 		if(quotesNotProcessedIds.length > 0) {
@@ -457,6 +430,37 @@ export class QuotingAggregate  {
 
 		return events;
 
+	}
+
+	private async processBulkQuotes(quotes: IQuote[], message: BulkQuoteRequestedEvt, missingFspIds: { [key: string]: string | null; }, validQuotes: { [key: string]: IQuote[]; }, quotesNotProcessedIds: string[], bulkQuoteId: string) {
+		for await (const quote of quotes) {
+			let destinationFspIdToUse = quote.payee?.partyIdInfo?.fspId;
+			quote.payer = message.payload.payer;
+
+			if (!destinationFspIdToUse) {
+				destinationFspIdToUse = missingFspIds[quote.quoteId];
+			} else if (!validQuotes[destinationFspIdToUse]) {
+				validQuotes[destinationFspIdToUse] = [];
+			}
+
+			if (!destinationFspIdToUse) {
+				quote.status = QuoteStatus.REJECTED;
+				quotesNotProcessedIds.push(quote.quoteId);
+			} else {
+				try {
+					await this.validateParticipant(destinationFspIdToUse);
+
+					quote.bulkQuoteId = bulkQuoteId;
+					quote.status = QuoteStatus.PENDING;
+					quote.payee.partyIdInfo.fspId = destinationFspIdToUse;
+					validQuotes[destinationFspIdToUse].push(quote);
+				} catch (e) {
+					quotesNotProcessedIds.push(quote.quoteId);
+				}
+			}
+
+			await this._quotesRepo.addQuote(quote);
+		}
 	}
 
 	private async handleBulkQuotePendingReceivedEvt(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | BulkQuoteAcceptedEvt[]> {
@@ -612,40 +616,6 @@ export class QuotingAggregate  {
 
 		return;
 	}
-
-	//#region Admin Routes
-
-	public async getQuoteById(id: string): Promise<IQuote | null> {
-		if(!id){
-			throw new Error("Invalid quote id");
-		}
-
-		const quote = await this._quotesRepo.getQuoteById(id);
-		return quote;
-	}
-
-	public async getBulkQuoteById(id: string): Promise<IBulkQuote | null> {
-		if(!id){
-			throw new Error("Invalid bulk quote id");
-		}
-
-		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(id);
-
-		return bulkQuote;
-	}
-
-	public async getQuotes(): Promise<IQuote[]> {
-		const quotes = await this._quotesRepo.getQuotes();
-		return quotes;
-	}
-
-	public async getBulkQuotes(): Promise<IBulkQuote[]> {
-		const bulkQUotes =  await this._bulkQuotesRepo.getBulkQuotes();
-		return bulkQUotes;
-	}
-
-	//#endregion
-
 
 
 }

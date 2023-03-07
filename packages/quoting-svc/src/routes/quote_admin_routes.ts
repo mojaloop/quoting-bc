@@ -42,14 +42,14 @@
 
 import express from "express";
 import { ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { QuotingAggregate } from "@mojaloop/quoting-bc-domain-lib";
+import { IBulkQuoteRepo, IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
 import { check } from "express-validator";
 import { BaseRoutes } from "./base/base_routes";
 
 export class QuotingAdminExpressRoutes extends BaseRoutes {
 
-    constructor(quotingAggregate: QuotingAggregate, logger: ILogger) {
-        super(logger, quotingAggregate);
+    constructor(quotesRepo: IQuoteRepo, bulkQuoteRepo:IBulkQuoteRepo, logger: ILogger) {
+        super(logger, quotesRepo, bulkQuoteRepo);
         this.logger.createChild(this.constructor.name);
 
         this.mainRouter.get("/quotes" ,this.getAllQuotes.bind(this));
@@ -73,7 +73,7 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
 
         this.logger.info("Fetching all quotes");
         try {
-            const fetched = await this.quotingAggregate.getQuotes();
+            const fetched = await this.quoteRepo.getQuotes();
             res.send(fetched);
         }
         catch (err: unknown) {
@@ -89,7 +89,7 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
 
         this.logger.info("Fetching all bulk quotes");
         try {
-            const fetched = await this.quotingAggregate.getBulkQuotes();
+            const fetched = await this.bulkQuoteRepo.getBulkQuotes();
             res.send(fetched);
         }
         catch (err: unknown) {
@@ -112,7 +112,7 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         this.logger.info("Fetching quote by id " + id);
 
         try {
-            const fetched = await this.quotingAggregate.getQuoteById(id);
+            const fetched = await this.quoteRepo.getQuoteById(id);
             if(!fetched){
                 res.status(404).json({
                     status: "error",
@@ -143,7 +143,7 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         this.logger.info("Fetching bulk quote by id " + id);
 
         try {
-            const fetched = await this.quotingAggregate.getBulkQuoteById(id);
+            const fetched = await this.bulkQuoteRepo.getBulkQuoteById(id);
             if(!fetched){
                 res.status(404).json({
                     status: "error",

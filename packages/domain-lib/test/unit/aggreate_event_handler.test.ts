@@ -38,9 +38,16 @@ import { QuoteErrorEvtPayload, QuoteRequestReceivedEvtPayload, QuoteResponseRece
 import { mockedQuote1 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { InvalidMessagePayloadError, InvalidMessageTypeError } from "../../src/errors";
 import { createMessage, createQuoteRequestReceivedEvtPayload } from "../utils/helpers";
-import { messageProducer, aggregate, quoteRepo, participantService } from "../utils/mocked_variables";
+import { logger, bulkQuoteRepo, accountLookupService, messageProducer, quoteRepo, participantService } from "../utils/mocked_variables";
+import { QuotingAggregate } from "../../src/aggregate";
+
+let aggregate: QuotingAggregate;
 
 describe("Domain - Unit Tests for Event Handler", () => {
+
+    beforeAll(async () => {
+        aggregate = new QuotingAggregate(logger,quoteRepo,bulkQuoteRepo,messageProducer,participantService,accountLookupService);
+    });
 
     afterEach(async () => {
         jest.restoreAllMocks();

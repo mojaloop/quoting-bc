@@ -118,7 +118,7 @@ const producerOptions: MLKafkaJsonProducerOptions = {
 // kafka logger
 const kafkaProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
-}
+};
 
 let globalLogger: ILogger;
 
@@ -143,7 +143,8 @@ export class Service {
 		bulkQuotesRepo?: IBulkQuoteRepo,
 		authRequester?: IAuthenticatedHttpRequester,
 		participantService?: IParticipantService,
-		accountLookupService?: IAccountLookupService
+		accountLookupService?: IAccountLookupService,
+		aggregate?: QuotingAggregate
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -234,13 +235,13 @@ export class Service {
 		await bulkQuotesRepo.init();
 		logger.info("Bulk Quote Registry Repo Initialized");
 
-		this.aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService);
-		logger.info("Aggregate Initialized");
+		if(!aggregate){
+			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService);
+		}
 
-		// const callbackFunction = async (message: IMessage): Promise<void> => {
-		// 	this.logger.debug(`Got message in handler: ${JSON.stringify(message, null, 2)}`);
-		// 	await this.aggregate.handleQuotingEvent(message);
-		// };
+		this.aggregate = aggregate;
+
+		logger.info("Aggregate Initialized");
 
 		this.messageConsumer.setCallbackFn(this.aggregate.handleQuotingEvent.bind(this.aggregate));
 
@@ -254,7 +255,7 @@ export class Service {
 		this.app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
 
 		// Add admin and client http routes
-		const quotingAdminRoutes = new QuotingAdminExpressRoutes(this.aggregate, this.logger);
+		const quotingAdminRoutes = new QuotingAdminExpressRoutes(this.quotesRepo, this.bulkQuotesRepo, this.logger);
 		this.app.use("", quotingAdminRoutes.mainRouter);
 
 		this.app.use((req, res) => {

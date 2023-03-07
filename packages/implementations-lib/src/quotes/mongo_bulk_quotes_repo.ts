@@ -39,19 +39,18 @@ import {
 	WithId
 } from "mongodb";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import process from "process";
-import { 
+import {
 	BulkQuoteAlreadyExistsError,
-	UnableToCloseDatabaseConnectionError, 
-	UnableToInitBulkQuoteRegistryError, 
-	UnableToGetBulkQuoteError, 
-	UnableToAddBulkQuoteError, 
-	NoSuchBulkQuoteError, 
-	UnableToUpdateBulkQuoteError, 
-	UnableToDeleteBulkQuoteError 
+	UnableToCloseDatabaseConnectionError,
+	UnableToInitBulkQuoteRegistryError,
+	UnableToGetBulkQuoteError,
+	UnableToAddBulkQuoteError,
+	NoSuchBulkQuoteError,
+	UnableToUpdateBulkQuoteError,
+	UnableToDeleteBulkQuoteError
 } from "../errors";
 import { IBulkQuoteRepo, IBulkQuote } from "@mojaloop/quoting-bc-domain-lib";
-import { randomUUID } from "crypto"
+import { randomUUID } from "crypto";
 
 export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 	private readonly _logger: ILogger;
