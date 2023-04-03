@@ -1,7 +1,7 @@
 "use strict";
 
 const { name } = require("./package.json");
-let packageName = name.replace("@mojaloop", "")
+let packageName = name.replace("@mojaloop", "") || "unknown_package_name";
 
 module.exports = {
   preset: "ts-jest",
@@ -12,14 +12,13 @@ module.exports = {
   collectCoverageFrom: ["./src/**/*.ts"],
   coveragePathIgnorePatterns: ["./src/tmp_files"],
   coverageReporters: ["text", ["json", {file: `../../../coverage/${packageName}-final.json`}]],
-  //coverageDirectory: "../../coverage/",
   clearMocks: true,
-  // coverageThreshold: {
-  //   "global": {
-  //     "branches": 90,
-  //     "functions": 90,
-  //     "lines": 90,
-  //     "statements": -10
-  //   }
-  // }
+  coverageThreshold: {
+    "global": {
+      "branches": 90,
+      "functions": 90,
+      "lines": 90,
+      "statements": -10
+    }
+  }
 }
