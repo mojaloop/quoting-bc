@@ -6,7 +6,11 @@ module.exports = {
     testMatch: ["<rootDir>/test/integration/**/*.test.ts"],
     passWithNoTests: true,
     collectCoverage: true,
-    collectCoverageFrom: ["**/src/**/*.ts"],
+    collectCoverageFrom: [
+		"**/src/**/*.ts",
+		"!**/src/**/index.ts",
+		"!**/shared-mocks-lib/**/*",
+	],
     coverageReporters: ["text", ["json", {file: "integration-final.json"}]],
     coverageDirectory: "./coverage/",
     clearMocks: true,

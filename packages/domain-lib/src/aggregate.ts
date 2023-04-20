@@ -49,8 +49,8 @@ import {
 } from "./errors";
 import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
-	QuoteErrorEvt,
-	QuoteErrorEvtPayload,
+	QuotingBCUnknownErrorPayload,
+	QuotingBCUnknownErrorEvent,
 	QuoteRequestReceivedEvt,
 	QuoteRequestAcceptedEvt,
 	QuoteRequestAcceptedEvtPayload,
@@ -107,16 +107,15 @@ export class QuotingAggregate  {
 
 			// TODO: find a way to publish the correct error event type
 
-			const errorPayload: QuoteErrorEvtPayload = {
-				errorMsg: errorMessage,
+			const errorPayload: QuotingBCUnknownErrorPayload = {
+				errorDescription: errorMessage,
 				quoteId: message.payload?.bulkQuoteId ? message.payload?.bulkQuoteId : message.payload?.quoteId,
-				sourceEvent: message.msgName,
-				requesterFspId: message.fspiopOpaqueState?.requesterFspId ?? null,
-				destinationFspId: message.fspiopOpaqueState?.destinationFspId ?? null,
+				fspId: message.fspiopOpaqueState?.requesterFspId ?? null,
+				bulkQuoteId: "bulkQuoteId",
 
 			};
 
-			const messageToPublish = new QuoteErrorEvt(errorPayload);
+			const messageToPublish = new QuotingBCUnknownErrorEvent(errorPayload);
 			messageToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
 			await this._messageProducer.send(messageToPublish);
 		}

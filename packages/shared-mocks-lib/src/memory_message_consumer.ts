@@ -30,42 +30,45 @@
  --------------
  **/
 
- "use strict";
+"use strict";
 
- import {IMessage, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMessage, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
- export class MemoryMessageConsumer implements IMessageConsumer{
+export class MemoryMessageConsumer implements IMessageConsumer{
 
+      setCallbackFn(_handlerCallback: (message: IMessage) => Promise<void>): void {
+            return;
+      }
 
-    setCallbackFn(_handlerCallback: (message: IMessage) => Promise<void>): void {
+      setFilteringFn(_filterFn: (message: IMessage) => boolean): void{
+            return;
+      }
+
+      setTopics(_topics: string[]): void {
          return;
-    }
+      }
 
-    setFilteringFn(_filterFn: (message: IMessage) => boolean): void{
-         return;
-    }
-
-    setTopics(_topics: string[]): void {
-         return;
-    }
-
-     async destroy(_force: boolean) : Promise<void>{
+      async destroy(_force: boolean) : Promise<void>{
          return Promise.resolve();
-    }
+      }
 
-    async connect() : Promise<void> {
+      async connect() : Promise<void> {
           return Promise.resolve();
-    }
+      }
 
-    async disconnect(_force: boolean) : Promise<void> {
+      async disconnect(_force: boolean) : Promise<void> {
           return Promise.resolve();
-    }
+      }
 
-    async start() : Promise<void> {
+      async start() : Promise<void> {
           return Promise.resolve();
-    }
+      }
 
-    async stop (): Promise<void> {
+      async startAndWaitForRebalance() : Promise<void>{
+            return Promise.resolve();
+      }
+
+      async stop (): Promise<void> {
           return Promise.resolve();
-    }
+      }
 }

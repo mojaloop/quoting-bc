@@ -91,7 +91,7 @@ describe("Quoting Service", () => {
         // Arrange
         const spyConsumerSetTopics = jest.spyOn(mockedConsumer, "setTopics");
         const spyConsumerConnect = jest.spyOn(mockedConsumer, "connect");
-        const spyConsumerStart = jest.spyOn(mockedConsumer, "connect");
+        const spyConsumerStart = jest.spyOn(mockedConsumer, "startAndWaitForRebalance");
         const spyConsumerCallback = jest.spyOn(mockedConsumer, "setCallbackFn");
         const spyProducerInit = jest.spyOn(mockedProducer, "connect");
         const spyQuoteRegistryInit = jest.spyOn(mockedQuoteRepository, "init");

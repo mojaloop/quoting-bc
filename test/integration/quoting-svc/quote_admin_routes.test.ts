@@ -33,13 +33,12 @@
 "use strict";
 
 import request from "supertest";
-import { MemoryAccountLookupService, MemoryBulkQuoteRepo, MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, mockedBulkQuote1, mockedQuote1, mockedQuote2, mockedQuote3 } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { MemoryAuthenticatedHttpRequesterMock, MemoryAccountLookupService, MemoryBulkQuoteRepo, MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, mockedBulkQuote1, mockedQuote1, mockedQuote2, mockedQuote3 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageConsumer, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
-import { MemoryAuthenticatedHttpRequesterMock } from '@mojaloop/quoting-bc-shared-mocks-lib';
 import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
-import {Service} from "@mojaloop/quoting-bc-quoting-svc";
+import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "../../../packages/domain-lib/src";
+import {Service} from "../../../packages/quoting-svc/src";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
