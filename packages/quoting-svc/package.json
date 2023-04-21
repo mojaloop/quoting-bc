@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/quoting-bc-quoting-svc",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "mojaloop quoting service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/quoting-bc/tree/main/modules/quoting-svc",
@@ -49,7 +49,7 @@
     "@mojaloop/platform-shared-lib-public-messages-lib": "0.1.71",
     "@mojaloop/security-bc-client-lib": "~0.1.31",
     "@mojaloop/quoting-bc-domain-lib": "*",
-    "@mojaloop/quoting-bc-implementations-lib":"*",
+    "@mojaloop/quoting-bc-implementations-lib": "*",
     "express": "^4.18.2",
     "express-validator": "^7.0.1",
     "semver": "^7.5.0"
