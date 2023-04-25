@@ -68,6 +68,7 @@ import {
 	BulkQuoteAcceptedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, QuoteStatus } from "./types";
+import { randomUUID } from "crypto";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -76,6 +77,7 @@ export class QuotingAggregate  {
 	private readonly _messageProducer: IMessageProducer;
 	private readonly _participantService: IParticipantService;
 	private readonly _accountLookupService: IAccountLookupService;
+	private readonly _passThroughMode: boolean;
 
 	constructor(
 		logger: ILogger,
@@ -83,7 +85,8 @@ export class QuotingAggregate  {
 		bulkQuoteRepo:IBulkQuoteRepo,
 		messageProducer:IMessageProducer,
 		participantService: IParticipantService,
-		accountLookupService: IAccountLookupService
+		accountLookupService: IAccountLookupService,
+		passThroughMode: boolean
 	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._quotesRepo = quoteRepo;
@@ -91,6 +94,7 @@ export class QuotingAggregate  {
 		this._messageProducer = messageProducer;
 		this._participantService = participantService;
 		this._accountLookupService = accountLookupService;
+		this._passThroughMode = passThroughMode ?? false;
 	}
 
 	async handleQuotingEvent(message: IMessage): Promise<void> {
@@ -182,21 +186,21 @@ export class QuotingAggregate  {
 
 	private async handleQuoteRequestReceivedEvt(message: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`);
+		const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
+		let destinationFspId = message.fspiopOpaqueState?.destinationFspId ?? message.payload?.payee?.partyIdInfo?.fspId
 
-		await this.validateParticipant(message.fspiopOpaqueState.requesterFspId);
+		await this.validateParticipant(requesterFspId);
 
-		let destinationFspIdToUse = message.fspiopOpaqueState?.destinationFspId ?? message.payload?.payee?.partyIdInfo?.fspId;
-
-		if(!destinationFspIdToUse){
+		if(!destinationFspId){
 			const payeePartyId = message.payload.payee?.partyIdInfo?.partyIdentifier;
 			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType;
 			const payeePartySubIdOrType = message.payload.payer?.partyIdInfo?.partySubIdOrType ?? null;
 			const currency = message.payload.amount?.currency ?? null;
-			destinationFspIdToUse = await this.getMissingFspId(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
-			message.payload.payee.partyIdInfo.fspId = destinationFspIdToUse;
+			destinationFspId = await this.getMissingFspId(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+			message.payload.payee.partyIdInfo.fspId = destinationFspId;
 		}
 
-		await this.validateParticipant(destinationFspIdToUse);
+		await this.validateParticipant(destinationFspId);
 
 		const quote: IQuote = {
 			quoteId: message.payload.quoteId,
@@ -226,7 +230,10 @@ export class QuotingAggregate  {
 			errorInformation: null
 		};
 
-		await this._quotesRepo.addQuote(quote);
+		if(!this._passThroughMode)
+		{
+			await this._quotesRepo.addQuote(quote);
+		}
 
 		const payload : QuoteRequestAcceptedEvtPayload = {
 			quoteId: message.payload.quoteId,
@@ -242,7 +249,8 @@ export class QuotingAggregate  {
 			note: message.payload.note,
 			expiration: message.payload.expiration,
 			extensionList: message.payload.extensionList
-		};
+			};
+
 
 		const event = new QuoteRequestAcceptedEvt(payload);
 
@@ -270,27 +278,10 @@ export class QuotingAggregate  {
 		await this.validateParticipant(requesterFspId);
 		await this.validateParticipant(destinationFspId);
 
-		const quote = await this._quotesRepo.getQuoteById(message.payload.quoteId);
-
-		if(!quote){
-			throw new NoSuchQuoteError();
+		if(!this._passThroughMode)
+		{
+			await this.updateQuote(message);
 		}
-
-		quote.requesterFspId = message.fspiopOpaqueState.requesterFspId;
-		quote.destinationFspId = message.fspiopOpaqueState.destinationFspId;
-		quote.quoteId = message.payload.quoteId;
-		quote.totalTransferAmount = message.payload.transferAmount;
-		quote.expiration = message.payload.expiration;
-		quote.ilpPacket = message.payload.ilpPacket;
-		quote.condition = message.payload.condition;
-		quote.payeeReceiveAmount = message.payload.payeeReceiveAmount;
-		quote.payeeFspFee = message.payload.payeeFspFee;
-		quote.payeeFspCommission = message.payload.payeeFspCommission;
-		quote.geoCode = message.payload.geoCode;
-		quote.extensionList = message.payload.extensionList;
-		quote.status = QuoteStatus.ACCEPTED;
-
-		await this._quotesRepo.updateQuote(quote);
 
 		const payload : QuoteResponseAcceptedEvtPayload = {
             quoteId: message.payload.quoteId,
@@ -311,6 +302,30 @@ export class QuotingAggregate  {
 
 		return event;
 
+	}
+
+	private async updateQuote(message: QuoteResponseReceivedEvt) {
+		const quote = await this._quotesRepo.getQuoteById(message.payload.quoteId);
+
+		if (!quote) {
+			throw new NoSuchQuoteError();
+		}
+
+		quote.requesterFspId = message.fspiopOpaqueState.requesterFspId;
+		quote.destinationFspId = message.fspiopOpaqueState.destinationFspId;
+		quote.quoteId = message.payload.quoteId;
+		quote.totalTransferAmount = message.payload.transferAmount;
+		quote.expiration = message.payload.expiration;
+		quote.ilpPacket = message.payload.ilpPacket;
+		quote.condition = message.payload.condition;
+		quote.payeeReceiveAmount = message.payload.payeeReceiveAmount;
+		quote.payeeFspFee = message.payload.payeeFspFee;
+		quote.payeeFspCommission = message.payload.payeeFspCommission;
+		quote.geoCode = message.payload.geoCode;
+		quote.extensionList = message.payload.extensionList;
+		quote.status = QuoteStatus.ACCEPTED;
+
+		await this._quotesRepo.updateQuote(quote);
 	}
 
 	private async handleQuoteQueryReceivedEvt(message: QuoteQueryReceivedEvt):Promise<QuoteQueryResponseEvt> {
@@ -358,18 +373,17 @@ export class QuotingAggregate  {
 
 	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt[]> {
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
-
+		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
 		const events:BulkQuoteReceivedEvt[] = [];
-
 		const quotes = message.payload.individualQuotes as unknown as IQuote[];
-
 		const validQuotes:{ [key: string]: IQuote[] } = {};
 		const quotesNotProcessedIds: string[] = [];
+		let bulkQuoteId: string = message.payload?.bulkQuoteId;
 
-		await this.validateParticipant(message.fspiopOpaqueState?.requesterFspId);
+		await this.validateParticipant(requesterFspId);
 
 		const bulkQuote: IBulkQuote = {
-			bulkQuoteId: message.payload.bulkQuoteId,
+			bulkQuoteId,
 			payer: message.payload.payer,
 			geoCode: message.payload.geoCode,
 			expiration: message.payload.expiration,
@@ -379,19 +393,25 @@ export class QuotingAggregate  {
 			status: QuoteStatus.PENDING
 		};
 
-		const bulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
+		if(!this._passThroughMode)
+		{
+			bulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
+		}
+		else{
+			bulkQuoteId = message.payload.bulkQuoteId ?? randomUUID();
+		}
 
-		const missingFspIds = await this.getMissingFspIds(quotes) ?? {};
+		const missingFspIdsInQuotes = await this.getMissingFspIds(quotes) ?? {};
 
-		for (const fspId in missingFspIds) {
-			const existingFspId = missingFspIds[fspId] as string;
+		for (const fspId in missingFspIdsInQuotes) {
+			const existingFspId = missingFspIdsInQuotes[fspId] as string;
 
 			if(existingFspId) {
 				validQuotes[existingFspId] = [];
 			}
 		}
 
-		await this.processBulkQuotes(quotes, message, missingFspIds, validQuotes, quotesNotProcessedIds, bulkQuoteId);
+		await this.processBulkQuotes(quotes, message, missingFspIdsInQuotes, validQuotes, quotesNotProcessedIds, bulkQuoteId);
 
 
 		if(quotesNotProcessedIds.length > 0) {
@@ -431,28 +451,30 @@ export class QuotingAggregate  {
 
 	}
 
-	private async processBulkQuotes(quotes: IQuote[], message: BulkQuoteRequestedEvt, missingFspIds: { [key: string]: string | null; }, validQuotes: { [key: string]: IQuote[]; }, quotesNotProcessedIds: string[], bulkQuoteId: string) {
+	private async processBulkQuotes(bulkQuoteId: string, quotes: IQuote[], message: BulkQuoteRequestedEvt, quotesFspIds: { [key: string]: string | null; },
+		validQuotes: { [key: string]: IQuote[]; }, quotesNotProcessedIds: string[]) {
+
 		for await (const quote of quotes) {
-			let destinationFspIdToUse = quote.payee?.partyIdInfo?.fspId;
+			let destinationFspId = quote.payee?.partyIdInfo?.fspId;
 			quote.payer = message.payload.payer;
 
-			if (!destinationFspIdToUse) {
-				destinationFspIdToUse = missingFspIds[quote.quoteId];
-			} else if (!validQuotes[destinationFspIdToUse]) {
-				validQuotes[destinationFspIdToUse] = [];
+			if (!destinationFspId) {
+				destinationFspId = quotesFspIds[quote.quoteId];
+			} else if (!validQuotes[destinationFspId]) {
+				validQuotes[destinationFspId] = [];
 			}
 
-			if (!destinationFspIdToUse) {
+			if (!destinationFspId) {
 				quote.status = QuoteStatus.REJECTED;
 				quotesNotProcessedIds.push(quote.quoteId);
 			} else {
 				try {
-					await this.validateParticipant(destinationFspIdToUse);
+					await this.validateParticipant(destinationFspId);
 
 					quote.bulkQuoteId = bulkQuoteId;
 					quote.status = QuoteStatus.PENDING;
-					quote.payee.partyIdInfo.fspId = destinationFspIdToUse;
-					validQuotes[destinationFspIdToUse].push(quote);
+					quote.payee.partyIdInfo.fspId = destinationFspId;
+					validQuotes[destinationFspId].push(quote);
 				} catch (e) {
 					quotesNotProcessedIds.push(quote.quoteId);
 				}
@@ -568,11 +590,11 @@ export class QuotingAggregate  {
 
 		const destinationFspIdsToDiscover: AccountLookupBulkQuoteFspIdRequest= {};
 
-		for await (const quote of quotes) {
+		for (const quote of quotes) {
 			const destinationFspId = quote.payee?.partyIdInfo?.fspId;
 			if(!destinationFspId) {
-				const quoteId = quote.quoteId;
-				destinationFspIdsToDiscover[quoteId] = {
+				const key = quote.quoteId;
+				destinationFspIdsToDiscover[key] = {
 					partyId: quote.payee?.partyIdInfo?.partyIdentifier,
 					partyType: quote.payee?.partyIdInfo?.partyIdType,
 					partySubIdOrType: quote.payee?.partyIdInfo?.partySubIdOrType,
