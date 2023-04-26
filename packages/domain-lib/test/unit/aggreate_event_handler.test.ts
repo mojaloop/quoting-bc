@@ -46,7 +46,7 @@ let aggregate: QuotingAggregate;
 describe("Domain - Unit Tests for Event Handler", () => {
 
     beforeAll(async () => {
-        aggregate = new QuotingAggregate(logger,quoteRepo,bulkQuoteRepo,messageProducer,participantService,accountLookupService);
+        aggregate = new QuotingAggregate(logger,quoteRepo,bulkQuoteRepo,messageProducer,participantService,accountLookupService, false);
     });
 
     afterEach(async () => {

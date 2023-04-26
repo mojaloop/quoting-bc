@@ -48,7 +48,7 @@ let aggregate: QuotingAggregate;
 describe("Domain - Unit Tests for Bulk Quote Events", () => {
 
     beforeAll(async () => {
-        aggregate = new QuotingAggregate(logger,quoteRepo,bulkQuoteRepo,messageProducer,participantService,accountLookupService);
+        aggregate = new QuotingAggregate(logger,quoteRepo,bulkQuoteRepo,messageProducer,participantService,accountLookupService, false);
     });
 
     afterEach(async () => {
@@ -172,8 +172,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
 
     test("handleBulkQuoteRequestedEvt - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
         // Arrange
-        const mockedQuote = mockedBulkQuote1;
-        const payload:BulkQuoteRequestedEvtPayload = createBulkQuoteRequestedEvtPayload(mockedQuote);
+        const mockedBulkQuote = mockedBulkQuote1;
+        const payload:BulkQuoteRequestedEvtPayload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
 
         const requesterFspId = "payer";
         const destinationFspId = "payee";
@@ -185,12 +185,12 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         const message: IMessage = createMessage(payload, BulkQuoteRequestedEvt.name,fspiopOpaqueState);
 
         const responsePayload : BulkQuoteReceivedEvtPayload= {
-            "bulkQuoteId": mockedQuote.bulkQuoteId,
-            "payer": mockedQuote.payer,
-            "geoCode": mockedQuote.geoCode,
-            "expiration": mockedQuote.expiration,
-            "individualQuotes": mockedQuote.individualQuotes as any,
-            extensionList: mockedQuote.extensionList
+            "bulkQuoteId": mockedBulkQuote.bulkQuoteId,
+            "payer": mockedBulkQuote.payer,
+            "geoCode": mockedBulkQuote.geoCode,
+            "expiration": mockedBulkQuote.expiration,
+            "individualQuotes": mockedBulkQuote.individualQuotes as any,
+            extensionList: mockedBulkQuote.extensionList
         } as any;
 
         jest.spyOn(accountLookupService, "getBulkAccountLookup")
@@ -200,7 +200,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             });
 
         jest.spyOn(bulkQuoteRepo, "addBulkQuote")
-            .mockResolvedValueOnce("inserted quote id");
+            .mockResolvedValueOnce(mockedBulkQuote.bulkQuoteId);
 
         jest.spyOn(quoteRepo, "addQuote")
             .mockResolvedValueOnce("inserted quote id");

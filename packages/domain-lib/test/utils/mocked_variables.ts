@@ -50,6 +50,4 @@ const participantService: IParticipantService = new MemoryParticipantService(log
 
 const accountLookupService: IAccountLookupService = new MemoryAccountLookupService(logger);
 
-const aggregate: QuotingAggregate = new QuotingAggregate(logger,quoteRepo, bulkQuoteRepo, messageProducer,participantService,accountLookupService);
-
-export { aggregate, logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService };
+export { logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService };

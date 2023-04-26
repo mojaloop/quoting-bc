@@ -49,8 +49,6 @@ import {
 } from "./errors";
 import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
-	QuotingBCUnknownErrorPayload,
-	QuotingBCUnknownErrorEvent,
 	QuoteRequestReceivedEvt,
 	QuoteRequestAcceptedEvt,
 	QuoteRequestAcceptedEvtPayload,
@@ -66,6 +64,8 @@ import {
 	BulkQuotePendingReceivedEvt,
 	BulkQuoteAcceptedEvt,
 	BulkQuoteAcceptedEvtPayload,
+	QuoteErrorEvtPayload,
+	QuoteErrorEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, QuoteStatus } from "./types";
 import { randomUUID } from "crypto";
@@ -111,15 +111,15 @@ export class QuotingAggregate  {
 
 			// TODO: find a way to publish the correct error event type
 
-			const errorPayload: QuotingBCUnknownErrorPayload = {
-				errorDescription: errorMessage,
+			const errorPayload: QuoteErrorEvtPayload = {
+				errorMsg: errorMessage,
 				quoteId: message.payload?.bulkQuoteId ? message.payload?.bulkQuoteId : message.payload?.quoteId,
-				fspId: message.fspiopOpaqueState?.requesterFspId ?? null,
-				bulkQuoteId: "bulkQuoteId",
-
+				sourceEvent: message.msgName,
+				requesterFspId: message.fspiopOpaqueState?.requesterFspId ?? null,
+				destinationFspId: message.fspiopOpaqueState?.destinationFspId ?? null,
 			};
 
-			const messageToPublish = new QuotingBCUnknownErrorEvent(errorPayload);
+			const messageToPublish = new QuoteErrorEvt(errorPayload);
 			messageToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
 			await this._messageProducer.send(messageToPublish);
 		}

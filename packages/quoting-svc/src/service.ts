@@ -110,6 +110,9 @@ const consumerOptions: MLKafkaJsonConsumerOptions = {
 	kafkaGroupId: `${BC_NAME}_${APP_NAME}`
 };
 
+// Application variables
+const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"]=== "true" )? true : false;
+
 const producerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL,
 	producerClientId: `${BC_NAME}_${APP_NAME}`,
@@ -223,7 +226,7 @@ export class Service {
 
 		this.messageConsumer.setTopics([QuotingBCTopics.DomainRequests]);
 		await this.messageConsumer.connect();
-		await this.messageConsumer.startAndWaitForRebalance();
+		await this.messageConsumer.start();
 		this.logger.info("Kafka Consumer Initialized");
 
 		await this.messageProducer.connect();
@@ -236,7 +239,7 @@ export class Service {
 		logger.info("Bulk Quote Registry Repo Initialized");
 
 		if(!aggregate){
-			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService);
+			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE);
 		}
 
 		this.aggregate = aggregate;
