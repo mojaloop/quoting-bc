@@ -411,31 +411,17 @@ export class QuotingAggregate  {
 			}
 		}
 
-		await this.processBulkQuotes(quotes, message, missingFspIdsInQuotes, validQuotes, quotesNotProcessedIds, bulkQuoteId);
+		await this.processBulkQuotes(bulkQuoteId, quotes, message, missingFspIdsInQuotes, validQuotes, quotesNotProcessedIds);
 
+		await this.updateBulkQuoteStatus(bulkQuoteId, quotes, quotesNotProcessedIds);
 
-		if(quotesNotProcessedIds.length > 0) {
-			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
-
-			if(bulkQuote) {
-				bulkQuote.quotesNotProcessedIds = quotesNotProcessedIds;
-
-				if(quotes.length === quotesNotProcessedIds.length) {
-					bulkQuote.status = QuoteStatus.REJECTED;
-				}
-
-				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
-			}
-		}
-
-		for (const fspId in validQuotes) {
+		for (const destinationFspId in validQuotes) {
 			const payload : BulkQuoteReceivedEvtPayload = {
 				bulkQuoteId: message.payload.bulkQuoteId,
 				payer: message.payload.payer,
 				geoCode: message.payload.geoCode,
 				expiration: message.payload.expiration,
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				individualQuotes: validQuotes[fspId] as any,
+				individualQuotes: validQuotes[destinationFspId] as any,
 				extensionList: message.payload.extensionList
 			};
 
@@ -451,6 +437,22 @@ export class QuotingAggregate  {
 
 	}
 
+	private async updateBulkQuoteStatus(bulkQuoteId: string, quotes: IQuote[], quotesNotProcessedIds: string[]) {
+		if (quotesNotProcessedIds.length > 0) {
+			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
+
+			if (bulkQuote) {
+				bulkQuote.quotesNotProcessedIds = quotesNotProcessedIds;
+
+				if (quotes.length === quotesNotProcessedIds.length) {
+					bulkQuote.status = QuoteStatus.REJECTED;
+				}
+
+				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+			}
+		}
+	}
+
 	private async processBulkQuotes(bulkQuoteId: string, quotes: IQuote[], message: BulkQuoteRequestedEvt, quotesFspIds: { [key: string]: string | null; },
 		validQuotes: { [key: string]: IQuote[]; }, quotesNotProcessedIds: string[]) {
 
@@ -459,32 +461,37 @@ export class QuotingAggregate  {
 			quote.payer = message.payload.payer;
 
 			if (!destinationFspId) {
-				destinationFspId = quotesFspIds[quote.quoteId];
-			} else if (!validQuotes[destinationFspId]) {
-				validQuotes[destinationFspId] = [];
-			}
+				destinationFspId = quotesFspIds[quote.quoteId] || null;
+			  }
 
-			if (!destinationFspId) {
+			  if (!destinationFspId) {
 				quote.status = QuoteStatus.REJECTED;
 				quotesNotProcessedIds.push(quote.quoteId);
-			} else {
-				try {
-					await this.validateParticipant(destinationFspId);
+			  } else {
+				const isValidParticipant = await this.validateParticipant(destinationFspId).catch(() => false);
 
-					quote.bulkQuoteId = bulkQuoteId;
-					quote.status = QuoteStatus.PENDING;
-					quote.payee.partyIdInfo.fspId = destinationFspId;
-					validQuotes[destinationFspId].push(quote);
-				} catch (e) {
-					quotesNotProcessedIds.push(quote.quoteId);
+				if (isValidParticipant) {
+				  if (!validQuotes[destinationFspId]) {
+					validQuotes[destinationFspId] = [];
+				  }
+
+				  quote.bulkQuoteId = bulkQuoteId;
+				  quote.status = QuoteStatus.PENDING;
+				  quote.payee.partyIdInfo.fspId = destinationFspId;
+				  validQuotes[destinationFspId].push(quote);
+				} else {
+				  quote.status = QuoteStatus.REJECTED;
+				  quotesNotProcessedIds.push(quote.quoteId);
 				}
 			}
 
-			await this._quotesRepo.addQuote(quote);
+			if(!this._passThroughMode){
+				await this._quotesRepo.addQuote(quote);
+			}
 		}
 	}
 
-	private async handleBulkQuotePendingReceivedEvt(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | BulkQuoteAcceptedEvt[]> {
+	private async handleBulkQuotePendingReceivedEvt(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt> {
 		this._logger.debug(`Got BulkQuotePendingReceivedEvt msg for bulkQuotes: ${message.payload.individualQuoteResults}`);
 
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
@@ -502,13 +509,13 @@ export class QuotingAggregate  {
 		await this.validateParticipant(requesterFspId);
 		await this.validateParticipant(destinationFspId);
 
+		const quotes = message.payload.individualQuoteResults;
+
 		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(message.payload.bulkQuoteId);
 
 		if(!bulkQuote){
 			throw new NoSuchBulkQuoteError();
 		}
-
-		const quotes = message.payload.individualQuoteResults;
 
 		// Update the status and fields of each quote that was processed/has new data
 		for await (const individualQuote of quotes) {
@@ -540,31 +547,24 @@ export class QuotingAggregate  {
 		const totalProcessedQuotes = quotesProcessed.length + bulkQuote.quotesNotProcessedIds.length;
 
 		if(bulkQuote.individualQuotes.length === totalProcessedQuotes) {
-
 			bulkQuote.status = QuoteStatus.ACCEPTED;
-
-			// Only update it here so that we save an extra DB transaction
-			// when all the quotes of the bulk are processed
-			await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
-
-			const payload : BulkQuoteAcceptedEvtPayload = {
-				bulkQuoteId: message.payload.bulkQuoteId,
-				individualQuoteResults: message.payload.individualQuoteResults,
-				expiration: message.payload.expiration,
-				extensionList: message.payload.extensionList
-			};
-
-			const event = new BulkQuoteAcceptedEvt(payload);
-
-			event.fspiopOpaqueState = message.fspiopOpaqueState;
-			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": message.fspiopOpaqueState.destinationFspId, };
-
-			return event;
-		} else {
-			await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 		}
 
-		return [];
+		await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+
+		const payload : BulkQuoteAcceptedEvtPayload = {
+			bulkQuoteId: message.payload.bulkQuoteId,
+			individualQuoteResults: message.payload.individualQuoteResults,
+			expiration: message.payload.expiration,
+			extensionList: message.payload.extensionList
+		};
+
+		const event = new BulkQuoteAcceptedEvt(payload);
+
+		event.fspiopOpaqueState = message.fspiopOpaqueState;
+		event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": message.fspiopOpaqueState.destinationFspId, };
+
+		return event;
 
 	}
 
