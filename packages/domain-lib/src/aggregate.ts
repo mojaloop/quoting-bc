@@ -428,7 +428,7 @@ export class QuotingAggregate  {
 			const event = new BulkQuoteReceivedEvt(payload);
 
 			event.fspiopOpaqueState = { ...message.fspiopOpaqueState };
-			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": fspId };
+			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": destinationFspId };
 
 			events.push(event);
 		}
@@ -511,9 +511,30 @@ export class QuotingAggregate  {
 
 		const quotes = message.payload.individualQuoteResults;
 
+		if(!this._passThroughMode){
+			await this.updateBulkQuoteInfo(message, quotes);
+		}
+
+		const payload : BulkQuoteAcceptedEvtPayload = {
+			bulkQuoteId: message.payload.bulkQuoteId,
+			individualQuoteResults: message.payload.individualQuoteResults,
+			expiration: message.payload.expiration,
+			extensionList: message.payload.extensionList
+		};
+
+		const event = new BulkQuoteAcceptedEvt(payload);
+
+		event.fspiopOpaqueState = message.fspiopOpaqueState;
+		event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": message.fspiopOpaqueState.destinationFspId, };
+
+		return event;
+
+	}
+
+	private async updateBulkQuoteInfo(message: BulkQuotePendingReceivedEvt, quotes: { quoteId: string; payee: { partyIdInfo: { partyIdType: string; partyIdentifier: string; partySubIdOrType: string | null; fspId: string | null; }; merchantClassificationCode: string | null; name: string | null; personalInfo: { complexName: { firstName: string | null; middleName: string | null; lastName: string | null; } | null; dateOfBirth: string | null; } | null; } | null; transferAmount: { currency: string; amount: string; } | null; payeeReceiveAmount: { currency: string; amount: string; } | null; payeeFspFee: { currency: string; amount: string; } | null; payeeFspCommission: { currency: string; amount: string; } | null; ilpPacket: string; condition: string; errorInformation: { errorCode: string; errorDescription: string; extensionList: { extension: { key: string; value: string; }[]; }; } | null; extensionList: { extension: { key: string; value: string; }[]; } | null; }[]) {
 		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(message.payload.bulkQuoteId);
 
-		if(!bulkQuote){
+		if (!bulkQuote) {
 			throw new NoSuchBulkQuoteError();
 		}
 
@@ -521,7 +542,7 @@ export class QuotingAggregate  {
 		for await (const individualQuote of quotes) {
 			const quote = await this._quotesRepo.getQuoteById(individualQuote.quoteId);
 
-			if(!quote){
+			if (!quote) {
 				throw new NoSuchQuoteError();
 			}
 
@@ -546,26 +567,11 @@ export class QuotingAggregate  {
 
 		const totalProcessedQuotes = quotesProcessed.length + bulkQuote.quotesNotProcessedIds.length;
 
-		if(bulkQuote.individualQuotes.length === totalProcessedQuotes) {
+		if (bulkQuote.individualQuotes.length === totalProcessedQuotes) {
 			bulkQuote.status = QuoteStatus.ACCEPTED;
 		}
 
 		await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
-
-		const payload : BulkQuoteAcceptedEvtPayload = {
-			bulkQuoteId: message.payload.bulkQuoteId,
-			individualQuoteResults: message.payload.individualQuoteResults,
-			expiration: message.payload.expiration,
-			extensionList: message.payload.extensionList
-		};
-
-		const event = new BulkQuoteAcceptedEvt(payload);
-
-		event.fspiopOpaqueState = message.fspiopOpaqueState;
-		event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": message.fspiopOpaqueState.destinationFspId, };
-
-		return event;
-
 	}
 
 	private async getMissingFspId(payeePartyId: string | null, payeePartyIdType: string | null, payeePartySubIdOrType: string | null, currency: string | null) {
