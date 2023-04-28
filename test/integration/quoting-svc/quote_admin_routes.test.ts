@@ -117,6 +117,22 @@ describe("Quoting Admin Routes - Integration", () => {
 
     });
 
+    test("GET - should get a quote by transactionId", async () => {
+        // Arrange
+        const newQuote = mockedQuote1;
+        const quoteId = await mockedQuoteRepository.addQuote(newQuote);
+        const quoteInfo = await mockedQuoteRepository.getQuoteById(quoteId);
+        
+        // Act
+        const response = await request(server)
+            .get(`/quotes?transactionId=${quoteInfo?.transactionId}`);
+
+        // Assert
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(newQuote);
+
+    });
+
     test("GET - should get a bulk quote by it's id", async () => {
         // Arrange
         const bulkQuoteId = await mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);

@@ -43,6 +43,7 @@ export interface IQuoteRepo {
     updateQuote(quote: IQuote):Promise<void>;
     removeQuote(id: string):Promise<void>;
     getQuoteById(id:string):Promise<IQuote|null>;
+    getQuoteByTransactionId(transactionId: string): Promise<IQuote | null>;
     getQuotes():Promise<IQuote[]>;
     getQuotesByBulkQuoteIdAndStatus(id:string, status: QuoteStatus):Promise<IQuote[]>;
 }

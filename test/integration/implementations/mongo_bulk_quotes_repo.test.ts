@@ -9,7 +9,7 @@
 
  Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
- Contributors
+ Contributorsမ
  --------------
  This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
@@ -19,7 +19,7 @@
  Gates Foundation organization for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
-
+မ
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
@@ -50,11 +50,13 @@ let mongoBulkQuotesRepo : IBulkQuoteRepo;
 
 let mongoClient: MongoClient;
 let collection : Collection;
-const connectionString = `${CONNECTION_STRING}/${DB_NAME}`;
+const connectionString = `${CONNECTION_STRING}`;
 
 describe("Implementations - Mongo Bulk Quotes Repo Integration tests", () => {
 
     beforeAll(async () => {
+        jest.setTimeout(10000);
+
         mongoClient = await MongoClient.connect(connectionString);
         collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
         mongoBulkQuotesRepo = new MongoBulkQuotesRepo(logger, CONNECTION_STRING, DB_NAME);

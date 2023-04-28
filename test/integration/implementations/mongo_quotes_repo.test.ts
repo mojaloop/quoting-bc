@@ -50,11 +50,13 @@ let mongoQuotesRepo : MongoQuotesRepo;
 
 let mongoClient: MongoClient;
 let collection : Collection;
-const connectionString = `${CONNECTION_STRING}/${DB_NAME}`;
+const connectionString = `${CONNECTION_STRING}`;
 
 describe("Implementations - Mongo Quotes Repo Integration tests", () => {
 
     beforeAll(async () => {
+        jest.setTimeout(10000);
+
         mongoClient = await MongoClient.connect(connectionString);
         collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
         mongoQuotesRepo = new MongoQuotesRepo(logger, CONNECTION_STRING, DB_NAME);
@@ -297,6 +299,17 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         expect(result).toEqual([quote1, quote2, quote3, quote4]);
     });
 
+    test("should return null when there are no quotes with given transactionId", async () => {
+        //Arrange
+        const transactionId = "NonExistingTransactionId";
+
+        // Act
+        const result = await mongoQuotesRepo.getQuoteByTransactionId(transactionId);
+
+        // Assert
+        expect(result).toEqual(null);
+    });
+    
  });
 
 
