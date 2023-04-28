@@ -417,20 +417,20 @@ export class QuotingAggregate  {
 			await this.updateBulkQuoteStatus(bulkQuoteId, quotes, quotesNotProcessedIds);
 		}
 
-		for (const destinationFspId in validQuotes) {
+		for (const fspId in validQuotes) {
 			const payload : BulkQuoteReceivedEvtPayload = {
 				bulkQuoteId,
 				payer: message.payload.payer,
 				geoCode: message.payload.geoCode,
 				expiration: message.payload.expiration,
-				individualQuotes: validQuotes[destinationFspId] as any,
+				individualQuotes: validQuotes[fspId] as any,
 				extensionList: message.payload.extensionList
 			};
 
 			const event = new BulkQuoteReceivedEvt(payload);
 
 			event.fspiopOpaqueState = { ...message.fspiopOpaqueState };
-			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": destinationFspId };
+			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": fspId };
 
 			events.push(event);
 		}
@@ -455,16 +455,12 @@ export class QuotingAggregate  {
 		}
 	}
 
-	private async processBulkQuotes(bulkQuoteId: string, quotes: IQuote[], message: BulkQuoteRequestedEvt, quotesFspIds: { [key: string]: string | null; },
+	private async processBulkQuotes(bulkQuoteId: string, quotes: IQuote[], message: BulkQuoteRequestedEvt, fspIds: { [key: string]: string | null; },
 		validQuotes: { [key: string]: IQuote[]; }, quotesNotProcessedIds: string[]) {
 
 		for await (const quote of quotes) {
-			let destinationFspId = quote.payee?.partyIdInfo?.fspId;
+			const destinationFspId = quote.payee?.partyIdInfo?.fspId ?? fspIds[quote.quoteId] ?? null;
 			quote.payer = message.payload.payer;
-
-			if (!destinationFspId) {
-				destinationFspId = quotesFspIds[quote.quoteId] || null;
-			}
 
 			if (!destinationFspId) {
 				quote.status = QuoteStatus.REJECTED;
@@ -473,15 +469,14 @@ export class QuotingAggregate  {
 			else {
 				const isValidParticipant = await this.validateParticipant(destinationFspId).catch(() => false);
 				if (isValidParticipant) {
+					if (!validQuotes[destinationFspId]) {
+						validQuotes[destinationFspId] = [];
+					}
 
-				if (!validQuotes[destinationFspId]) {
-					validQuotes[destinationFspId] = [];
-				}
-
-				quote.bulkQuoteId = bulkQuoteId;
-				quote.status = QuoteStatus.PENDING;
-				quote.payee.partyIdInfo.fspId = destinationFspId;
-				validQuotes[destinationFspId].push(quote);
+					quote.bulkQuoteId = bulkQuoteId;
+					quote.status = QuoteStatus.PENDING;
+					quote.payee.partyIdInfo.fspId = destinationFspId;
+					validQuotes[destinationFspId].push(quote);
 				} else {
 					quote.status = QuoteStatus.REJECTED;
 					quotesNotProcessedIds.push(quote.quoteId);
@@ -624,7 +619,7 @@ export class QuotingAggregate  {
 		}
 	}
 
-	private async validateParticipant(participantId: string | null):Promise<void>{
+	private async validateParticipant(participantId: string | null):Promise<boolean>{
 		if(participantId){
 			const participant = await this._participantService.getParticipantInfo(participantId);
 
@@ -644,7 +639,7 @@ export class QuotingAggregate  {
 			// }
 		}
 
-		return;
+		return true;
 	}
 
 
