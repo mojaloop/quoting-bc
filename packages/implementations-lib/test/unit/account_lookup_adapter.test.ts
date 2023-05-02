@@ -75,7 +75,7 @@ describe("Account Lookup Adapter - Unit Tests", () => {
         participantLookUpSpy.mockResolvedValueOnce(null);
 
         // Act
-        const fspId = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null,null);
+        const fspId = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null);
 
         // Assert
         expect(fspId).toBeNull();
@@ -87,7 +87,7 @@ describe("Account Lookup Adapter - Unit Tests", () => {
         participantLookUpSpy.mockResolvedValueOnce(fspId);
 
         // Act
-        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null,null);
+        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null);
 
         // Assert
         expect(fspIdResult).toEqual(fspId);
@@ -100,7 +100,7 @@ describe("Account Lookup Adapter - Unit Tests", () => {
             .mockReturnValueOnce(fspId);
 
         // Act
-        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null,null);
+        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null);
 
         // Assert
         expect(cacheSpy).toBeCalledTimes(1);
@@ -115,47 +115,47 @@ describe("Account Lookup Adapter - Unit Tests", () => {
         participantLookUpSpy.mockResolvedValueOnce(fspId);
 
         // Act
-        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null,null);
+        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", null);
 
         // Assert
         expect(cacheSpy).toBeCalledTimes(1);
-        expect(cacheSpy).toBeCalledWith(fspId, "MSISDN", "partyType", null, null);
+        expect(cacheSpy).toBeCalledWith(fspId, "MSISDN", "partyType", null);
         expect(fspIdResult).toEqual(fspId);
     });
 
 
 
-    test("getAccountLookup - should return null if couldnt get fspId by partyId, partyType and partySubId", async () => {
+    test("getAccountLookup - should return null if couldnt get fspId by partyId, partyType and currency", async () => {
         // Arrange
         participantLookUpSpy.mockResolvedValueOnce(null);
 
         // Act
-        const fspId = await accountLookupClient.getAccountLookup("MSISDN", "partyType", "partySubId",null);
+        const fspId = await accountLookupClient.getAccountLookup("MSISDN", "partyType", "currency");
 
         // Assert
         expect(fspId).toBeNull();
     });
 
-    test("getAccountLookup - should return fspId by partyId, partyType and partySubId", async () => {
+    test("getAccountLookup - should return fspId by partyId, partyType and currency", async () => {
         // Arrange
         const fspId = "fspId";
         participantLookUpSpy.mockResolvedValueOnce(fspId);
 
         // Act
-        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", "partySubId",null);
+        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", "currenct");
 
         // Assert
         expect(fspIdResult).toEqual(fspId);
     });
 
-    test("getAccountLookup - should return cached fspId by partyId, partyType and partySubId", async () => {
+    test("getAccountLookup - should return cached fspId by partyId, partyType and currency", async () => {
         // Arrange
         const fspId = "fspId";
         const cacheSpy = jest.spyOn(localCache, "get")
             .mockReturnValueOnce(fspId);
 
         // Act
-        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", "partySubId",null);
+        const fspIdResult = await accountLookupClient.getAccountLookup("MSISDN", "partyType", "currency");
 
         // Assert
         expect(cacheSpy).toBeCalledTimes(1);
@@ -168,13 +168,11 @@ describe("Account Lookup Adapter - Unit Tests", () => {
             "key1":{
                 currency: "USD",
                 partyId: "partyId",
-                partySubIdOrType: "partySubIdOrType",
                 partyType: "partyType",
             },
             "key2":{
                 currency: "USD",
                 partyId: "partyId2",
-                partySubIdOrType: "partySubType2",
                 partyType: "partyType2",
             }
         };
@@ -199,13 +197,11 @@ describe("Account Lookup Adapter - Unit Tests", () => {
             "key1":{
                 currency: "USD",
                 partyId: "partyId",
-                partySubIdOrType: "partySubIdOrType",
                 partyType: "partyType",
             },
             "key2":{
                 currency: "USD",
                 partyId: "partyId2",
-                partySubIdOrType: "partySubType2",
                 partyType: "partyType2",
             }
         };
@@ -233,7 +229,6 @@ describe("Account Lookup Adapter - Unit Tests", () => {
             "key1":{
                 currency: "USD",
                 partyId: "partyId",
-                partySubIdOrType: "partySubIdOrType",
                 partyType: "partyType",
             }
         };
@@ -257,13 +252,11 @@ describe("Account Lookup Adapter - Unit Tests", () => {
             "key1":{
                 currency: "USD",
                 partyId: "partyId",
-                partySubIdOrType: "partySubIdOrType",
                 partyType: "partyType",
             },
             "key2":{
                 currency: "USD",
                 partyId: "partyId2",
-                partySubIdOrType: "partySubType2",
                 partyType: "partyType2",
             }
         };
@@ -287,13 +280,11 @@ describe("Account Lookup Adapter - Unit Tests", () => {
             "key1":{
                 currency: "USD",
                 partyId: "partyId",
-                partySubIdOrType: "partySubIdOrType",
                 partyType: "partyType",
             },
             "key2":{
                 currency: "USD",
                 partyId: "partyId2",
-                partySubIdOrType: "partySubType2",
                 partyType: "partyType2",
             }
         };
@@ -331,13 +322,11 @@ describe("Account Lookup Adapter - Unit Tests", () => {
             "key1":{
                 currency: "USD",
                 partyId: "partyId",
-                partySubIdOrType: "partySubIdOrType",
                 partyType: "partyType",
             },
             "key2":{
                 currency: "USD",
                 partyId: "partyId2",
-                partySubIdOrType: "partySubType2",
                 partyType: "partyType2",
             }
         };

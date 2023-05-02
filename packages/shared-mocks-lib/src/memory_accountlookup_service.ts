@@ -47,7 +47,7 @@ export class MemoryAccountLookupService implements IAccountLookupService {
 		return Promise.resolve({});
 	}
 
-	getAccountLookup(_partyId: string, _partyType: string, _partySubIdOrType: string | null, _currency: string | null): Promise<string | null> {
+	getAccountLookup(_partyId: string, _partyType: string , _currency: string | null): Promise<string | null> {
 		return Promise.resolve(null);
 	}
 

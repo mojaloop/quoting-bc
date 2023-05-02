@@ -64,11 +64,10 @@ export class AccountLookupAdapter implements IAccountLookupService {
 		for (const key of Object.keys(partyIdentifiers)) {
 			const partyId = partyIdentifiers[key].partyId;
 			const partyType = partyIdentifiers[key].partyType;
-			const partySubIdOrType = partyIdentifiers[key]?.partySubIdOrType;
 			const currency = partyIdentifiers[key]?.currency;
 
-			this._logger.debug(`getBulkAccountLookup: checking cache for key: ${key} or partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
-			const cachedResult = this._localCache.get(partyId, partyType, partySubIdOrType, currency);
+			this._logger.debug(`getBulkAccountLookup: checking cache for key: ${key} or partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
+			const cachedResult = this._localCache.get(partyId, partyType,currency);
 
 			if (cachedResult) {
 				this._logger.debug(`getBulkAccountLookup: returning cached result for key: ${key}`);
@@ -98,8 +97,8 @@ export class AccountLookupAdapter implements IAccountLookupService {
 
 		try {
 			for (const [key] of Object.entries(partyIdentifiers)) {
-				this._logger.debug(`getBulkAccountLookup: caching result for partyId: ${partyIdentifiers[key]?.partyId}, partyType ${partyIdentifiers[key]?.partyType}, partySubIdOrType: ${partyIdentifiers[key]?.partySubIdOrType}, currency: ${partyIdentifiers[key]?.currency}`);
-				this._localCache.set(result[key],  partyIdentifiers[key]?.partyId, partyIdentifiers[key]?.partyType, partyIdentifiers[key]?.partySubIdOrType, partyIdentifiers[key]?.currency);
+				this._logger.debug(`getBulkAccountLookup: caching result for partyId: ${partyIdentifiers[key]?.partyId}, partyType ${partyIdentifiers[key]?.partyType}, currency: ${partyIdentifiers[key]?.currency}`);
+				this._localCache.set(result[key],  partyIdentifiers[key]?.partyId, partyIdentifiers[key]?.partyType, partyIdentifiers[key]?.currency);
 			}
 		}
 		catch (e: unknown) {
@@ -110,23 +109,23 @@ export class AccountLookupAdapter implements IAccountLookupService {
 
 	}
 
-	async getAccountLookup(partyId:string, partyType:string, partySubIdOrType:string | null, currency:string | null): Promise<string| null> {
-		const cachedResult = this._localCache.get(partyId, partyType, partySubIdOrType, currency);
+	async getAccountLookup(partyId:string, partyType:string, currency:string | null): Promise<string| null> {
+		const cachedResult = this._localCache.get(partyId, partyType, currency);
 		if (cachedResult) {
-			this._logger.info(`getAccountLookup: returning cached result for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
+			this._logger.info(`getAccountLookup: returning cached result for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
 			return cachedResult.toString();
 		}
 		try {
-			this._logger.info(`getAccountLookup: calling external account lookup service for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
-			const result = await this._externalAccountLookupClient.participantLookUp(partyId, partyType, partySubIdOrType, currency);
+			this._logger.info(`getAccountLookup: calling external account lookup service for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
+			const result = await this._externalAccountLookupClient.participantLookUp(partyId, partyType, currency);
 
 			if(result) {
-				this._logger.info(`getAccountLookup: caching result for partyId: ${partyId}, partyType ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency}`);
-				this._localCache.set(result, partyId, partyType, partySubIdOrType, currency);
+				this._logger.info(`getAccountLookup: caching result for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
+				this._localCache.set(result, partyId, partyType, currency);
 			}
 			return result;
 		} catch (e: unknown) {
-			this._logger.error(`getAccountLookup: error getting for partyId: ${partyId}, partyType: ${partyType}, partySubIdOrType: ${partySubIdOrType}, currency: ${currency} - ${e}`);
+			this._logger.error(`getAccountLookup: error getting for partyId: ${partyId}, partyType: ${partyType}, currency: ${currency} - ${e}`);
 			throw new GetAccountLookupAdapterError();
 		}
 	}

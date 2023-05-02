@@ -64,8 +64,8 @@ import {
 	BulkQuotePendingReceivedEvt,
 	BulkQuoteAcceptedEvt,
 	BulkQuoteAcceptedEvtPayload,
-	QuoteErrorEvtPayload,
-	QuoteErrorEvt,
+	QuotingBCUnknownErrorEvent,
+	QuotingBCUnknownErrorPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, QuoteStatus } from "./types";
 import { randomUUID } from "crypto";
@@ -111,15 +111,14 @@ export class QuotingAggregate  {
 
 			// TODO: find a way to publish the correct error event type
 
-			const errorPayload: QuoteErrorEvtPayload = {
-				errorMsg: errorMessage,
-				quoteId: message.payload?.bulkQuoteId ? message.payload?.bulkQuoteId : message.payload?.quoteId,
-				sourceEvent: message.msgName,
-				requesterFspId: message.fspiopOpaqueState?.requesterFspId ?? null,
-				destinationFspId: message.fspiopOpaqueState?.destinationFspId ?? null,
+			const errorPayload: QuotingBCUnknownErrorPayload = {
+				bulkQuoteId: message.payload?.bulkQuoteId ? message.payload?.bulkQuoteId : message.payload?.quoteId,
+				fspId: message.fspiopOpaqueState?.requesterFspId ?? null,
+				errorDescription: errorMessage,
+				quoteId: message.payload?.quoteId ?? null,
 			};
 
-			const messageToPublish = new QuoteErrorEvt(errorPayload);
+			const messageToPublish = new QuotingBCUnknownErrorEvent(errorPayload);
 			messageToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
 			await this._messageProducer.send(messageToPublish);
 		}
@@ -196,7 +195,7 @@ export class QuotingAggregate  {
 			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType;
 			const payeePartySubIdOrType = message.payload.payer?.partyIdInfo?.partySubIdOrType ?? null;
 			const currency = message.payload.amount?.currency ?? null;
-			destinationFspId = await this.getMissingFspId(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+			destinationFspId = await this.getMissingFspId(payeePartyId, payeePartyIdType, currency);
 			message.payload.payee.partyIdInfo.fspId = destinationFspId;
 		}
 
@@ -572,14 +571,14 @@ export class QuotingAggregate  {
 		await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 	}
 
-	private async getMissingFspId(payeePartyId: string | null, payeePartyIdType: string | null, payeePartySubIdOrType: string | null, currency: string | null) {
+	private async getMissingFspId(payeePartyId: string | null, payeePartyIdType: string | null, currency: string | null) {
 		if (!payeePartyId || !payeePartyIdType) {
 			throw new InvalidDestinationPartyInformationError();
 		}
 
 		this._logger.debug(`No destinationFspId found in message, trying to get it from account lookup service for payee: ${payeePartyId}`);
 
-		const destinationFspIdToUse = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, payeePartySubIdOrType, currency);
+		const destinationFspIdToUse = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency);
 
 		if (destinationFspIdToUse) {
 			this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspIdToUse}`);
@@ -601,7 +600,6 @@ export class QuotingAggregate  {
 				destinationFspIdsToDiscover[key] = {
 					partyId: quote.payee?.partyIdInfo?.partyIdentifier,
 					partyType: quote.payee?.partyIdInfo?.partyIdType,
-					partySubIdOrType: quote.payee?.partyIdInfo?.partySubIdOrType,
 					currency: quote.amount?.currency,
 				};
 			}
