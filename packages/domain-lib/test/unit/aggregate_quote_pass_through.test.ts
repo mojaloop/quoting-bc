@@ -52,13 +52,13 @@ import {
     NoSuchParticipantError,
     InvalidDestinationFspIdError,
     NoSuchQuoteError
-} from "../../../src/errors";
-import { IMoney, IQuote, QuoteStatus } from '../../../src/types';
+} from "../../src/errors";
+import { IMoney, IQuote } from '../../src/types';
 import { 
     createMessage,
     createQuoteRequestReceivedEvtPayload,
     createQuoteResponseReceivedEvtPayload 
-} from "../../utils/helpers";
+} from "../utils/helpers";
 import { 
     quoteRepo, 
     messageProducer,
@@ -66,9 +66,9 @@ import {
     accountLookupService,
     logger,
     bulkQuoteRepo 
-} from "../../utils/mocked_variables";
-import { mockedQuote1, mockedQuote2, mockedQuote4 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import { QuotingAggregate } from "../../../src/aggregate";
+} from "../utils/mocked_variables";
+import { mockedQuote1, mockedQuote4 } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { QuotingAggregate } from "../../src/aggregate";
 
 
 let aggregate: QuotingAggregate;

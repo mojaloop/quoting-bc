@@ -47,14 +47,11 @@ import {
     InvalidParticipantIdError,
     InvalidRequesterFspIdError,
     NoSuchParticipantError,
-    InvalidDestinationFspIdError,
-    NoSuchBulkQuoteError
-} from "../../../src/errors";
-import { QuoteStatus } from '../../../src/types';
-import { createBulkQuotePendingReceivedEvtPayload, createBulkQuoteRequestedEvtPayload, createMessage } from "../../utils/helpers";
-import { logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService } from "../../utils/mocked_variables";
+    InvalidDestinationFspIdError} from "../../src/errors";
+import { createBulkQuotePendingReceivedEvtPayload, createBulkQuoteRequestedEvtPayload, createMessage } from "../utils/helpers";
+import { logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService } from "../utils/mocked_variables";
 import { mockedBulkQuote1, mockedQuote2 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import { QuotingAggregate } from "../../../src/aggregate";
+import { QuotingAggregate } from "../../src/aggregate";
 
 let aggregate: QuotingAggregate;
 
