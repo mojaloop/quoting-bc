@@ -88,7 +88,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
 
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: "not matching", type: "DFSP", isActive: false} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "not matching", type: "DFSP", isActive: false} as IParticipant);
 
         jest.spyOn(messageProducer, "send");
 
@@ -120,8 +120,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             .mockResolvedValueOnce({ test: "payee" });
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(messageProducer, "send");
 
@@ -150,8 +150,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         const message: IMessage = createMessage(payload, BulkQuoteRequestedEvt.name,fspiopOpaqueState);
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(bulkQuoteRepo, "addBulkQuote")
             .mockResolvedValueOnce(mockedQuote.bulkQuoteId);
@@ -206,9 +206,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             .mockResolvedValueOnce("inserted quote id");
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: requesterFspId, type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValue({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: requesterFspId, type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValue({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant);
 
 
         jest.spyOn(messageProducer, "send");
@@ -349,8 +349,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         };
 
         jest.spyOn(participantService,"getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById")
             .mockResolvedValueOnce(null);
@@ -381,8 +381,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         const repositorySpy = jest.spyOn(bulkQuoteRepo, "updateBulkQuote");
 
         jest.spyOn(participantService,"getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById")
             .mockResolvedValueOnce(mockedBulkQuote1);
@@ -432,8 +432,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         };
 
         jest.spyOn(participantService,"getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById")
             .mockResolvedValueOnce(mockedBulkQuote1);

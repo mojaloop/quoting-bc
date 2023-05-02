@@ -195,8 +195,8 @@ describe("Domain - Unit Tests for Event Handler", () => {
             .mockResolvedValueOnce("inserted quote id");
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: requesterFspId, type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: requesterFspId, type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(messageProducer, "send");
 

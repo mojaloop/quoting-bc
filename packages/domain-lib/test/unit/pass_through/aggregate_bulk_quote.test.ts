@@ -102,7 +102,7 @@ describe("Domain - Unit Tests for Bulk Quote Events with Passthrough Mode", () =
 
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: "not matching", type: "DFSP", isActive: false} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "not matching", type: "DFSP", isActive: false} as IParticipant);
 
         jest.spyOn(messageProducer, "send");
 
@@ -134,8 +134,8 @@ describe("Domain - Unit Tests for Bulk Quote Events with Passthrough Mode", () =
             .mockResolvedValueOnce({ test: "payee" });
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(messageProducer, "send");
 
@@ -164,8 +164,8 @@ describe("Domain - Unit Tests for Bulk Quote Events with Passthrough Mode", () =
         const message: IMessage = createMessage(payload, BulkQuoteRequestedEvt.name,fspiopOpaqueState);
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(bulkQuoteRepo, "addBulkQuote");
 
@@ -215,9 +215,9 @@ describe("Domain - Unit Tests for Bulk Quote Events with Passthrough Mode", () =
             .mockResolvedValueOnce("inserted quote id");
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: requesterFspId, type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValue({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: requesterFspId, type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValue({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant);
 
 
         jest.spyOn(messageProducer, "send");
@@ -355,8 +355,8 @@ describe("Domain - Unit Tests for Bulk Quote Events with Passthrough Mode", () =
         };
 
         jest.spyOn(participantService,"getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById");
 
@@ -393,8 +393,8 @@ describe("Domain - Unit Tests for Bulk Quote Events with Passthrough Mode", () =
         };
 
         jest.spyOn(participantService,"getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById")
             .mockResolvedValueOnce(mockedBulkQuote1);
@@ -443,8 +443,8 @@ describe("Domain - Unit Tests for Bulk Quote Events with Passthrough Mode", () =
         };
 
         jest.spyOn(participantService,"getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant as any)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant as any);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
 
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById")
             .mockResolvedValueOnce(mockedBulkQuote1);
