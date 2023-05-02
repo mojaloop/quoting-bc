@@ -1,6 +1,8 @@
 # CircleCI v2.1 Config
 version: 2.1
 
+# this allows you to use CircleCI's dynamic configuration feature
+setup: true
 ##
 # Executors
 #
