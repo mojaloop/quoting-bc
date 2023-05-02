@@ -64,6 +64,9 @@
     async start() : Promise<void> {
           return Promise.resolve();
     }
+    async startAndWaitForRebalance() : Promise<void> {
+          return Promise.resolve();
+    }
 
     async stop (): Promise<void> {
           return Promise.resolve();

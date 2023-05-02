@@ -1,10 +1,13 @@
 {
   "name": "@mojaloop/quoting-bc-quoting-svc",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "mojaloop quoting service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/quoting-bc/tree/main/modules/quoting-svc",
   "private": true,
+  "mojaloop": {
+    "publish_to_dockerhub": true
+  },
   "bugs": {
     "url": "https://github.com/mojaloop/quoting-bc/issues#readme"
   },
@@ -27,39 +30,38 @@
     "service": "node dist/index.js",
     "build": "tsc",
     "watch": "tsc -w --pretty",
+    "clean": "npm run clean:npm; npm run clean:dist",
     "clean:dist": "rm -rf dist",
     "clean:npm": "rm -rf node_modules",
-    "clean:dist-and-node-modules": "rm -rf dist node_modules",
-    "clean": "npm run clean:dist",
     "pretest": "npm run build",
     "standard": "npm run lint",
     "lint": "npm run build && npx eslint ./src",
     "lint:fix": "npm run build && npx eslint ./src --fix",
-    "test:unit": "jest --runInBand --detectOpenHandles",
+    "test:unit": "jest --passWithNoTests --testMatch '**/test/unit/**/*.test.ts'",
     "dep:check": "ncu -e 2",
     "dep:update": "ncu -e 2 -u"
   },
   "dependencies": {
-    "@mojaloop/logging-bc-client-lib": "~0.1.18",
-    "@mojaloop/logging-bc-public-types-lib": "~0.1.15",
-    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.32",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.71",
-    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.71",
-    "@mojaloop/security-bc-client-lib": "~0.1.12",
+    "@mojaloop/logging-bc-client-lib": "~0.1.24",
+    "@mojaloop/logging-bc-public-types-lib": "~0.1.19",
+    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.45",
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "0.2.71",
+    "@mojaloop/platform-shared-lib-public-messages-lib": "0.1.71",
+    "@mojaloop/security-bc-client-lib": "~0.1.31",
     "@mojaloop/quoting-bc-domain-lib": "*",
-    "@mojaloop/quoting-bc-implementations-lib":"*",
+    "@mojaloop/quoting-bc-implementations-lib": "*",
     "express": "^4.18.2",
-    "express-validator": "^6.15.0",
-    "semver": "^7.3.8"
+    "express-validator": "^7.0.1",
+    "semver": "^7.5.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.17",
     "@types/semver": "^7.3.13",
-    "eslint": "^8.34.0",
-    "jest": "^29.4.3",
+    "eslint": "^8.38.0",
+    "jest": "^29.5.0",
     "tslib": "^2.5.0",
-    "npm-check-updates": "~16.7.9",
-    "ts-jest": "^29.0.5",
+    "npm-check-updates": "~16.10.9",
+    "ts-jest": "^29.1.0",
     "typescript": "^4.6.4"
   }
 }
