@@ -180,11 +180,17 @@ describe("Domain - Unit Tests for Quote Events with Passthrough Mode", () => {
 
         jest.spyOn(messageProducer, "send");
 
+        jest.spyOn(quoteRepo, "addQuote");
+
         // Act
         await aggregate.handleQuotingEvent(message);
 
         // Assert
         expect(quoteRepo.addQuote).toHaveBeenCalledTimes(0);
+        expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
+            "fspiopOpaqueState": fspiopOpaqueState,
+            "payload": payload,
+        }));
 
     });
 
@@ -351,8 +357,6 @@ describe("Domain - Unit Tests for Quote Events with Passthrough Mode", () => {
             destinationFspId: "payee",
         }
         const message: IMessage = createMessage(payload,QuoteResponseReceivedEvt.name, fspiopOpaqueState);
-
-        const errorMsg = NoSuchQuoteError.name;
 
         const quoteResponsePayload: QuoteResponseAcceptedEvtPayload = {
             expiration: mockedQuote.expiration as string ,
