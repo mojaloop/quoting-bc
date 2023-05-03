@@ -19,7 +19,7 @@
  Gates Foundation organization for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
-မ
+
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
@@ -55,8 +55,7 @@ const connectionString = `${CONNECTION_STRING}`;
 describe("Implementations - Mongo Bulk Quotes Repo Integration tests", () => {
 
     beforeAll(async () => {
-        jest.setTimeout(10000);
-
+        
         mongoClient = await MongoClient.connect(connectionString);
         collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
         mongoBulkQuotesRepo = new MongoBulkQuotesRepo(logger, CONNECTION_STRING, DB_NAME);

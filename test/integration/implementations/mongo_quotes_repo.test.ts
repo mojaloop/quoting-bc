@@ -55,8 +55,7 @@ const connectionString = `${CONNECTION_STRING}`;
 describe("Implementations - Mongo Quotes Repo Integration tests", () => {
 
     beforeAll(async () => {
-        jest.setTimeout(10000);
-
+        
         mongoClient = await MongoClient.connect(connectionString);
         collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
         mongoQuotesRepo = new MongoQuotesRepo(logger, CONNECTION_STRING, DB_NAME);
