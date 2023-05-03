@@ -50,11 +50,12 @@ let mongoBulkQuotesRepo : IBulkQuoteRepo;
 
 let mongoClient: MongoClient;
 let collection : Collection;
-const connectionString = `${CONNECTION_STRING}/${DB_NAME}`;
+const connectionString = `${CONNECTION_STRING}`;
 
 describe("Implementations - Mongo Bulk Quotes Repo Integration tests", () => {
 
     beforeAll(async () => {
+        
         mongoClient = await MongoClient.connect(connectionString);
         collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
         mongoBulkQuotesRepo = new MongoBulkQuotesRepo(logger, CONNECTION_STRING, DB_NAME);
