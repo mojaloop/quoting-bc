@@ -578,21 +578,19 @@ export class QuotingAggregate  {
 
 		this._logger.debug(`No destinationFspId found in message, trying to get it from account lookup service for payee: ${payeePartyId}`);
 
-		const destinationFspIdToUse = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency);
+		const destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency);
 
-		if (destinationFspIdToUse) {
-			this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspIdToUse}`);
+		if (destinationFspId) {
+			this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspId}`);
 		}
 		else {
 			this._logger.error(`Unable to get destinationFspId from account lookup service for payee: ${payeePartyId}`);
 		}
-		return destinationFspIdToUse;
+		return destinationFspId;
 	}
 
 	private async getMissingFspIds(quotes: IQuote[]): Promise<{[key:string]:string|null}| null> {
-
 		const destinationFspIdsToDiscover: AccountLookupBulkQuoteFspIdRequest= {};
-
 		for (const quote of quotes) {
 			const destinationFspId = quote.payee?.partyIdInfo?.fspId;
 			if(!destinationFspId) {
