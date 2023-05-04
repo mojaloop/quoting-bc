@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "clean": "npm run clean:npm && npm run clean:dist",
+    "clean": "(npm run clean:npm || true) && npm run clean:dist",
     "clean:dist": "rm -rf dist",
     "clean:npm": "rm -rf node_modules",
     "audit:check": "npm npm audit",
@@ -31,7 +31,7 @@
   "dependencies": {
     "@mojaloop/quoting-bc-domain-lib": "*",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.19",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.86",
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.88",
     "@mojaloop/security-bc-client-lib": "~0.1.31",
     "@mojaloop/participant-bc-public-types-lib": "~0.0.8"
   },
