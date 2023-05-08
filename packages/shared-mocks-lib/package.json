@@ -31,7 +31,7 @@
   "dependencies": {
     "@mojaloop/quoting-bc-domain-lib": "*",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.19",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.88",
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.94",
     "@mojaloop/security-bc-client-lib": "~0.1.31",
     "@mojaloop/participant-bc-public-types-lib": "~0.0.8"
   },

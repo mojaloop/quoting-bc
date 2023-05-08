@@ -44,9 +44,9 @@
   "dependencies": {
     "@mojaloop/logging-bc-client-lib": "~0.1.24",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.19",
-    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.49",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "0.2.88",
-    "@mojaloop/platform-shared-lib-public-messages-lib": "0.1.88",
+    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.55",
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "0.2.94",
+    "@mojaloop/platform-shared-lib-public-messages-lib": "0.1.94",
     "@mojaloop/security-bc-client-lib": "~0.1.31",
     "@mojaloop/quoting-bc-domain-lib": "*",
     "@mojaloop/quoting-bc-implementations-lib": "*",

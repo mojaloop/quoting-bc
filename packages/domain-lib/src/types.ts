@@ -1,3 +1,4 @@
+import { QuoteBCQuoteNotFoundErrorEvent } from '@mojaloop/platform-shared-lib-public-messages-lib';
 /**
  License
  --------------
@@ -31,6 +32,12 @@
  **/
 
 "use strict";
+
+import {QuoteBCBulkQuoteNotFoundErrorEvent, QuoteBCUnknownErrorEvent,
+    QuoteBCInvalidMessagePayloadErrorEvent, QuoteBCDuplicateQuoteErrorEvent, QuoteBCInvalidDestinationPartyInformationErrorEvent,
+    QuoteBCInvalidMessageTypeErrorEvent, QuoteBCParticipantNotFoundErrorEvent,
+    QuoteBCInvalidParticipantIdErrorEvent, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent,
+    QuoteBCRequiredParticipantIsNotActiveErrorEvent } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 export enum QuoteStatus {
     RECEIVED = "RECEIVED",
@@ -145,6 +152,11 @@ export interface IBulkQuote {
     status: QuoteStatus | null;
 }
 
+export type QuoteErrorEvent = QuoteBCBulkQuoteNotFoundErrorEvent | QuoteBCUnknownErrorEvent |
+    QuoteBCInvalidMessagePayloadErrorEvent | QuoteBCDuplicateQuoteErrorEvent | QuoteBCInvalidDestinationPartyInformationErrorEvent |
+    QuoteBCInvalidMessageTypeErrorEvent  | QuoteBCParticipantNotFoundErrorEvent |
+    QuoteBCInvalidParticipantIdErrorEvent | QuoteBCInvalidRequesterFspIdErrorEvent | QuoteBCInvalidDestinationFspIdErrorEvent |
+    QuoteBCRequiredParticipantIsNotActiveErrorEvent;
 
 
 

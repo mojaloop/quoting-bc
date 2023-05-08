@@ -64,11 +64,10 @@ import {
 	BulkQuotePendingReceivedEvt,
 	BulkQuoteAcceptedEvt,
 	BulkQuoteAcceptedEvtPayload,
-	QuotingBCUnknownErrorEvent,
-	QuotingBCUnknownErrorPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, QuoteStatus } from "./types";
+import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, QuoteErrorEvent, QuoteStatus } from "./types";
 import { randomUUID } from "crypto";
+import { createInvalidMessagePayloadErrorEvent } from "./error_events";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -98,7 +97,7 @@ export class QuotingAggregate  {
 	}
 
 	async handleQuotingEvent(message: IMessage): Promise<void> {
-		this._logger.debug(`Got message in handleQuotingEvent handler - msgName: ${message.msgName}`);
+		this._logger.debug(`Got message in Quoting handler - msg: ${message}`);
 
 		try{
 			const isMessageValid = this.validateMessage(message);
@@ -125,10 +124,18 @@ export class QuotingAggregate  {
 	}
 
 
-	private validateMessage(message:IMessage): boolean {
+	private validateMessageOrGetErroEvent(message:IMessage): boolean {
+		let errorEvent!: QuoteErrorEvent | null;
+		const result = {errorEvent, valid: false};
+		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
+		const quoteId = message.payload?.quoteId;
+		const bulkQuoteId = message.payload?.bulkQuoteId;
+
+
 		if(!message.payload){
-			this._logger.error(`QuoteEventHandler: message payload has invalid format or value`);
-			throw new InvalidMessagePayloadError();
+			const errorMessage = "Message payload is null or undefined";
+			this._logger.error(errorMessage);
+			result.errorEvent = createInvalidMessagePayloadErrorEvent(errorMessage,requesterFspId,quoteId,bulkQuoteId);
 		}
 
 		if(!message.msgName){
@@ -386,7 +393,7 @@ export class QuotingAggregate  {
 			payer: message.payload.payer,
 			geoCode: message.payload.geoCode,
 			expiration: message.payload.expiration,
-			individualQuotes: message.payload.individualQuotes.map(q => q.quoteId),
+			individualQuotes: message.payload.individualQuotes?.map(q => q.quoteId),
 			extensionList: message.payload.extensionList,
 			quotesNotProcessedIds: [],
 			status: QuoteStatus.PENDING
