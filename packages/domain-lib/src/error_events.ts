@@ -67,6 +67,12 @@ export function createInvalidMessageTypeErrorEvent(errorDescription:string, fspI
     return errorEvent;
 }
 
+//TODO: Create the event
+export function createInvalidMessageNameErrorEvent(errorDescription:string, fspId:string, quoteId: string, bulkQuoteId:string): any
+{
+    return null;
+}
+
 export function createBulkQuoteNotFoundErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): QuoteBCBulkQuoteNotFoundErrorEvent {
     const errorPayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
         bulkQuoteId,

@@ -67,7 +67,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, QuoteErrorEvent, QuoteStatus } from "./types";
 import { randomUUID } from "crypto";
-import { createInvalidMessagePayloadErrorEvent } from "./error_events";
+import { createInvalidMessageNameErrorEvent, createInvalidMessagePayloadErrorEvent, createInvalidMessageTypeErrorEvent, createUnknownErrorEvent } from "./error_events";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -96,100 +96,68 @@ export class QuotingAggregate  {
 		this._passThroughMode = passThroughMode ?? false;
 	}
 
+	//#region Event Handlers
 	async handleQuotingEvent(message: IMessage): Promise<void> {
 		this._logger.debug(`Got message in Quoting handler - msg: ${message}`);
-
-		try{
-			const isMessageValid = this.validateMessage(message);
-			if(isMessageValid) {
-				await this.handleEvent(message);
-			}
-		} catch(error:unknown) {
-			const errorMessage = error instanceof Error ? error.constructor.name : "Unexpected Error";
-			this._logger.error(`Error processing event : ${message.msgName} -> ` + errorMessage);
-
-			// TODO: find a way to publish the correct error event type
-
-			const errorPayload: QuotingBCUnknownErrorPayload = {
-				bulkQuoteId: message.payload?.bulkQuoteId ? message.payload?.bulkQuoteId : message.payload?.quoteId,
-				fspId: message.fspiopOpaqueState?.requesterFspId ?? null,
-				errorDescription: errorMessage,
-				quoteId: message.payload?.quoteId ?? null,
-			};
-
-			const messageToPublish = new QuotingBCUnknownErrorEvent(errorPayload);
-			messageToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
-			await this._messageProducer.send(messageToPublish);
-		}
-	}
-
-
-	private validateMessageOrGetErroEvent(message:IMessage): boolean {
-		let errorEvent!: QuoteErrorEvent | null;
-		const result = {errorEvent, valid: false};
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
 		const quoteId = message.payload?.quoteId;
 		const bulkQuoteId = message.payload?.bulkQuoteId;
-
-
-		if(!message.payload){
-			const errorMessage = "Message payload is null or undefined";
-			this._logger.error(errorMessage);
-			result.errorEvent = createInvalidMessagePayloadErrorEvent(errorMessage,requesterFspId,quoteId,bulkQuoteId);
-		}
-
-		if(!message.msgName){
-			this._logger.error(`QuoteEventHandler: message name is invalid`);
-			throw new InvalidMessageTypeError();
-		}
-
-		if(message.msgType !== MessageTypes.DOMAIN_EVENT){
-			this._logger.error(`QuoteEventHandler: message type is invalid : ${message.msgType}`);
-			throw new InvalidMessageTypeError();
-		}
-
-		return true;
-	}
-
-	private async handleEvent(message:IMessage):Promise<void> {
-
+		const eventMessage = this.validateMessageOrGetErrorEvent(message);
 		let eventToPublish = null;
 
-		switch(message.msgName){
-			case QuoteRequestReceivedEvt.name:
-				eventToPublish = await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
-				break;
-			case QuoteResponseReceivedEvt.name:
-				eventToPublish = await this.handleQuoteResponseReceivedEvt(message as QuoteResponseReceivedEvt);
-				break;
-			case QuoteQueryReceivedEvt.name:
-				eventToPublish = await this.handleQuoteQueryReceivedEvt(message as QuoteQueryReceivedEvt);
-				break;
-			case BulkQuoteRequestedEvt.name:
-				eventToPublish = await this.handleBulkQuoteRequestedEvt(message as BulkQuoteRequestedEvt);
-				break;
-			case BulkQuotePendingReceivedEvt.name:
-				eventToPublish = await this.handleBulkQuotePendingReceivedEvt(message as BulkQuotePendingReceivedEvt);
-				break;
-			default:
-				this._logger.error(`message type has invalid format or value ${message.msgName}`);
-				throw new InvalidMessageTypeError();
-			}
-
-		if(eventToPublish){
-			if(Array.isArray(eventToPublish)){
-				for await (const event of eventToPublish){
-					await this._messageProducer.send(event);
-				}
-			}else {
-				await this._messageProducer.send(eventToPublish);
-			}
-		}else{
-			throw new UnableToProcessMessageError();
+		if(!eventMessage.valid){
+			const errorEvent = eventMessage.errorEvent as QuoteErrorEvent;
+			await this.publishEvent(message.fspiopOpaqueState, errorEvent);
+			return;
 		}
 
+		try{
+			switch(message.msgName){
+				case QuoteRequestReceivedEvt.name:
+					eventToPublish = await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
+					break;
+				case QuoteResponseReceivedEvt.name:
+					eventToPublish = await this.handleQuoteResponseReceivedEvt(message as QuoteResponseReceivedEvt);
+					break;
+				case QuoteQueryReceivedEvt.name:
+					eventToPublish = await this.handleQuoteQueryReceivedEvt(message as QuoteQueryReceivedEvt);
+					break;
+				case BulkQuoteRequestedEvt.name:
+					eventToPublish = await this.handleBulkQuoteRequestedEvt(message as BulkQuoteRequestedEvt);
+					break;
+				case BulkQuotePendingReceivedEvt.name:
+					eventToPublish = await this.handleBulkQuotePendingReceivedEvt(message as BulkQuotePendingReceivedEvt);
+					break;
+				default:{
+						const errorMessage = `Message type has invalid format or value ${message.msgName}`;
+						this._logger.error(errorMessage);
+						eventToPublish = createInvalidMessageTypeErrorEvent(errorMessage, requesterFspId, quoteId, bulkQuoteId);
+					}
+
+				}
+		}
+		catch(error:unknown) {
+			const errorMessage = `Error while handling message ${message.msgName}`;
+			this._logger.error(errorMessage + `- ${error}`);
+			eventToPublish = createUnknownErrorEvent(errorMessage, requesterFspId, quoteId, bulkQuoteId);
+			await this.publishEvent(message.fspiopOpaqueState, eventToPublish);
+		}
 	}
 
+	private async publishEvent(fspiopOpaqueState: object, eventToPublish: QuoteRequestAcceptedEvt | QuoteResponseAccepted | QuoteQueryResponseEvt | BulkQuoteReceivedEvt[] | BulkQuoteAcceptedEvt | QuoteErrorEvent): Promise<void> {
+		if (Array.isArray(eventToPublish)) {
+			for await (const event of eventToPublish) {
+				event.fspiopOpaqueState = fspiopOpaqueState;
+				await this._messageProducer.send(event);
+			}
+		} else {
+			eventToPublish.fspiopOpaqueState = fspiopOpaqueState;
+			await this._messageProducer.send(eventToPublish);
+		}
+	}
+	//#endregion
+
+	//#region handleQuoteRequestReceivedEvt
 	private async handleQuoteRequestReceivedEvt(message: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`);
 		const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
@@ -263,9 +231,10 @@ export class QuotingAggregate  {
 		event.fspiopOpaqueState = message.fspiopOpaqueState;
 
 		return event;
-
 	}
+	//#endregion
 
+	//#region handleQuoteResponseReceivedEvt
 	private async handleQuoteResponseReceivedEvt(message: QuoteResponseReceivedEvt):Promise<QuoteResponseAccepted> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`);
 
@@ -307,33 +276,10 @@ export class QuotingAggregate  {
 		event.fspiopOpaqueState = message.fspiopOpaqueState;
 
 		return event;
-
 	}
+	//#endregion
 
-	private async updateQuote(message: QuoteResponseReceivedEvt) {
-		const quote = await this._quotesRepo.getQuoteById(message.payload.quoteId);
-
-		if (!quote) {
-			throw new NoSuchQuoteError();
-		}
-
-		quote.requesterFspId = message.fspiopOpaqueState.requesterFspId;
-		quote.destinationFspId = message.fspiopOpaqueState.destinationFspId;
-		quote.quoteId = message.payload.quoteId;
-		quote.totalTransferAmount = message.payload.transferAmount;
-		quote.expiration = message.payload.expiration;
-		quote.ilpPacket = message.payload.ilpPacket;
-		quote.condition = message.payload.condition;
-		quote.payeeReceiveAmount = message.payload.payeeReceiveAmount;
-		quote.payeeFspFee = message.payload.payeeFspFee;
-		quote.payeeFspCommission = message.payload.payeeFspCommission;
-		quote.geoCode = message.payload.geoCode;
-		quote.extensionList = message.payload.extensionList;
-		quote.status = QuoteStatus.ACCEPTED;
-
-		await this._quotesRepo.updateQuote(quote);
-	}
-
+	//#region handleQuoteQueryReceivedEvt
 	private async handleQuoteQueryReceivedEvt(message: QuoteQueryReceivedEvt):Promise<QuoteQueryResponseEvt> {
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`);
 
@@ -376,7 +322,9 @@ export class QuotingAggregate  {
 
 		return event;
 	}
+	//#endregion
 
+	//#region handleBulkQuoteRequestedEvt
 	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt[]> {
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
@@ -445,22 +393,6 @@ export class QuotingAggregate  {
 
 	}
 
-	private async updateBulkQuoteStatus(bulkQuoteId: string, quotes: IQuote[], quotesNotProcessedIds: string[]) {
-		if (quotesNotProcessedIds.length > 0) {
-			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
-
-			if (bulkQuote) {
-				bulkQuote.quotesNotProcessedIds = quotesNotProcessedIds;
-
-				if (quotes.length === quotesNotProcessedIds.length) {
-					bulkQuote.status = QuoteStatus.REJECTED;
-				}
-
-				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
-			}
-		}
-	}
-
 	private async processBulkQuotes(bulkQuoteId: string, quotes: IQuote[], message: BulkQuoteRequestedEvt, fspIds: { [key: string]: string | null; },
 		validQuotes: { [key: string]: IQuote[]; }, quotesNotProcessedIds: string[]) {
 
@@ -494,7 +426,9 @@ export class QuotingAggregate  {
 			}
 		}
 	}
+	//#endregion
 
+	//#region handleBulkQuotePendingReceivedEvt
 	private async handleBulkQuotePendingReceivedEvt(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt> {
 		this._logger.debug(`Got BulkQuotePendingReceivedEvt msg for bulkQuotes: ${message.payload.individualQuoteResults}`);
 
@@ -533,6 +467,49 @@ export class QuotingAggregate  {
 
 		return event;
 
+	}
+	//#endregion
+
+	//#region Quotes database operations
+
+	private async updateQuote(message: QuoteResponseReceivedEvt) {
+		const quote = await this._quotesRepo.getQuoteById(message.payload.quoteId);
+
+		if (!quote) {
+			throw new NoSuchQuoteError();
+		}
+
+		quote.requesterFspId = message.fspiopOpaqueState.requesterFspId;
+		quote.destinationFspId = message.fspiopOpaqueState.destinationFspId;
+		quote.quoteId = message.payload.quoteId;
+		quote.totalTransferAmount = message.payload.transferAmount;
+		quote.expiration = message.payload.expiration;
+		quote.ilpPacket = message.payload.ilpPacket;
+		quote.condition = message.payload.condition;
+		quote.payeeReceiveAmount = message.payload.payeeReceiveAmount;
+		quote.payeeFspFee = message.payload.payeeFspFee;
+		quote.payeeFspCommission = message.payload.payeeFspCommission;
+		quote.geoCode = message.payload.geoCode;
+		quote.extensionList = message.payload.extensionList;
+		quote.status = QuoteStatus.ACCEPTED;
+
+		await this._quotesRepo.updateQuote(quote);
+	}
+
+	private async updateBulkQuoteStatus(bulkQuoteId: string, quotes: IQuote[], quotesNotProcessedIds: string[]) {
+		if (quotesNotProcessedIds.length > 0) {
+			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
+
+			if (bulkQuote) {
+				bulkQuote.quotesNotProcessedIds = quotesNotProcessedIds;
+
+				if (quotes.length === quotesNotProcessedIds.length) {
+					bulkQuote.status = QuoteStatus.REJECTED;
+				}
+
+				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+			}
+		}
 	}
 
 	private async updateBulkQuoteInfo(message: BulkQuotePendingReceivedEvt, quotes: { quoteId: string; payee: { partyIdInfo: { partyIdType: string; partyIdentifier: string; partySubIdOrType: string | null; fspId: string | null; }; merchantClassificationCode: string | null; name: string | null; personalInfo: { complexName: { firstName: string | null; middleName: string | null; lastName: string | null; } | null; dateOfBirth: string | null; } | null; } | null; transferAmount: { currency: string; amount: string; } | null; payeeReceiveAmount: { currency: string; amount: string; } | null; payeeFspFee: { currency: string; amount: string; } | null; payeeFspCommission: { currency: string; amount: string; } | null; ilpPacket: string; condition: string; errorInformation: { errorCode: string; errorDescription: string; extensionList: { extension: { key: string; value: string; }[]; }; } | null; extensionList: { extension: { key: string; value: string; }[]; } | null; }[]) {
@@ -578,6 +555,9 @@ export class QuotingAggregate  {
 		await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 	}
 
+	//#endregion
+
+	//#region Account Lookup Service
 	private async getMissingFspId(payeePartyId: string | null, payeePartyIdType: string | null, currency: string | null) {
 		if (!payeePartyId || !payeePartyIdType) {
 			throw new InvalidDestinationPartyInformationError();
@@ -621,6 +601,42 @@ export class QuotingAggregate  {
 			return null;
 		}
 	}
+	//#endregion
+
+	//#region Validations
+	private validateMessageOrGetErrorEvent(message:IMessage): {errorEvent:QuoteErrorEvent | null, valid: boolean} {
+		let errorEvent!: QuoteErrorEvent | null;
+		const result = {errorEvent, valid: false};
+		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
+		const quoteId = message.payload?.quoteId;
+		const bulkQuoteId = message.payload?.bulkQuoteId;
+
+		if(!message.payload){
+			const errorMessage = "Message payload is null or undefined";
+			this._logger.error(errorMessage);
+			result.errorEvent = createInvalidMessagePayloadErrorEvent(errorMessage,requesterFspId,quoteId,bulkQuoteId);
+			return result;
+		}
+
+		if(!message.msgName){
+			const errorMessage = "Message name is null or undefined";
+			this._logger.error(errorMessage);
+			//TODO : create invalid message name error event
+			result.errorEvent = createInvalidMessageNameErrorEvent(errorMessage,requesterFspId,quoteId,bulkQuoteId);
+			return result;
+		}
+
+		if(message.msgType !== MessageTypes.DOMAIN_EVENT){
+			const errorMessage = `Message type is invalid ${message.msgType}`;
+			this._logger.error(errorMessage);
+			result.errorEvent = createInvalidMessageTypeErrorEvent(errorMessage,requesterFspId,quoteId,bulkQuoteId);
+			return result;
+		}
+
+		result.valid = true;
+
+		return result;
+	}
 
 	private async validateParticipant(participantId: string | null):Promise<boolean>{
 		if(participantId){
@@ -645,5 +661,6 @@ export class QuotingAggregate  {
 		return true;
 	}
 
+	//#endregion
 
 }
