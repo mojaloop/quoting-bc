@@ -158,6 +158,7 @@ export class QuotingAggregate  {
 
 		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId,quoteId,null);
 		if(!requesterParticipant.valid){
+			this._logger.error(`Requester participant ${requesterFspId} is invalid for quoteId: ${quoteId}`);
 			return requesterParticipant.errorEvent as QuoteErrorEvent;
 		}
 
@@ -172,6 +173,7 @@ export class QuotingAggregate  {
 		const destinationParticipant = await this.validateParticipantInfoOrGetErrorEvent(destinationFspId, quoteId, null, true);
 
 		if(!destinationParticipant.valid){
+			this._logger.error(`Destination participant ${destinationFspId} is invalid for quoteId: ${quoteId}`);
 			return destinationParticipant.errorEvent as QuoteErrorEvent;
 		}
 
@@ -243,11 +245,13 @@ export class QuotingAggregate  {
 
 		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId,quoteId,null);
 		if(!requesterParticipant.valid){
+			this._logger.error(`Requester participant ${requesterFspId} is invalid for quoteId: ${quoteId}`);
 			return requesterParticipant.errorEvent as QuoteErrorEvent;
 		}
 
 		const destinationParticipant = await this.validateParticipantInfoOrGetErrorEvent(destinationFspId, quoteId, null, true);
 		if(!destinationParticipant.valid){
+			this._logger.error(`Destination participant ${destinationFspId} is invalid for quoteId: ${quoteId}`);
 			return destinationParticipant.errorEvent as QuoteErrorEvent;
 		}
 
@@ -287,11 +291,13 @@ export class QuotingAggregate  {
 
 		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId, quoteId, null);
 		if(!requesterParticipant.valid){
+			this._logger.error(`Invalid participant info for requesterFspId: ${requesterFspId} and quoteId: ${quoteId}`)
 			return requesterParticipant.errorEvent as QuoteErrorEvent;
 		}
 
 		const destinationParticipant = await this.validateParticipantInfoOrGetErrorEvent(destinationFspId, quoteId, null, true);
 		if(!destinationParticipant.valid){
+			this._logger.error(`Invalid participant info for destinationFspId: ${destinationFspId} and quoteId: ${quoteId}`)
 			return destinationParticipant.errorEvent as QuoteErrorEvent;
 		}
 
@@ -334,6 +340,7 @@ export class QuotingAggregate  {
 
 		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId, bulkQuoteId, null);
 		if(!requesterParticipant.valid){
+			this._logger.error(`Invalid participant info for requesterFspId: ${requesterFspId} and bulkQuoteId: ${bulkQuoteId}`)
 			return requesterParticipant.errorEvent as QuoteErrorEvent;
 		}
 
@@ -439,11 +446,13 @@ export class QuotingAggregate  {
 
 		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId,null, bulkQuoteId);
 		if(!requesterParticipant.valid){
+			this._logger.error(`Invalid participant info for requesterFspId: ${requesterFspId} and bulkQuoteId: ${bulkQuoteId}`)
 			return requesterParticipant.errorEvent as QuoteErrorEvent;
 		}
 
 		const destinationParticipant = await this.validateParticipantInfoOrGetErrorEvent(destinationFspId,null, bulkQuoteId, true);
 		if(!destinationParticipant.valid){
+			this._logger.error(`Invalid participant info for destinationFspId: ${destinationFspId} and bulkQuoteId: ${bulkQuoteId}`)
 			return destinationParticipant.errorEvent as QuoteErrorEvent;
 		}
 
