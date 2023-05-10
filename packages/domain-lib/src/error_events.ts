@@ -103,7 +103,7 @@ export function createQuoteDuplicateErrorEvent(errorDescription:string, fspId:st
     return errorEvent;
 }
 
-export function createParticipantNotFoundErrorEvent(errorDescription:string, fspId:string, quoteId:string, bulkQuoteId:string): QuoteBCParticipantNotFoundErrorEvent {
+export function createParticipantNotFoundErrorEvent(errorDescription:string, fspId:string, quoteId:string | null, bulkQuoteId:string | null): QuoteBCParticipantNotFoundErrorEvent {
     const errorPayload: QuoteBCParticipantNotFoundErrorPayload = {
         bulkQuoteId,
         errorDescription,
@@ -115,7 +115,7 @@ export function createParticipantNotFoundErrorEvent(errorDescription:string, fsp
 
 }
 
-export function createInvalidParticipantErrorEvent(errorDescription:string, fspId:string, quoteId:string, bulkQuoteId:string):QuoteBCInvalidParticipantIdErrorEvent {
+export function createInvalidParticipantIdErrorEvent(errorDescription:string, fspId:string, quoteId:string | null, bulkQuoteId:string | null):QuoteBCInvalidParticipantIdErrorEvent {
     const errorPayload: QuoteBCInvalidParticipantIdErrorPayload = {
         bulkQuoteId,
         errorDescription,
@@ -125,6 +125,7 @@ export function createInvalidParticipantErrorEvent(errorDescription:string, fspI
     const errorEvent = new QuoteBCInvalidParticipantIdErrorEvent(errorPayload);
     return errorEvent;
 }
+
 
 export function createInvalidRequesterFspIdErrorEvent(errorDescription:string, fspId:string, quoteId:string, bulkQuoteId:string):QuoteBCInvalidRequesterFspIdErrorEvent{
     const errorPayload: QuoteBCInvalidRequesterFspIdErrorPayload = {

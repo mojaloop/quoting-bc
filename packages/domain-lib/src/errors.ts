@@ -22,7 +22,7 @@
 
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -34,79 +34,79 @@
 
 // Quote
 export class InvalidIdError extends Error {
-    constructor(message?: string) {
-        super(message || "Invalid id");
+    constructor(message: string) {
+        super(message);
+    }
+}
+export class DuplicateQuoteError extends Error {
+    constructor(message: string) {
+        super(message);
     }
 }
 
-export class DuplicateQuoteError extends Error {
-    constructor(message?: string) {
-        super(message || "Can't duplicate quote");
-    }
-}
- 
-export class NoSuchQuoteError extends Error {
-    constructor(message?: string) {
-        super(message || "Quote doesn't exist");
+export class QuoteNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
     }
 }
 
 // BulkQuotes
-export class NoSuchBulkQuoteError extends Error {
-    constructor(message?: string) {
-        super(message || "Quote doesn't exist");
+export class BulkQuoteNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
     }
 }
- 
+
 // Message Producer
 export class InvalidMessagePayloadError extends Error {
-    constructor(message?: string) {
-        super(message || "Invalid message payload");
+    constructor(message: string) {
+        super(message);
     }
 }
+
 export class InvalidMessageTypeError extends Error {
-    constructor(message?: string) {
-        super(message || "Invalid message type");
+    constructor(message: string) {
+        super(message);
     }
 }
 export class UnableToProcessMessageError extends Error {
-    constructor(message?: string) {
-        super(message || "Unable to process message");
+    constructor(message: string) {
+        super(message);
     }
 }
 
 // Participant Adapter
 export class NoSuchParticipantError extends Error {
-    constructor(message?: string) {
-        super(message || "No participant found");
+    constructor(message: string) {
+        super(message);
     }
 }
 
 export class InvalidParticipantIdError extends Error {
-    constructor(message?: string) {
-        super(message || "Participant id mismatch");
+    constructor(message: string) {
+        super(message);
     }
 }
 
 export class RequiredParticipantIsNotActive extends Error {
-    constructor(message?: string) {
-        super(message || "Participant is not active");
+    constructor(message: string) {
+        super(message);
     }
 }
 export class InvalidRequesterFspIdError extends Error {
-    constructor(message?: string) {
-        super(message || "Invalid requester fsp id");
+    constructor(message: string) {
+        super(message);
     }
 }
 
 export class InvalidDestinationFspIdError extends Error {
-    constructor(message?: string) {
-        super(message || "Invalid destination fsp id");
+    constructor(message: string) {
+        super(message);
     }
 }
 
 export class InvalidDestinationPartyInformationError extends Error {
-    constructor(message?: string) {
-        super(message || "Invalid destination party information");
+    constructor(message: string) {
+        super(message);
     }
 }

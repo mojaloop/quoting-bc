@@ -156,7 +156,7 @@ export type QuoteErrorEvent = QuoteBCBulkQuoteNotFoundErrorEvent | QuoteBCUnknow
     QuoteBCInvalidMessagePayloadErrorEvent | QuoteBCDuplicateQuoteErrorEvent | QuoteBCInvalidDestinationPartyInformationErrorEvent |
     QuoteBCInvalidMessageTypeErrorEvent  | QuoteBCParticipantNotFoundErrorEvent |
     QuoteBCInvalidParticipantIdErrorEvent | QuoteBCInvalidRequesterFspIdErrorEvent | QuoteBCInvalidDestinationFspIdErrorEvent |
-    QuoteBCRequiredParticipantIsNotActiveErrorEvent;
+    QuoteBCRequiredParticipantIsNotActiveErrorEvent | QuoteBCQuoteNotFoundErrorEvent;
 
 
 

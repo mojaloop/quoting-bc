@@ -64,9 +64,6 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
             check("id").isString().notEmpty().withMessage("id must be a non empty string")
         ],this.getBulkQuoteById.bind(this));
 
-        this.mainRouter.get("/quotes" ,this.getAllQuotes.bind(this));
-
-        this.mainRouter.get("/bulk-quotes" ,this.getAllBulkQuotes.bind(this));
     }
 
     private async getAllQuotes(_req: express.Request, res: express.Response, _next: express.NextFunction) {
