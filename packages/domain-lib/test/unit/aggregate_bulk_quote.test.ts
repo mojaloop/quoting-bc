@@ -35,7 +35,7 @@
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import {BulkQuoteAcceptedEvtPayload, BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload, QuoteErrorEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { InvalidParticipantIdError, InvalidRequesterFspIdError, NoSuchParticipantError, InvalidDestinationFspIdError, NoSuchBulkQuoteError} from "../../src/errors";
+import { InvalidParticipantIdError, InvalidRequesterFspIdError, NoSuchParticipantError, InvalidDestinationFspIdError, QuoteNotFoundError} from "../../src/errors";
 import {QuoteStatus} from '../../src/types';
 import { createBulkQuotePendingReceivedEvtPayload, createBulkQuoteRequestedEvtPayload, createMessage } from "../utils/helpers";
 import { logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService } from "../utils/mocked_variables";
@@ -189,7 +189,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             "payer": mockedBulkQuote.payer,
             "geoCode": mockedBulkQuote.geoCode,
             "expiration": mockedBulkQuote.expiration,
-            "individualQuotes": mockedBulkQuote.individualQuotes as any,
+            "individualQuotes": mockedBulkQuote.individualQuotesIds as any,
             extensionList: mockedBulkQuote.extensionList
         } as any;
 
@@ -338,7 +338,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         }
         const message: IMessage = createMessage(payload,BulkQuotePendingReceivedEvt.name, fspiopOpaqueState);
 
-        const errorMsg = NoSuchBulkQuoteError.name;
+        const errorMsg = QuoteNotFoundError.name;
 
         const errorPayload: QuoteErrorEvtPayload = {
             errorMsg,
@@ -405,7 +405,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             "expiration": mockedQuote.expiration,
             "geoCode": mockedQuote.geoCode,
             "bulkQuoteId": mockedQuote.bulkQuoteId,
-            "individualQuotes": mockedQuote.individualQuotes,
+            "individualQuotes": mockedQuote.individualQuotesIds,
             "extensionList": mockedQuote.extensionList,
             "quotesNotProcessedIds": ["3", "4"],
             "status": QuoteStatus.ACCEPTED

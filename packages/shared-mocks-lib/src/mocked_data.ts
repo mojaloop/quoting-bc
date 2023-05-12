@@ -596,7 +596,7 @@ export const mockedBulkQuote2 : IBulkQuote = {
     }
   },
   expiration: "2018-08-15T08:43:25.699Z",
-  individualQuotes: [ "3", "4" ],
+  individualQuotes: [mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4],
   extensionList: {
     extension: [
       {
@@ -634,7 +634,7 @@ export const mockedBulkQuote3 : IBulkQuote = {
     }
   },
   expiration: "2018-08-15T08:43:25.699Z",
-  individualQuotes: [ "5", "6" ],
+  individualQuotes: [ mockedQuote1, mockedQuote2, mockedQuote3 ],
   extensionList: {
     extension: [
       {
@@ -648,7 +648,7 @@ export const mockedBulkQuote3 : IBulkQuote = {
     longitude: "2"
   },
   status: QuoteStatus.REJECTED,
-  quotesNotProcessedIds: ["7", "8"],
+  quotesNotProcessedIds: ["3"],
 };
 
 

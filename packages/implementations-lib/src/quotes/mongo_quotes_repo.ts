@@ -39,16 +39,16 @@ import {
 	WithId
 } from "mongodb";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { QuoteAlreadyExistsError, 
+import { QuoteAlreadyExistsError,
 	UnableToCloseDatabaseConnectionError,
 	UnableToDeleteQuoteError,
 	UnableToGetQuoteError,
 	UnableToInitQuoteRegistryError,
 	UnableToAddQuoteError,
 	NoSuchQuoteError,
-	UnableToUpdateQuoteError, 
-	UnableToAddManyQuotesError, 
-	UnableToGetQuotesError 
+	UnableToUpdateQuoteError,
+	UnableToAddManyQuotesError,
+	UnableToGetQuotesError
 } from "../errors";
 import { IQuoteRepo, IQuote, QuoteStatus } from "@mojaloop/quoting-bc-domain-lib";
 import { randomUUID } from "crypto";
@@ -98,7 +98,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			await this.checkIfQuoteExists(quote);
 		}
 
-		quoteToAdd.quoteId = quoteToAdd.quoteId || randomUUID();
+		quoteToAdd.quoteId = quoteToAdd.quoteId;
 		await this.quotes.insertOne(quoteToAdd).catch((e: unknown) => {
 			this._logger.error(`Unable to insert quote: ${(e as Error).message}`);
 			throw new UnableToAddQuoteError();

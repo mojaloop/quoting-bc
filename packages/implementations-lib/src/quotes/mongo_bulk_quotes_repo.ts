@@ -50,7 +50,6 @@ import {
 	UnableToDeleteBulkQuoteError
 } from "../errors";
 import { IBulkQuoteRepo, IBulkQuote } from "@mojaloop/quoting-bc-domain-lib";
-import { randomUUID } from "crypto";
 
 export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 	private readonly _logger: ILogger;
@@ -123,7 +122,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 			await this.checkIfBulkQuoteExists(bulkQuoteToAdd);
 		}
 
-		bulkQuoteToAdd.bulkQuoteId = bulkQuoteToAdd.bulkQuoteId || randomUUID();
+		bulkQuoteToAdd.bulkQuoteId = bulkQuoteToAdd.bulkQuoteId;
 
 		await this.bulkQuotes.insertOne(bulkQuoteToAdd).catch((e: unknown) => {
 			this._logger.error(`Unable to insert bulkQuote: ${(e as Error).message}`);

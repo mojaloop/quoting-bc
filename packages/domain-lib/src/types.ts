@@ -146,7 +146,7 @@ export interface IBulkQuote {
     payer: IParty;
     geoCode: IGeoCode | null;
     expiration: string | null;
-    individualQuotes: string[];
+    individualQuotes: IQuote[];
     quotesNotProcessedIds: string[];
     extensionList: IExtensionList | null;
     status: QuoteStatus | null;

@@ -152,6 +152,11 @@ export function createInvalidDestinationFspIdErrorEvent(errorDescription:string,
 
 }
 
+//TODO: Create the event on shared lib
+export function createQuoteExpiredErrorEvent(errorDescription:string, fspId:string, quoteId:string, bulkQuoteId:string): any{
+
+}
+
 export function createUnknownErrorEvent(errorDescription:string, fspId:string, quoteId:string, bulkQuoteId:string): QuoteBCUnknownErrorEvent{
     const errorPayload: QuoteBCUnknownErrorPayload = {
         bulkQuoteId,

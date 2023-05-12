@@ -59,7 +59,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, QuoteErrorEvent, QuoteStatus } from "./types";
 import { randomUUID } from "crypto";
-import { createInvalidMessageNameErrorEvent, createInvalidMessagePayloadErrorEvent, createInvalidMessageTypeErrorEvent, createInvalidParticipantIdErrorEvent, createParticipantNotFoundErrorEvent, createUnknownErrorEvent } from "./error_events";
+import { createInvalidDestinationFspIdErrorEvent, createInvalidMessageNameErrorEvent, createInvalidMessagePayloadErrorEvent, createInvalidMessageTypeErrorEvent, createInvalidParticipantIdErrorEvent, createParticipantNotFoundErrorEvent, createQuoteExpiredErrorEvent, createUnknownErrorEvent } from "./error_events";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -106,19 +106,19 @@ export class QuotingAggregate  {
 		try{
 			switch(message.msgName){
 				case QuoteRequestReceivedEvt.name:
-					eventToPublish = await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
+					eventToPublish = await this.handleQuoteRequestReceivedEvent(message as QuoteRequestReceivedEvt);
 					break;
 				case QuoteResponseReceivedEvt.name:
-					eventToPublish = await this.handleQuoteResponseReceivedEvt(message as QuoteResponseReceivedEvt);
+					eventToPublish = await this.handleQuoteResponseReceivedEvent(message as QuoteResponseReceivedEvt);
 					break;
 				case QuoteQueryReceivedEvt.name:
-					eventToPublish = await this.handleQuoteQueryReceivedEvt(message as QuoteQueryReceivedEvt);
+					eventToPublish = await this.handleQuoteQueryReceivedEvent(message as QuoteQueryReceivedEvt);
 					break;
 				case BulkQuoteRequestedEvt.name:
-					eventToPublish = await this.handleBulkQuoteRequestedEvt(message as BulkQuoteRequestedEvt);
+					eventToPublish = await this.handleBulkQuoteRequestedEvent(message as BulkQuoteRequestedEvt);
 					break;
 				case BulkQuotePendingReceivedEvt.name:
-					eventToPublish = await this.handleBulkQuotePendingReceivedEvt(message as BulkQuotePendingReceivedEvt);
+					eventToPublish = await this.handleBulkQuotePendingReceivedEvent(message as BulkQuotePendingReceivedEvt);
 					break;
 				default:{
 						const errorMessage = `Message type has invalid format or value ${message.msgName}`;
@@ -150,13 +150,13 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region handleQuoteRequestReceivedEvt
-	private async handleQuoteRequestReceivedEvt(message: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt | QuoteErrorEvent> {
+	private async handleQuoteRequestReceivedEvent(message: QuoteRequestReceivedEvt):Promise<QuoteRequestAcceptedEvt | QuoteErrorEvent> {
 		const quoteId = message.payload.quoteId;
 		const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
 		let destinationFspId = message.fspiopOpaqueState?.destinationFspId ?? message.payload?.payee?.partyIdInfo?.fspId;
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`);
 
-		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId,quoteId,null);
+		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId, quoteId, null);
 		if(!requesterParticipant.valid){
 			this._logger.error(`Requester participant ${requesterFspId} is invalid for quoteId: ${quoteId}`);
 			return requesterParticipant.errorEvent as QuoteErrorEvent;
@@ -224,8 +224,7 @@ export class QuotingAggregate  {
 			note: message.payload.note,
 			expiration: message.payload.expiration,
 			extensionList: message.payload.extensionList
-			};
-
+		};
 
 		const event = new QuoteRequestAcceptedEvt(payload);
 
@@ -236,7 +235,7 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region handleQuoteResponseReceivedEvt
-	private async handleQuoteResponseReceivedEvt(message: QuoteResponseReceivedEvt):Promise<QuoteResponseAccepted | QuoteErrorEvent> {
+	private async handleQuoteResponseReceivedEvent(message: QuoteResponseReceivedEvt):Promise<QuoteResponseAccepted | QuoteErrorEvent> {
 		const quoteId = message.payload.quoteId;
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`);
 
@@ -270,7 +269,7 @@ export class QuotingAggregate  {
             payeeFspFee: message.payload.payeeFspFee,
             payeeFspCommission: message.payload.payeeFspCommission,
             geoCode: message.payload.geoCode,
-            extensionList: message.payload.extensionList
+            extensionList: message.payload.extensionList,
 		};
 
 		const event = new QuoteResponseAccepted(payload);
@@ -282,7 +281,7 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region handleQuoteQueryReceivedEvt
-	private async handleQuoteQueryReceivedEvt(message: QuoteQueryReceivedEvt):Promise<QuoteQueryResponseEvt | QuoteErrorEvent> {
+	private async handleQuoteQueryReceivedEvent(message: QuoteQueryReceivedEvt):Promise<QuoteQueryResponseEvt | QuoteErrorEvent> {
 		const quoteId = message.payload.quoteId;
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`);
 
@@ -329,13 +328,14 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region handleBulkQuoteRequestedEvt
-	private async handleBulkQuoteRequestedEvt(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt[] | QuoteErrorEvent> {
-		let bulkQuoteId = message.payload.bulkQuoteId;
+	private async handleBulkQuoteRequestedEvent(message: BulkQuoteRequestedEvt):Promise<BulkQuoteReceivedEvt[] | QuoteErrorEvent> {
+		const bulkQuoteId = message.payload.bulkQuoteId;
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
-		const events:BulkQuoteReceivedEvt[] = [];
-		const quotes = message.payload.individualQuotes as unknown as IQuote[];
+		const events: BulkQuoteReceivedEvt[] = [];
+		const individualQuotesInsideBulkQuote = message.payload.individualQuotes as unknown as IQuote[];
 		const validQuotes:{ [key: string]: IQuote[] } = {};
-		const quotesNotProcessedIds: string[] = [];
+		const invalidQuotes : IQuote[] = [];
+
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
 
 		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId, bulkQuoteId, null);
@@ -349,7 +349,7 @@ export class QuotingAggregate  {
 			payer: message.payload.payer,
 			geoCode: message.payload.geoCode,
 			expiration: message.payload.expiration,
-			individualQuotes: message.payload.individualQuotes?.map(q => q.quoteId),
+			individualQuotes: individualQuotesInsideBulkQuote as IQuote[],
 			extensionList: message.payload.extensionList,
 			quotesNotProcessedIds: [],
 			status: QuoteStatus.PENDING
@@ -357,13 +357,10 @@ export class QuotingAggregate  {
 
 		if(!this._passThroughMode)
 		{
-			bulkQuoteId = await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
-		}
-		else{
-			bulkQuoteId = bulkQuoteId ?? randomUUID();
+			await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
 		}
 
-		const missingFspIdsInQuotes = await this.getMissingFspIds(quotes) ?? {};
+		const missingFspIdsInQuotes = await this.getMissingFspIds(individualQuotesInsideBulkQuote) ?? {};
 
 		for (const fspId in missingFspIdsInQuotes) {
 			const existingFspId = missingFspIdsInQuotes[fspId] as string;
@@ -373,10 +370,17 @@ export class QuotingAggregate  {
 			}
 		}
 
-		await this.processBulkQuotes(bulkQuoteId, quotes, message, missingFspIdsInQuotes, validQuotes, quotesNotProcessedIds);
+		const bulkQuoteErrorEvents = await this.processBulkQuotesAndGetErrorEventsList(bulkQuoteId,requesterFspId, individualQuotesInsideBulkQuote, missingFspIdsInQuotes, validQuotes, invalidQuotes);
 
 		if(!this._passThroughMode){
-			await this.updateBulkQuoteStatus(bulkQuoteId, quotes, quotesNotProcessedIds);
+			bulkQuote.quotesNotProcessedIds = invalidQuotes.map((quote) => quote.quoteId);
+			if (bulkQuote.quotesNotProcessedIds.length === 0) {
+				bulkQuote.status = QuoteStatus.ACCEPTED;
+			}
+			else if (bulkQuote.quotesNotProcessedIds.length === individualQuotesInsideBulkQuote.length) {
+				bulkQuote.status = QuoteStatus.REJECTED;
+			}
+			await this.updateBulkQuoteWithNewStatusAndInvalidQuotes(bulkQuote);
 		}
 
 		for (const fspId in validQuotes) {
@@ -385,6 +389,7 @@ export class QuotingAggregate  {
 				payer: message.payload.payer,
 				geoCode: message.payload.geoCode,
 				expiration: message.payload.expiration,
+				//TODO: fix this to be of type IQuote[]
 				individualQuotes: validQuotes[fspId] as any,
 				extensionList: message.payload.extensionList
 			};
@@ -401,32 +406,61 @@ export class QuotingAggregate  {
 
 	}
 
-	private async processBulkQuotes(bulkQuoteId: string, quotes: IQuote[], message: BulkQuoteRequestedEvt, fspIds: { [key: string]: string | null; },
-		validQuotes: { [key: string]: IQuote[]; }, quotesNotProcessedIds: string[]) {
+	private async updateBulkQuoteWithNewStatusAndInvalidQuotes(bulkQuote: IBulkQuote) {
+
+		const bulkQuoteInDatabase = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuote.bulkQuoteId);
+		if (bulkQuoteInDatabase) {
+			bulkQuoteInDatabase.status = bulkQuote.status;
+			bulkQuoteInDatabase.individualQuotes = bulkQuote.individualQuotes;
+			await this._bulkQuotesRepo.updateBulkQuote(bulkQuoteInDatabase);
+		}
+	}
+
+	private async processBulkQuotesAndGetErrorEventsList(bulkQuoteId: string, fspId:string, quotes: IQuote[], fspIds: { [key: string]: string | null; },
+		validQuotes: { [key: string]: IQuote[]; }, quotesNotProcessed: IQuote[]): Promise<QuoteErrorEvent[]> {
+		const errorEvents: QuoteErrorEvent[] = [];
 
 		for await (const quote of quotes) {
-			const destinationFspId = quote.payee?.partyIdInfo?.fspId ?? fspIds[quote.quoteId] ?? null;
+			const destinationFspId = quote.payee?.partyIdInfo?.fspId ?? fspIds[quote.quoteId];
 			const quoteId = quote.quoteId;
-			quote.payer = message.payload.payer;
+			// TODO: Do we need this
+			//quote.payer = message.payload.payer;
 
 			if (!destinationFspId) {
 				quote.status = QuoteStatus.REJECTED;
-				quotesNotProcessedIds.push(quoteId);
+				const errorMessage = `Quote with id: ${quoteId} does not have a valid destination fspId`;
+				this._logger.error(errorMessage);
+				const errorEvent = createInvalidDestinationFspIdErrorEvent(errorMessage, fspId, quoteId, bulkQuoteId);
+				errorEvents.push(errorEvent);
+				quotesNotProcessed.push(quote);
 			}
 			else {
-				const destinationParticipant = await this.validateParticipantInfoOrGetErrorEvent(destinationFspId,quoteId,null,true);
-				if (destinationParticipant.valid) {
+				const destinationParticipantValid = (await this.validateParticipantInfoOrGetErrorEvent(destinationFspId,quoteId,null,true)).valid;
+				const isQuoteExpired = this.validateQuoteExpiration(quote.expiration as string);
+				if (destinationParticipantValid && !isQuoteExpired) {
 					if (!validQuotes[destinationFspId]) {
 						validQuotes[destinationFspId] = [];
 					}
-
 					quote.bulkQuoteId = bulkQuoteId;
 					quote.status = QuoteStatus.PENDING;
 					quote.payee.partyIdInfo.fspId = destinationFspId;
 					validQuotes[destinationFspId].push(quote);
 				} else {
-					quote.status = QuoteStatus.REJECTED;
-					quotesNotProcessedIds.push(quote.quoteId);
+					if(!destinationParticipantValid){
+						quote.status = QuoteStatus.REJECTED;
+						const errorMessage = `Quote with id: ${quoteId} does not have a valid destination fspId`;
+						this._logger.error(errorMessage);
+						const errorEvent = createInvalidDestinationFspIdErrorEvent(errorMessage, fspId, quoteId, bulkQuoteId);
+						errorEvents.push(errorEvent);
+					}
+					else if(isQuoteExpired){
+						quote.status = QuoteStatus.EXPIRED;
+						const errorMessage = `Quote with id: ${quoteId} has expired`;
+						this._logger.error(errorMessage);
+						const errorEvent = createQuoteExpiredErrorEvent(errorMessage, fspId, quoteId, bulkQuoteId);
+						errorEvents.push(errorEvent);
+					}
+					quotesNotProcessed.push(quote);
 				}
 			}
 
@@ -434,11 +468,12 @@ export class QuotingAggregate  {
 				await this._quotesRepo.addQuote(quote);
 			}
 		}
+		return errorEvents;
 	}
 	//#endregion
 
 	//#region handleBulkQuotePendingReceivedEvt
-	private async handleBulkQuotePendingReceivedEvt(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | QuoteErrorEvent> {
+	private async handleBulkQuotePendingReceivedEvent(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | QuoteErrorEvent> {
 		const bulkQuoteId = message.payload.bulkQuoteId;
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
 		const destinationFspId = message.fspiopOpaqueState?.destinationFspId;
@@ -459,14 +494,14 @@ export class QuotingAggregate  {
 		const quotes = message.payload.individualQuoteResults;
 
 		if(!this._passThroughMode){
-			await this.updateBulkQuoteInfo(message, quotes);
+			await this.updateBulkQuote(message, quotes);
 		}
 
 		const payload : BulkQuoteAcceptedEvtPayload = {
 			bulkQuoteId: message.payload.bulkQuoteId,
 			individualQuoteResults: message.payload.individualQuoteResults,
 			expiration: message.payload.expiration,
-			extensionList: message.payload.extensionList
+			extensionList: message.payload.extensionList,
 		};
 
 		const event = new BulkQuoteAcceptedEvt(payload);
@@ -503,26 +538,11 @@ export class QuotingAggregate  {
 		quote.extensionList = message.payload.extensionList;
 		quote.status = QuoteStatus.ACCEPTED;
 
+
 		await this._quotesRepo.updateQuote(quote);
 	}
 
-	private async updateBulkQuoteStatus(bulkQuoteId: string, quotes: IQuote[], quotesNotProcessedIds: string[]) {
-		if (quotesNotProcessedIds.length > 0) {
-			const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
-
-			if (bulkQuote) {
-				bulkQuote.quotesNotProcessedIds = quotesNotProcessedIds;
-
-				if (quotes.length === quotesNotProcessedIds.length) {
-					bulkQuote.status = QuoteStatus.REJECTED;
-				}
-
-				await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
-			}
-		}
-	}
-
-	private async updateBulkQuoteInfo(message: BulkQuotePendingReceivedEvt, quotes: { quoteId: string; payee: { partyIdInfo: { partyIdType: string; partyIdentifier: string; partySubIdOrType: string | null; fspId: string | null; }; merchantClassificationCode: string | null; name: string | null; personalInfo: { complexName: { firstName: string | null; middleName: string | null; lastName: string | null; } | null; dateOfBirth: string | null; } | null; } | null; transferAmount: { currency: string; amount: string; } | null; payeeReceiveAmount: { currency: string; amount: string; } | null; payeeFspFee: { currency: string; amount: string; } | null; payeeFspCommission: { currency: string; amount: string; } | null; ilpPacket: string; condition: string; errorInformation: { errorCode: string; errorDescription: string; extensionList: { extension: { key: string; value: string; }[]; }; } | null; extensionList: { extension: { key: string; value: string; }[]; } | null; }[]) {
+	private async updateBulkQuote(message: BulkQuotePendingReceivedEvt, quotes: { quoteId: string; payee: { partyIdInfo: { partyIdType: string; partyIdentifier: string; partySubIdOrType: string | null; fspId: string | null; }; merchantClassificationCode: string | null; name: string | null; personalInfo: { complexName: { firstName: string | null; middleName: string | null; lastName: string | null; } | null; dateOfBirth: string | null; } | null; } | null; transferAmount: { currency: string; amount: string; } | null; payeeReceiveAmount: { currency: string; amount: string; } | null; payeeFspFee: { currency: string; amount: string; } | null; payeeFspCommission: { currency: string; amount: string; } | null; ilpPacket: string; condition: string; errorInformation: { errorCode: string; errorDescription: string; extensionList: { extension: { key: string; value: string; }[]; }; } | null; extensionList: { extension: { key: string; value: string; }[]; } | null; }[]) {
 		const bulkQuoteId = message.payload.bulkQuoteId;
 		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
 
@@ -550,16 +570,12 @@ export class QuotingAggregate  {
 			quote.payeeFspCommission = individualQuote.payeeFspCommission;
 			quote.extensionList = individualQuote.extensionList;
 			quote.errorInformation = individualQuote.errorInformation;
-			quote.status = QuoteStatus.ACCEPTED;
+			quote.status = (quote.status === QuoteStatus.PENDING) ? QuoteStatus.ACCEPTED : quote.status;
 
 			await this._quotesRepo.updateQuote(quote);
 		}
 
-		const quotesProcessed = await this._quotesRepo.getQuotesByBulkQuoteIdAndStatus(bulkQuote.bulkQuoteId, QuoteStatus.ACCEPTED);
-
-		const totalProcessedQuotes = quotesProcessed.length + bulkQuote.quotesNotProcessedIds.length;
-
-		if (bulkQuote.individualQuotes.length === totalProcessedQuotes) {
+		if (bulkQuote.quotesNotProcessedIds.length === 0) {
 			bulkQuote.status = QuoteStatus.ACCEPTED;
 		}
 
@@ -615,6 +631,18 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region Validations
+	private validateQuoteExpiration(expirationDate: string): boolean {
+		var serverDateUtc= new Date().toISOString();
+		var serverDate = new Date(serverDateUtc);
+		var quoteDate = new Date(expirationDate);
+		const differenceDate = quoteDate.getTime() - serverDate.getTime();
+		if(differenceDate < 0){
+			return false;
+		}
+		return true;
+	}
+
+
 	private validateMessageOrGetErrorEvent(message:IMessage): {errorEvent:QuoteErrorEvent | null, valid: boolean} {
 		let errorEvent!: QuoteErrorEvent | null;
 		const result = {errorEvent, valid: false};
