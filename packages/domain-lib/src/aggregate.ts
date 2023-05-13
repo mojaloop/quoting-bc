@@ -177,6 +177,8 @@ export class QuotingAggregate  {
 			return destinationParticipant.errorEvent as QuoteErrorEvent;
 		}
 
+		//Validate expiration if exists
+
 		const quote: IQuote = {
 			quoteId: message.payload.quoteId,
 			bulkQuoteId: null,
@@ -254,6 +256,8 @@ export class QuotingAggregate  {
 			return destinationParticipant.errorEvent as QuoteErrorEvent;
 		}
 
+		//Validate expiration if exists
+
 		if(!this._passThroughMode)
 		{
 			await this.updateQuote(message);
@@ -282,6 +286,7 @@ export class QuotingAggregate  {
 
 	//#region handleQuoteQueryReceivedEvt
 	private async handleQuoteQueryReceivedEvent(message: QuoteQueryReceivedEvt):Promise<QuoteQueryResponseEvt | QuoteErrorEvent> {
+
 		const quoteId = message.payload.quoteId;
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`);
 
@@ -333,8 +338,6 @@ export class QuotingAggregate  {
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
 		const events: BulkQuoteReceivedEvt[] = [];
 		const individualQuotesInsideBulkQuote = message.payload.individualQuotes as unknown as IQuote[];
-		const validQuotes:{ [key: string]: IQuote[] } = {};
-		const invalidQuotes : IQuote[] = [];
 
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
 
@@ -360,44 +363,33 @@ export class QuotingAggregate  {
 			await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
 		}
 
-		const missingFspIdsInQuotes = await this.getMissingFspIds(individualQuotesInsideBulkQuote) ?? {};
+		// Only one fspId for all individual quotes
+		const destinationFspId =  message.fspiopOpaqueState.destinationFspId;
+		// If there is no destinationFspId, then find a fspId for the quote, if found one then it's that
+		// validate destinationFspId
 
-		for (const fspId in missingFspIdsInQuotes) {
-			const existingFspId = missingFspIdsInQuotes[fspId] as string;
-
-			if(existingFspId) {
-				validQuotes[existingFspId] = [];
-			}
-		}
-
-		const bulkQuoteErrorEvents = await this.processBulkQuotesAndGetErrorEventsList(bulkQuoteId,requesterFspId, individualQuotesInsideBulkQuote, missingFspIdsInQuotes, validQuotes, invalidQuotes);
+		//Validate expiration date if exists, if exists update with expired status
 
 		if(!this._passThroughMode){
-			bulkQuote.quotesNotProcessedIds = invalidQuotes.map((quote) => quote.quoteId);
-			if (bulkQuote.quotesNotProcessedIds.length === 0) {
-				bulkQuote.status = QuoteStatus.ACCEPTED;
-			}
-			else if (bulkQuote.quotesNotProcessedIds.length === individualQuotesInsideBulkQuote.length) {
-				bulkQuote.status = QuoteStatus.REJECTED;
-			}
-			await this.updateBulkQuoteWithNewStatusAndInvalidQuotes(bulkQuote);
+			bulkQuote.status = QuoteStatus.PENDING;
+			await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 		}
 
-		for (const fspId in validQuotes) {
+		for (const quote in individualQuotesInsideBulkQuote) {
 			const payload : BulkQuoteReceivedEvtPayload = {
 				bulkQuoteId,
 				payer: message.payload.payer,
 				geoCode: message.payload.geoCode,
 				expiration: message.payload.expiration,
 				//TODO: fix this to be of type IQuote[]
-				individualQuotes: validQuotes[fspId] as any,
+				individualQuotes: individualQuotesInsideBulkQuote as any,
 				extensionList: message.payload.extensionList
 			};
 
 			const event = new BulkQuoteReceivedEvt(payload);
 
 			event.fspiopOpaqueState = { ...message.fspiopOpaqueState };
-			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": fspId };
+			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": destinationFspId };
 
 			events.push(event);
 		}
@@ -406,74 +398,11 @@ export class QuotingAggregate  {
 
 	}
 
-	private async updateBulkQuoteWithNewStatusAndInvalidQuotes(bulkQuote: IBulkQuote) {
-
-		const bulkQuoteInDatabase = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuote.bulkQuoteId);
-		if (bulkQuoteInDatabase) {
-			bulkQuoteInDatabase.status = bulkQuote.status;
-			bulkQuoteInDatabase.individualQuotes = bulkQuote.individualQuotes;
-			await this._bulkQuotesRepo.updateBulkQuote(bulkQuoteInDatabase);
-		}
-	}
-
-	private async processBulkQuotesAndGetErrorEventsList(bulkQuoteId: string, fspId:string, quotes: IQuote[], fspIds: { [key: string]: string | null; },
-		validQuotes: { [key: string]: IQuote[]; }, quotesNotProcessed: IQuote[]): Promise<QuoteErrorEvent[]> {
-		const errorEvents: QuoteErrorEvent[] = [];
-
-		for await (const quote of quotes) {
-			const destinationFspId = quote.payee?.partyIdInfo?.fspId ?? fspIds[quote.quoteId];
-			const quoteId = quote.quoteId;
-			// TODO: Do we need this
-			//quote.payer = message.payload.payer;
-
-			if (!destinationFspId) {
-				quote.status = QuoteStatus.REJECTED;
-				const errorMessage = `Quote with id: ${quoteId} does not have a valid destination fspId`;
-				this._logger.error(errorMessage);
-				const errorEvent = createInvalidDestinationFspIdErrorEvent(errorMessage, fspId, quoteId, bulkQuoteId);
-				errorEvents.push(errorEvent);
-				quotesNotProcessed.push(quote);
-			}
-			else {
-				const destinationParticipantValid = (await this.validateParticipantInfoOrGetErrorEvent(destinationFspId,quoteId,null,true)).valid;
-				const isQuoteExpired = this.validateQuoteExpiration(quote.expiration as string);
-				if (destinationParticipantValid && !isQuoteExpired) {
-					if (!validQuotes[destinationFspId]) {
-						validQuotes[destinationFspId] = [];
-					}
-					quote.bulkQuoteId = bulkQuoteId;
-					quote.status = QuoteStatus.PENDING;
-					quote.payee.partyIdInfo.fspId = destinationFspId;
-					validQuotes[destinationFspId].push(quote);
-				} else {
-					if(!destinationParticipantValid){
-						quote.status = QuoteStatus.REJECTED;
-						const errorMessage = `Quote with id: ${quoteId} does not have a valid destination fspId`;
-						this._logger.error(errorMessage);
-						const errorEvent = createInvalidDestinationFspIdErrorEvent(errorMessage, fspId, quoteId, bulkQuoteId);
-						errorEvents.push(errorEvent);
-					}
-					else if(isQuoteExpired){
-						quote.status = QuoteStatus.EXPIRED;
-						const errorMessage = `Quote with id: ${quoteId} has expired`;
-						this._logger.error(errorMessage);
-						const errorEvent = createQuoteExpiredErrorEvent(errorMessage, fspId, quoteId, bulkQuoteId);
-						errorEvents.push(errorEvent);
-					}
-					quotesNotProcessed.push(quote);
-				}
-			}
-
-			if(!this._passThroughMode){
-				await this._quotesRepo.addQuote(quote);
-			}
-		}
-		return errorEvents;
-	}
 	//#endregion
 
 	//#region handleBulkQuotePendingReceivedEvt
 	private async handleBulkQuotePendingReceivedEvent(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | QuoteErrorEvent> {
+
 		const bulkQuoteId = message.payload.bulkQuoteId;
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
 		const destinationFspId = message.fspiopOpaqueState?.destinationFspId;
@@ -491,6 +420,8 @@ export class QuotingAggregate  {
 			return destinationParticipant.errorEvent as QuoteErrorEvent;
 		}
 
+		//Validate bulkQuote Expiration date if exists, if exists update with expired status
+		
 		const quotes = message.payload.individualQuoteResults;
 
 		if(!this._passThroughMode){
@@ -515,7 +446,6 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region Quotes database operations
-
 	private async updateQuote(message: QuoteResponseReceivedEvt) {
 		const quoteId = message.payload.quoteId;
 		const quote = await this._quotesRepo.getQuoteById(quoteId);
@@ -537,7 +467,6 @@ export class QuotingAggregate  {
 		quote.geoCode = message.payload.geoCode;
 		quote.extensionList = message.payload.extensionList;
 		quote.status = QuoteStatus.ACCEPTED;
-
 
 		await this._quotesRepo.updateQuote(quote);
 	}
@@ -570,14 +499,12 @@ export class QuotingAggregate  {
 			quote.payeeFspCommission = individualQuote.payeeFspCommission;
 			quote.extensionList = individualQuote.extensionList;
 			quote.errorInformation = individualQuote.errorInformation;
-			quote.status = (quote.status === QuoteStatus.PENDING) ? QuoteStatus.ACCEPTED : quote.status;
+			quote.status = QuoteStatus.ACCEPTED;
 
 			await this._quotesRepo.updateQuote(quote);
 		}
 
-		if (bulkQuote.quotesNotProcessedIds.length === 0) {
-			bulkQuote.status = QuoteStatus.ACCEPTED;
-		}
+		bulkQuote.status = QuoteStatus.ACCEPTED;
 
 		await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
 	}
@@ -602,36 +529,10 @@ export class QuotingAggregate  {
 		}
 		return destinationFspId;
 	}
-
-	private async getMissingFspIds(quotes: IQuote[]): Promise<{[key:string]:string|null}| null> {
-		const destinationFspIdsToDiscover: AccountLookupBulkQuoteFspIdRequest= {};
-		for (const quote of quotes) {
-			const destinationFspId = quote.payee?.partyIdInfo?.fspId;
-			if(!destinationFspId) {
-				const key = quote.quoteId;
-				destinationFspIdsToDiscover[key] = {
-					partyId: quote.payee?.partyIdInfo?.partyIdentifier,
-					partyType: quote.payee?.partyIdInfo?.partyIdType,
-					currency: quote.amount?.currency,
-				};
-			}
-		}
-
-		try{
-			this._logger.debug(`No destinationFspId found in message, trying to get it from account lookup service for payee: ${JSON.stringify(destinationFspIdsToDiscover)}`);
-			const destinationFspIds = await this._accountLookupService.getBulkAccountLookup(destinationFspIdsToDiscover);
-			this._logger.debug(`Got destinationFspId from account lookup service: ${JSON.stringify(destinationFspIds)}`);
-			return destinationFspIds;
-		}
-		catch(error:unknown){
-			this._logger.error(`Unable to get destinationFspId from account lookup service for payee: ${JSON.stringify(destinationFspIdsToDiscover)} - ${error instanceof Error ? error.message : "Unexpected Error"}`);
-			return null;
-		}
-	}
 	//#endregion
 
 	//#region Validations
-	private validateQuoteExpiration(expirationDate: string): boolean {
+	private validateExpiration(expirationDate: string): boolean {
 		var serverDateUtc= new Date().toISOString();
 		var serverDate = new Date(serverDateUtc);
 		var quoteDate = new Date(expirationDate);
@@ -641,7 +542,6 @@ export class QuotingAggregate  {
 		}
 		return true;
 	}
-
 
 	private validateMessageOrGetErrorEvent(message:IMessage): {errorEvent:QuoteErrorEvent | null, valid: boolean} {
 		let errorEvent!: QuoteErrorEvent | null;
