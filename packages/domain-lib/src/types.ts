@@ -139,8 +139,8 @@ export interface IQuote {
     payeeReceiveAmount: IMoney | null;
     payeeFspFee: IMoney | null;
     payeeFspCommission: IMoney | null;
+    transferAmount : IMoney | null;
 }
-
 export interface IBulkQuote {
     bulkQuoteId: string;
     payer: IParty;
@@ -151,6 +151,10 @@ export interface IBulkQuote {
     extensionList: IExtensionList | null;
     status: QuoteStatus | null;
 }
+
+export type QuoteUpdatableFields = Pick<IQuote, "transferAmount" | "expiration" | "ilpPacket" | "condition"
+    | "payeeReceiveAmount" | "payeeFspFee" | "payeeFspCommission" | "geoCode" | "extensionList">;
+
 
 export type QuoteErrorEvent = QuoteBCBulkQuoteNotFoundErrorEvent | QuoteBCUnknownErrorEvent |
     QuoteBCInvalidMessagePayloadErrorEvent | QuoteBCDuplicateQuoteErrorEvent | QuoteBCInvalidDestinationPartyInformationErrorEvent |

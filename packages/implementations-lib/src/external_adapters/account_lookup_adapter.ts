@@ -90,7 +90,7 @@ export class AccountLookupAdapter implements IAccountLookupService {
 			result = {...result, ...externalFspIds};
 		} catch (e: unknown) {
 			this._logger.error(`getBulkAccountLookup: error calling external account lookup service for partyIdentifiers: ${JSON.stringify(partyIdentifiers)}, error: ${e}`);
-			throw new GetBulkAccountLookupAdapterError();
+			throw new GetBulkAccountLookupAdapterError("Error calling external account lookup service");
 		}
 
 		this._logger.debug("getBulkAccountLookup: caching result for partyIdentifiers");
@@ -126,7 +126,7 @@ export class AccountLookupAdapter implements IAccountLookupService {
 			return result;
 		} catch (e: unknown) {
 			this._logger.error(`getAccountLookup: error getting for partyId: ${partyId}, partyType: ${partyType}, currency: ${currency} - ${e}`);
-			throw new GetAccountLookupAdapterError();
+			throw new GetAccountLookupAdapterError("Error calling external account lookup service");
 		}
 	}
 

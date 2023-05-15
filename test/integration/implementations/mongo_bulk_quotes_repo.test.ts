@@ -35,7 +35,7 @@
 import { ILogger,ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import { MongoClient, Collection } from "mongodb";
 import { mockedBulkQuote1, mockedBulkQuote2 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import { BulkQuoteAlreadyExistsError, NoSuchBulkQuoteError, MongoBulkQuotesRepo } from "../../../packages/Implementations-lib/src";
+import { BulkQuoteAlreadyExistsError, BulkQuoteNotFoundError, MongoBulkQuotesRepo } from "../../../packages/Implementations-lib/src";
 import { IBulkQuote, IBulkQuoteRepo } from "../../../packages/domain-lib/src";
 
 const logger: ILogger = new ConsoleLogger();
@@ -124,7 +124,7 @@ describe("Implementations - Mongo Bulk Quotes Repo Integration tests", () => {
         const bulkQuote1 = mockedBulkQuote1;
 
         // Act && Assert
-        await expect(mongoBulkQuotesRepo.updateBulkQuote(bulkQuote1)).rejects.toThrowError(NoSuchBulkQuoteError);
+        await expect(mongoBulkQuotesRepo.updateBulkQuote(bulkQuote1)).rejects.toThrowError(BulkQuoteNotFoundError);
 
     });
 
@@ -187,7 +187,7 @@ describe("Implementations - Mongo Bulk Quotes Repo Integration tests", () => {
     test("should throw error when trying to delete a bulk quote that does not exist", async () => {
 
         // Act && Assert
-        await expect(mongoBulkQuotesRepo.removeBulkQuote("invalid_id")).rejects.toThrowError(NoSuchBulkQuoteError);
+        await expect(mongoBulkQuotesRepo.removeBulkQuote("invalid_id")).rejects.toThrowError(BulkQuoteNotFoundError);
 
     });
 

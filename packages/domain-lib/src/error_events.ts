@@ -127,7 +127,7 @@ export function createInvalidParticipantIdErrorEvent(errorDescription:string, fs
 }
 
 
-export function createInvalidRequesterFspIdErrorEvent(errorDescription:string, fspId:string, quoteId:string, bulkQuoteId:string):QuoteBCInvalidRequesterFspIdErrorEvent{
+export function createInvalidRequesterFspIdErrorEvent(errorDescription:string, fspId:string, quoteId:string|null, bulkQuoteId:string|null):QuoteBCInvalidRequesterFspIdErrorEvent{
     const errorPayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
         bulkQuoteId,
         errorDescription,
@@ -139,7 +139,7 @@ export function createInvalidRequesterFspIdErrorEvent(errorDescription:string, f
 
 }
 
-export function createInvalidDestinationFspIdErrorEvent(errorDescription:string, fspId:string, quoteId:string, bulkQuoteId:string):QuoteBCInvalidDestinationFspIdErrorEvent{
+export function createInvalidDestinationFspIdErrorEvent(errorDescription:string, fspId:string, quoteId:string|null, bulkQuoteId:string|null):QuoteBCInvalidDestinationFspIdErrorEvent{
     const errorPayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
         bulkQuoteId,
         errorDescription,
@@ -149,11 +149,6 @@ export function createInvalidDestinationFspIdErrorEvent(errorDescription:string,
 
     const errorEvent = new QuoteBCInvalidDestinationFspIdErrorEvent(errorPayload);
     return errorEvent;
-
-}
-
-//TODO: Create the event on shared lib
-export function createQuoteExpiredErrorEvent(errorDescription:string, fspId:string, quoteId:string, bulkQuoteId:string): any{
 
 }
 
@@ -168,4 +163,26 @@ export function createUnknownErrorEvent(errorDescription:string, fspId:string, q
     return errorEvent;
 
 }
+
+//TODO: Add following errors to shared lib
+export function createQuoteExpiredErrorEvent(errorDescription:string, fspId:string, quoteId:string| null, bulkQuoteId:string | null): any{
+    return null;
+}
+
+export function createUnableToAddQuoteToDatabaseErrorEvent(errorDescription:string, fspId:string, quoteId:string): any{
+    return null;
+}
+
+export function createUnableToAddBulkQuoteToDatabaseErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): any{
+    return null;
+}
+
+export function createUnableToUpdateQuoteInDatabaseErrorEvent(errorDescription:string, fspId:string, quoteId:string): any{
+    return null;
+}
+
+export function createUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): any{
+    return null;
+}
+
 

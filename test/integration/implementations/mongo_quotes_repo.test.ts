@@ -35,7 +35,7 @@
 import { ILogger,ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import { MongoClient, Collection } from "mongodb";
 import { mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import {  MongoQuotesRepo, NoSuchQuoteError, QuoteAlreadyExistsError } from "../../../packages/Implementations-lib/src";
+import {  MongoQuotesRepo, QuoteNotFoundError, QuoteAlreadyExistsError } from "../../../packages/Implementations-lib/src";
 import { QuoteStatus } from "../../../packages/domain-lib/src";
 
 const logger: ILogger = new ConsoleLogger();
@@ -163,7 +163,7 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         const quote1 = mockedQuote1;
 
         // Act && Assert
-        await expect(mongoQuotesRepo.updateQuote(quote1)).rejects.toThrowError(NoSuchQuoteError);
+        await expect(mongoQuotesRepo.updateQuote(quote1)).rejects.toThrowError(QuoteNotFoundError);
 
     });
 
@@ -230,7 +230,7 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         const quote1 = mockedQuote1;
 
         // Act && Assert
-        await expect(mongoQuotesRepo.removeQuote(quote1.quoteId)).rejects.toThrowError(NoSuchQuoteError);
+        await expect(mongoQuotesRepo.removeQuote(quote1.quoteId)).rejects.toThrowError(QuoteNotFoundError);
 
     });
 

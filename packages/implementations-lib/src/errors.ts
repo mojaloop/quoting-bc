@@ -42,131 +42,131 @@
 
 // Quotes
 export class QuoteTypeNotSupportedError extends Error {
-  constructor(message?: string) {
-    super(message || "Quote type not supported");
+  constructor(message: string) {
+    super(message);
   }
 }
 export class UnableToAddQuoteError extends Error {
-    constructor(message?: string) {
-        super(message || "Unable to add quote");
+    constructor(message: string) {
+        super(message);
     }
 }
 export class UnableToAddBulkQuotesError extends Error {
-    constructor(message?: string) {
-        super(message || "Unable to add bulk quote");
+    constructor(message: string) {
+        super(message);
     }
 }
 export class UnableToUpdateQuoteError extends Error {
-    constructor(message?: string) {
-        super(message || "Unable to update quote");
+    constructor(message: string) {
+        super(message);
     }
 }
-export class NoSuchQuoteError extends Error {
-    constructor(message?: string) {
-        super(message||"No such quote");
+export class QuoteNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
     }
 }
 export class UnableToGetQuoteError extends Error {
-    constructor(message?: string) {
-        super(message || 'Unable to get quote');
+    constructor(message: string) {
+        super(message);
     }
 }
 
 export class UnableToGetQuotesError extends Error {
-    constructor(message?: string) {
-        super(message || 'Unable to get quotes');
+    constructor(message: string) {
+        super(message);
     }
 }
 export class QuoteAlreadyExistsError extends Error {
-    constructor(message?:string) {
-        super(message || 'Quote already registered');
+    constructor(message:string) {
+        super(message);
     }
 }
 export class UnableToDeleteQuoteError extends Error {
-    constructor(message?:string) {
-        super(message || 'Unable to delete quote');
+    constructor(message:string) {
+        super(message);
     }
 }
 
 export class UnableToAddManyQuotesError extends Error {
-    constructor(message?: string) {
-        super(message || 'Unable to add many quotes');
+    constructor(message: string) {
+        super(message);
     }
 }
 
 // Bulk Quotes
 export class BulkQuoteTypeNotSupportedError extends Error {
-constructor(message?: string) {
-    super(message || "BulkQuote type not supported");
+constructor(message: string) {
+    super(message);
 }
 }
 export class UnableToAddBulkQuoteError extends Error {
-    constructor(message?: string) {
-        super(message || "Unable to add bulk quote");
+    constructor(message: string) {
+        super(message);
     }
 }
 
 export class UnableToUpdateBulkQuoteError extends Error {
-    constructor(message?: string) {
-        super(message || "Unable to update bulk quote");
+    constructor(message: string) {
+        super(message);
     }
 }
-export class NoSuchBulkQuoteError extends Error {
-    constructor(message?: string) {
-        super(message||"No such bulk quote");
+export class BulkQuoteNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
     }
 }
 export class UnableToGetBulkQuoteError extends Error {
-    constructor(message?: string) {
-        super(message || 'Unable to get bulk quote');
+    constructor(message: string) {
+        super(message);
     }
 }
 export class BulkQuoteAlreadyExistsError extends Error {
-    constructor(message?:string) {
-        super(message || 'BulkQuote already registered');
+    constructor(message:string) {
+        super(message);
     }
 }
 export class UnableToDeleteBulkQuoteError extends Error {
-    constructor(message?:string) {
-        super(message || 'Unable to delete bulk quote');
+    constructor(message:string) {
+        super(message);
     }
 }
 
 // Cache
 export class LocalCacheError extends Error {
-    constructor(message?: string) {
-        super(message || 'Unable to get local cache');
+    constructor(message: string) {
+        super(message);
     }
 }
 
 // Database
 export class UnableToCloseDatabaseConnectionError extends Error{
-    constructor(message?: string) {
-        super(message || 'Unable to close database connection');
+    constructor(message: string) {
+        super(message);
     }
 }
 
 export class UnableToInitQuoteRegistryError extends Error {
-    constructor(message?: string) {
-        super(message || 'Unable to initialize quote registry');
+    constructor(message: string) {
+        super(message);
     }
 }
 export class UnableToInitBulkQuoteRegistryError extends Error {
-    constructor(message?: string) {
-        super(message || 'Unable to initialize quote registry');
+    constructor(message: string) {
+        super(message);
     }
 }
 
 // Account Lookup Adapter
 
 export class GetAccountLookupAdapterError extends Error {
-    constructor(message?: string) {
-        super(message || 'Unable to get account lookup');
+    constructor(message: string) {
+        super(message);
     }
 }
 
 export class GetBulkAccountLookupAdapterError extends Error {
-    constructor(message?: string) {
-        super(message || 'Unable to get bulk account lookup');
+    constructor(message: string) {
+        super(message);
     }
 }

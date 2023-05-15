@@ -45,9 +45,9 @@ import {
 	UnableToInitBulkQuoteRegistryError,
 	UnableToGetBulkQuoteError,
 	UnableToAddBulkQuoteError,
-	NoSuchBulkQuoteError,
 	UnableToUpdateBulkQuoteError,
-	UnableToDeleteBulkQuoteError
+	UnableToDeleteBulkQuoteError,
+	BulkQuoteNotFoundError
 } from "../errors";
 import { IBulkQuoteRepo, IBulkQuote } from "@mojaloop/quoting-bc-domain-lib";
 
@@ -76,7 +76,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 			this.bulkQuotes = this.mongoClient.db(this._dbName).collection(this._collectionName);
 		} catch (e: unknown) {
 			this._logger.error(`Unable to connect to the database: ${(e as Error).message}`);
-			throw new UnableToInitBulkQuoteRegistryError();
+			throw new UnableToInitBulkQuoteRegistryError("Unable to connect to the database");
 		}
 	}
 
@@ -86,14 +86,14 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 		}
 		catch(e: unknown){
 			this._logger.error(`Unable to close the database connection: ${(e as Error).message}`);
-			throw new UnableToCloseDatabaseConnectionError();
+			throw new UnableToCloseDatabaseConnectionError("Unable to close the database connection");
 		}
 	}
 
 	async getBulkQuoteById(bulkQuoteId:string):Promise<IBulkQuote|null>{
 		const bulkQuote = await this.bulkQuotes.findOne({bulkQuoteId: bulkQuoteId }).catch((e: unknown) => {
 			this._logger.error(`Unable to get bulkQuote by id: ${(e as Error).message}`);
-			throw new UnableToGetBulkQuoteError();
+			throw new UnableToGetBulkQuoteError("Unable to get bulkQuote by id");
 		});
 		if(!bulkQuote){
 			return null;
@@ -104,7 +104,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 	async getBulkQuotes(): Promise<IBulkQuote[]> {
 		const bulkQuotes = await this.bulkQuotes.find({}).toArray().catch((e: unknown) => {
 			this._logger.error(`Unable to get bulkQuotes: ${(e as Error).message}`);
-			throw new UnableToGetBulkQuoteError();
+			throw new UnableToGetBulkQuoteError("Unable to get bulkQuotes");
 		});
 
 		const mappedBulkQuotes: IBulkQuote[] = [];
@@ -122,11 +122,9 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 			await this.checkIfBulkQuoteExists(bulkQuoteToAdd);
 		}
 
-		bulkQuoteToAdd.bulkQuoteId = bulkQuoteToAdd.bulkQuoteId;
-
 		await this.bulkQuotes.insertOne(bulkQuoteToAdd).catch((e: unknown) => {
 			this._logger.error(`Unable to insert bulkQuote: ${(e as Error).message}`);
-			throw new UnableToAddBulkQuoteError();
+			throw new UnableToAddBulkQuoteError("Unable to add bulkQuote");
 		});
 
 		return bulkQuoteToAdd.bulkQuoteId;
@@ -137,7 +135,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 		const existingBulkQuote = await this.getBulkQuoteById(bulkQuote.bulkQuoteId);
 
 		if(!existingBulkQuote || !existingBulkQuote.bulkQuoteId) {
-			throw new NoSuchBulkQuoteError();
+			throw new BulkQuoteNotFoundError("Unable to find bulkQuote to update");
 		}
 
 		const updatedQuote: IBulkQuote = {...existingBulkQuote, ...bulkQuote};
@@ -145,20 +143,20 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 
 		await this.bulkQuotes.updateOne({bulkQuoteId: bulkQuote.bulkQuoteId,}, { $set: updatedQuote }).catch ((e: unknown)=> {
 			this._logger.error(`Unable to insert bulkQuote: ${(e as Error).message}`);
-			throw new UnableToUpdateBulkQuoteError();
+			throw new UnableToUpdateBulkQuoteError("Unable to update bulkQuote");
 		});
 	}
 
 	async removeBulkQuote(bulkQuoteId: string): Promise<void> {
 		const deleteResult = await this.bulkQuotes.deleteOne({bulkQuoteId}).catch((e: unknown) => {
 			this._logger.error(`Unable to delete bulkQuote: ${(e as Error).message}`);
-			throw new UnableToDeleteBulkQuoteError();
+			throw new UnableToDeleteBulkQuoteError("Unable to delete bulkQuote");
 		});
 		if(deleteResult.deletedCount == 1){
 			return;
 		}
 		else{
-			throw new NoSuchBulkQuoteError();
+			throw new BulkQuoteNotFoundError("Unable to find bulkQuote to delete");
 		}
 	}
 
@@ -170,11 +168,11 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 			}
 		).catch((e: unknown) => {
 			this._logger.error(`Unable to add bulk bulkQuote: ${(e as Error).message}`);
-			throw new UnableToGetBulkQuoteError();
+			throw new UnableToGetBulkQuoteError("Unable to get bulkQuote");
 		});
 
 		if (quoteAlreadyPresent) {
-			throw new BulkQuoteAlreadyExistsError();
+			throw new BulkQuoteAlreadyExistsError("BulkQuote already exists");
 		}
 	}
 

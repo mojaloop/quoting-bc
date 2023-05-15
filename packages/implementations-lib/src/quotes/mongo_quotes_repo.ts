@@ -45,10 +45,10 @@ import { QuoteAlreadyExistsError,
 	UnableToGetQuoteError,
 	UnableToInitQuoteRegistryError,
 	UnableToAddQuoteError,
-	NoSuchQuoteError,
 	UnableToUpdateQuoteError,
 	UnableToAddManyQuotesError,
-	UnableToGetQuotesError
+	UnableToGetQuotesError,
+	QuoteNotFoundError
 } from "../errors";
 import { IQuoteRepo, IQuote, QuoteStatus } from "@mojaloop/quoting-bc-domain-lib";
 import { randomUUID } from "crypto";
@@ -78,7 +78,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			this.quotes = this.mongoClient.db(this._dbName).collection(this._collectionName);
 		} catch (e: unknown) {
 			this._logger.error(`Unable to connect to the database: ${(e as Error).message}`);
-			throw new UnableToInitQuoteRegistryError();
+			throw new UnableToInitQuoteRegistryError("Unable to connect to the database");
 		}
 	}
 
@@ -88,7 +88,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 		}
 		catch(e: unknown){
 			this._logger.error(`Unable to close the database connection: ${(e as Error).message}`);
-			throw new UnableToCloseDatabaseConnectionError();
+			throw new UnableToCloseDatabaseConnectionError("Unable to close the database connection");
 		}
 	}
 
@@ -98,10 +98,9 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			await this.checkIfQuoteExists(quote);
 		}
 
-		quoteToAdd.quoteId = quoteToAdd.quoteId;
 		await this.quotes.insertOne(quoteToAdd).catch((e: unknown) => {
 			this._logger.error(`Unable to insert quote: ${(e as Error).message}`);
-			throw new UnableToAddQuoteError();
+			throw new UnableToAddQuoteError("Unable to insert quote");
 
 		});
 
@@ -120,7 +119,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 
 		await this.quotes.insertMany(quotesToAdd).catch((e: unknown) => {
 			this._logger.error(`Unable to insert many quotes: ${(e as Error).message}`);
-			throw new UnableToAddManyQuotesError();
+			throw new UnableToAddManyQuotesError("Unable to insert many quotes");
 		});
 	}
 
@@ -128,7 +127,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 		const existingQuote = await this.getQuoteById(quote.quoteId);
 
 		if(!existingQuote || !existingQuote.quoteId) {
-			throw new NoSuchQuoteError();
+			throw new QuoteNotFoundError("Quote not found");
 		}
 
 		const updatedQuote: IQuote = {...existingQuote, ...quote};
@@ -136,28 +135,28 @@ export class MongoQuotesRepo implements IQuoteRepo {
 
 		await this.quotes.updateOne({quoteId: quote.quoteId, }, { $set: updatedQuote }).catch((e: unknown) => {
 			this._logger.error(`Unable to insert quote: ${(e as Error).message}`);
-			throw new UnableToUpdateQuoteError();
+			throw new UnableToUpdateQuoteError("Unable to update quote");
 		});
 	}
 
 	async removeQuote(quoteId: string): Promise<void> {
 		const deleteResult = await this.quotes.deleteOne({quoteId}).catch((e: unknown) => {
 			this._logger.error(`Unable to delete quote: ${(e as Error).message}`);
-			throw new UnableToDeleteQuoteError();
+			throw new UnableToDeleteQuoteError("Unable to delete quote");
 		});
 
 		if(deleteResult.deletedCount == 1){
 			return;
 		}
 		else{
-			throw new NoSuchQuoteError();
+			throw new QuoteNotFoundError("Quote not found");
 		}
 	}
 
 	async getQuoteById(quoteId:string):Promise<IQuote|null>{
 		const quote = await this.quotes.findOne({quoteId: quoteId }).catch((e: unknown) => {
 			this._logger.error(`Unable to get quote by id: ${(e as Error).message}`);
-			throw new UnableToGetQuoteError();
+			throw new UnableToGetQuoteError("Unable to get quote by id");
 		});
 
 		if(!quote){
@@ -169,7 +168,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 	async getQuotes(): Promise<IQuote[]> {
 		const quotes = await this.quotes.find().toArray().catch((e: unknown) => {
 			this._logger.error(`Unable to get quotes: ${(e as Error).message}`);
-			throw new UnableToGetQuotesError();
+			throw new UnableToGetQuotesError("Unable to get quotes");
 		});
 
 		const mappedQuotes = [];
@@ -187,7 +186,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			status
 		}).toArray().catch((e: unknown) => {
 			this._logger.error(`Unable to get quotes by bulk quote id: ${(e as Error).message}`);
-			throw new UnableToGetQuotesError();
+			throw new UnableToGetQuotesError("Unable to get quotes by bulk quote id");
 		});
 
 		const mappedQuotes = [];
@@ -206,11 +205,11 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			}
 		).catch((e: unknown) => {
 			this._logger.error(`Unable to add quote: ${(e as Error).message}`);
-			throw new UnableToGetQuoteError();
+			throw new UnableToGetQuoteError("Unable to add quote");
 		});
 
 		if (quoteAlreadyPresent) {
-			throw new QuoteAlreadyExistsError();
+			throw new QuoteAlreadyExistsError("Quote already exists");
 		}
 	}
 
@@ -239,7 +238,8 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			payeeFspFee: quote.payeeFspFee ?? null,
 			payeeReceiveAmount: quote.payeeReceiveAmount ?? null,
 			requesterFspId: quote.requesterFspId ?? null,
-			errorInformation: quote.errorInformation ?? null
+			errorInformation: quote.errorInformation ?? null,
+			transferAmount: quote.transferAmount ?? null,
 		};
 		return quoteMapped;
 	}

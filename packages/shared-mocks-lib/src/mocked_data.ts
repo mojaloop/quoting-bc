@@ -146,6 +146,8 @@ export const mockedQuote1 : IQuote = {
         ]
       }
     }
+    ,
+    transferAmount: null
 };
 
 export const mockedQuote2 : IQuote = {
@@ -259,7 +261,8 @@ export const mockedQuote2 : IQuote = {
         }
       ]
     }
-  }
+  },
+  transferAmount: null
 };
 
 export const mockedQuote3 : IQuote = {
@@ -373,7 +376,8 @@ export const mockedQuote3 : IQuote = {
         }
       ]
     }
-  }
+  },
+  transferAmount: null
 };
 
 export const mockedQuote4 : IQuote = {
@@ -487,7 +491,8 @@ export const mockedQuote4 : IQuote = {
         }
       ]
     }
-  }
+  },
+  transferAmount: null
 };
 
 export const mockedQuotes : IQuote[] = [
