@@ -37,7 +37,8 @@ import {
 	IQuoteRepo,
 	IBulkQuoteRepo,
 	IParticipantService,
-	IAccountLookupService
+	IAccountLookupService,
+	IQuoteSchemeRules,
 } from "@mojaloop/quoting-bc-domain-lib";
 import {IMessageProducer, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
@@ -112,6 +113,7 @@ const consumerOptions: MLKafkaJsonConsumerOptions = {
 
 // Application variables
 const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"]=== "true" )? true : false;
+const SCHEME_RULES = process.env["SCHEME_RULES"];
 
 const producerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL,
@@ -182,6 +184,15 @@ export class Service {
 		}
 		this.auditClient = auditClient;
 		*/
+		let schemeRules: IQuoteSchemeRules;
+		try{
+			schemeRules = JSON.parse(SCHEME_RULES as string);
+		}
+		catch(e: any){
+			logger.error(`Invalid SCHEMA_RULES: ${e.message}`);
+			throw new Error("Invalid SCHEMA_RULES");
+		}
+
 
 		if(!quotesRepo){
 			quotesRepo = new MongoQuotesRepo(this.logger, MONGO_URL, DB_NAME_QUOTES);
@@ -239,7 +250,7 @@ export class Service {
 		logger.info("Bulk Quote Registry Repo Initialized");
 
 		if(!aggregate){
-			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE);
+			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE, schemeRules);
 		}
 
 		this.aggregate = aggregate;

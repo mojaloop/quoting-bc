@@ -152,6 +152,11 @@ export interface IBulkQuote {
     status: QuoteStatus | null;
 }
 
+export interface IQuoteSchemeRules {
+    currencies: string[];
+}
+
+
 export type QuoteUpdatableFields = Pick<IQuote, "transferAmount" | "expiration" | "ilpPacket" | "condition"
     | "payeeReceiveAmount" | "payeeFspFee" | "payeeFspCommission" | "geoCode" | "extensionList">;
 
@@ -161,6 +166,8 @@ export type QuoteErrorEvent = QuoteBCBulkQuoteNotFoundErrorEvent | QuoteBCUnknow
     QuoteBCInvalidMessageTypeErrorEvent  | QuoteBCParticipantNotFoundErrorEvent |
     QuoteBCInvalidParticipantIdErrorEvent | QuoteBCInvalidRequesterFspIdErrorEvent | QuoteBCInvalidDestinationFspIdErrorEvent |
     QuoteBCRequiredParticipantIsNotActiveErrorEvent | QuoteBCQuoteNotFoundErrorEvent;
+
+
 
 
 

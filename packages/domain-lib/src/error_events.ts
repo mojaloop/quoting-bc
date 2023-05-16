@@ -32,9 +32,10 @@
 
 "use strict";
 
-import {QuoteBCBulkQuoteNotFoundErrorEvent,  QuoteBCBulkQuoteNotFoundErrorPayload, QuoteBCUnknownErrorEvent, QuoteBCUnknownErrorPayload,
+import {QuoteBCBulkQuoteNotFoundErrorEvent,
+    QuoteBCBulkQuoteNotFoundErrorPayload, QuoteBCUnknownErrorEvent, QuoteBCUnknownErrorPayload,
     QuoteBCInvalidMessagePayloadErrorPayload, QuoteBCDuplicateQuoteErrorEvent, QuoteBCDuplicateQuoteErrorPayload,
-    QuoteBCInvalidDestinationPartyInformationErrorEvent, QuoteBCInvalidDestinationPartyInformationErrorPayload,
+    //QuoteBCInvalidDestinationPartyInformationErrorEvent, QuoteBCInvalidDestinationPartyInformationErrorPayload,
     QuoteBCInvalidMessagePayloadErrorEvent,
     QuoteBCInvalidMessageTypeErrorEvent, QuoteBCInvalidMessageTypeErrorPayload,
     QuoteBCParticipantNotFoundErrorEvent,
@@ -182,6 +183,14 @@ export function createUnableToUpdateQuoteInDatabaseErrorEvent(errorDescription:s
 }
 
 export function createUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): any{
+    return null;
+}
+
+export function createInvalidBulkQuoteLengthErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): any{
+    return null;
+}
+
+export function createQuoteRuleSchemeViolated(errorDescription:string, fspId:string, quoteId:string): any{
     return null;
 }
 

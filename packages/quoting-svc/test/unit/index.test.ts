@@ -1,4 +1,3 @@
-import {MemoryAuthenticatedHttpRequesterMock} from '../../../shared-mocks-lib/src/memory_auth_requester';
 /**
  License
  --------------
@@ -34,7 +33,7 @@ import {MemoryAuthenticatedHttpRequesterMock} from '../../../shared-mocks-lib/sr
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { Service } from "../../src/service";
-import { MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, MemoryAccountLookupService, MemoryBulkQuoteRepo } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { MemoryMessageConsumer, MemoryMessageProducer, MemoryAuthenticatedHttpRequesterMock, MemoryParticipantService, MemoryQuoteRepo, MemoryAccountLookupService, MemoryBulkQuoteRepo } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
 import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
 const express = require("express");

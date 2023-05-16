@@ -1,4 +1,3 @@
-import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
 /**
  License
  --------------
@@ -34,6 +33,7 @@ import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
 import { IMessage, IMessageProducer, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
@@ -52,9 +52,11 @@ import {
 	BulkQuotePendingReceivedEvt,
 	BulkQuoteAcceptedEvt,
 	BulkQuoteAcceptedEvtPayload,
+	QuoteRequestReceivedEvtPayload,
+	QuoteResponseReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, QuoteErrorEvent, QuoteStatus, QuoteUpdatableFields } from "./types";
-import { createBulkQuoteNotFoundErrorEvent, createInvalidDestinationFspIdErrorEvent, createInvalidMessageNameErrorEvent, createInvalidMessagePayloadErrorEvent, createInvalidMessageTypeErrorEvent, createInvalidParticipantIdErrorEvent, createParticipantNotFoundErrorEvent, createQuoteExpiredErrorEvent, createQuoteNotFoundErrorEvent, createUnableToAddBulkQuoteToDatabaseErrorEvent, createUnableToAddQuoteToDatabaseErrorEvent, createUnableToUpdateBulkQuoteInDatabaseErrorEvent, createUnableToUpdateQuoteInDatabaseErrorEvent, createUnknownErrorEvent } from "./error_events";
+import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules, QuoteErrorEvent, QuoteStatus, QuoteUpdatableFields } from "./types";
+import { createBulkQuoteNotFoundErrorEvent, createInvalidBulkQuoteLengthErrorEvent, createInvalidDestinationFspIdErrorEvent, createInvalidMessageNameErrorEvent, createInvalidMessagePayloadErrorEvent, createInvalidMessageTypeErrorEvent, createInvalidParticipantIdErrorEvent, createParticipantNotFoundErrorEvent, createQuoteExpiredErrorEvent, createQuoteNotFoundErrorEvent, createQuoteRuleSchemeViolated, createUnableToAddBulkQuoteToDatabaseErrorEvent, createUnableToAddQuoteToDatabaseErrorEvent, createUnableToUpdateBulkQuoteInDatabaseErrorEvent, createUnableToUpdateQuoteInDatabaseErrorEvent, createUnknownErrorEvent } from "./error_events";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -64,6 +66,7 @@ export class QuotingAggregate  {
 	private readonly _participantService: IParticipantService;
 	private readonly _accountLookupService: IAccountLookupService;
 	private readonly _passThroughMode: boolean;
+	private readonly _schemeRules: IQuoteSchemeRules;
 
 	constructor(
 		logger: ILogger,
@@ -72,7 +75,8 @@ export class QuotingAggregate  {
 		messageProducer:IMessageProducer,
 		participantService: IParticipantService,
 		accountLookupService: IAccountLookupService,
-		passThroughMode: boolean
+		passThroughMode: boolean,
+		schemeRules: IQuoteSchemeRules
 	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._quotesRepo = quoteRepo;
@@ -81,6 +85,7 @@ export class QuotingAggregate  {
 		this._participantService = participantService;
 		this._accountLookupService = accountLookupService;
 		this._passThroughMode = passThroughMode ?? false;
+		this._schemeRules = schemeRules;
 	}
 
 	//#region Event Handlers
@@ -161,17 +166,19 @@ export class QuotingAggregate  {
 			return requesterParticipant.errorEvent as QuoteErrorEvent;
 		}
 
+		const schemeValidationResult = this.validateQuoteRequestSchemeOrGetErrorEvent(requesterFspId, quoteId, message.payload);
+		if(!schemeValidationResult.valid){
+			return schemeValidationResult.errorEvent as QuoteErrorEvent;
+		}
+
 		if(!destinationFspId){
 			const payeePartyId = message.payload.payee?.partyIdInfo?.partyIdentifier;
 			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType;
 			const currency = message.payload.amount?.currency ?? null;
 			destinationFspId = await this.getMissingFspId(payeePartyId, payeePartyIdType, currency);
-			//TODO: We shouldnt alter the message
-			// message.payload.payee.partyIdInfo.fspId = destinationFspId;
 		}
 
 		const destinationParticipant = await this.validateParticipantInfoOrGetErrorEvent(destinationFspId, quoteId, null, true);
-
 		if(!destinationParticipant.valid){
 			return destinationParticipant.errorEvent as QuoteErrorEvent;
 		}
@@ -220,11 +227,16 @@ export class QuotingAggregate  {
 			}
 		}
 
+		const payee = message.payload.payee;
+		if(!payee.partyIdInfo.fspId){
+			payee.partyIdInfo.fspId = destinationFspId;
+		}
+
 		const payload : QuoteRequestAcceptedEvtPayload = {
 			quoteId: message.payload.quoteId,
 			transactionId: message.payload.transactionId,
 			transactionRequestId: message.payload.transactionRequestId,
-			payee: message.payload.payee,
+			payee: payee,
 			payer: message.payload.payer,
 			amountType: message.payload.amountType,
 			amount: message.payload.amount,
@@ -259,6 +271,11 @@ export class QuotingAggregate  {
 		if(!requesterParticipant.valid && quoteErrorEvent === null){
 			quoteErrorEvent = requesterParticipant.errorEvent as QuoteErrorEvent;
 			quoteStatus = QuoteStatus.REJECTED;
+		}
+
+		const schemeValidationResult = this.validateQuoteResponseSchemeOrGetErrorEvent(requesterFspId, quoteId, message.payload);
+		if(!schemeValidationResult.valid){
+			return schemeValidationResult.errorEvent as QuoteErrorEvent;
 		}
 
 		const destinationParticipant = await this.validateParticipantInfoOrGetErrorEvent(destinationFspId, quoteId, null, true);
@@ -373,6 +390,10 @@ export class QuotingAggregate  {
 		const events: BulkQuoteReceivedEvt[] = [];
 		const individualQuotesInsideBulkQuote = message.payload.individualQuotes as unknown as IQuote[];
 
+		if(individualQuotesInsideBulkQuote.length <= 0){
+			return createInvalidBulkQuoteLengthErrorEvent(`BulkQuote ${bulkQuoteId} has no individual quotes`, requesterFspId, bulkQuoteId);
+		}
+
 		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId, bulkQuoteId, null);
 		if(!requesterParticipant.valid){
 			return requesterParticipant.errorEvent as QuoteErrorEvent;
@@ -417,25 +438,21 @@ export class QuotingAggregate  {
 			}
 		}
 
-		for (const quote of individualQuotesInsideBulkQuote) {
-			//TODO: this was with message, does it make sense to send the same message for all individual quotes?
-			const payload : BulkQuoteReceivedEvtPayload = {
-				bulkQuoteId,
-				payer: quote.payer,
-				geoCode: quote.geoCode,
-				expiration: expirationDate,
-				//TODO: fix this to be of type IQuote[]
-				individualQuotes: individualQuotesInsideBulkQuote as any,
-				extensionList: quote.extensionList
-			};
+		const payload : BulkQuoteReceivedEvtPayload = {
+			bulkQuoteId,
+			payer: message.payload.payer,
+			geoCode: message.payload.geoCode,
+			expiration: expirationDate,
+			//TODO: fix this to be of type IQuote[]
+			individualQuotes: individualQuotesInsideBulkQuote as any,
+			extensionList: message.payload.extensionList
+		};
 
-			const event = new BulkQuoteReceivedEvt(payload);
+		const event = new BulkQuoteReceivedEvt(payload);
 
-			event.fspiopOpaqueState = { ...message.fspiopOpaqueState };
-			event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": destinationFspId };
+		event.fspiopOpaqueState = message.fspiopOpaqueState;
 
-			events.push(event);
-		}
+		events.push(event);
 
 		return events;
 	}
@@ -443,7 +460,7 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region handleBulkQuotePendingReceivedEvt
-	private async handleBulkQuotePendingReceivedEvent(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | QuoteErrorEvent> {
+	private async handleBulkQuotePendingReceivedEvent(message: BulkQuotePendingReceivedEvt):Promise<BulkQuoteAcceptedEvt | QuoteErrorEvent | QuoteErrorEvent[]> {
 		const bulkQuoteId = message.payload.bulkQuoteId;
 		this._logger.debug(`Got BulkQuotePendingReceivedEvt msg for bulkQuoteId:${bulkQuoteId} and bulkQuotes: ${message.payload.individualQuoteResults}`);
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
@@ -475,7 +492,11 @@ export class QuotingAggregate  {
 		const quotes = message.payload.individualQuoteResults as IQuote[];
 
 		if(!this._passThroughMode){
-			await this.updateBulkQuoteOrGetErrorEvent(bulkQuoteId,requesterFspId,destinationFspId,expirationDate, quoteStatus, quotes);
+			const updatedBulkQuote = await this.updateBulkQuoteOrGetErrorEvent(bulkQuoteId,requesterFspId,destinationFspId,expirationDate, quoteStatus, quotes);
+			if(!updatedBulkQuote.valid){
+				const quoteErrorEvents = updatedBulkQuote.errorEvent as QuoteErrorEvent[];
+				return quoteErrorEvents;
+			}
 		}
 
 		const payload : BulkQuoteAcceptedEvtPayload = {
@@ -488,7 +509,6 @@ export class QuotingAggregate  {
 		const event = new BulkQuoteAcceptedEvt(payload);
 
 		event.fspiopOpaqueState = message.fspiopOpaqueState;
-		event.fspiopOpaqueState.headers = { ...message.fspiopOpaqueState.headers, "fspiop-destination": message.fspiopOpaqueState.destinationFspId, };
 
 		return event;
 
@@ -598,7 +618,6 @@ export class QuotingAggregate  {
 	}
 
 	private async updateBulkQuoteOrGetErrorEvent(bulkQuoteId:string, requesterFspId:string, destinationFspId:string, expiration:string | null, status:QuoteStatus, quotes: IQuote[]): Promise< { errorEvent:QuoteErrorEvent[], valid:boolean}> {
-		//TODO: should we continue if couldn't update each quote in bulkquote
 		let errorEvent!: QuoteErrorEvent[];
 		const result = { errorEvent, valid: false };
 		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
@@ -610,14 +629,14 @@ export class QuotingAggregate  {
 			return result;
 		}
 
-		// Update the status and fields of each quote that was processed/has new data
 		for await (const individualQuote of quotes) {
 			const quote = await this._quotesRepo.getQuoteById(individualQuote.quoteId);
 
 			if (!quote) {
 				const errorMessage = `Quote not found for quoteId: ${individualQuote.quoteId} in bulkQuoteId: ${bulkQuoteId}`;
 				this._logger.error(errorMessage);
-				result.errorEvent.push(createQuoteNotFoundErrorEvent(errorMessage, requesterFspId, individualQuote.quoteId));
+				errorEvent.push(createQuoteNotFoundErrorEvent(errorMessage, requesterFspId, individualQuote.quoteId));
+				result.valid = false;
 			}
 
 			else{
@@ -638,10 +657,14 @@ export class QuotingAggregate  {
 				await this._quotesRepo.updateQuote(quote).catch((err) => {
 					const errorMessage = `Error updating quote for quoteId: ${individualQuote.quoteId} in bulkQuoteId: ${bulkQuoteId}.`;
 					this._logger.error(errorMessage + " " + err.message);
-					result.errorEvent.push(createUnableToUpdateQuoteInDatabaseErrorEvent(errorMessage, requesterFspId, individualQuote.quoteId));
+					errorEvent.push(createUnableToUpdateQuoteInDatabaseErrorEvent(errorMessage, requesterFspId, individualQuote.quoteId));
 					result.valid = false;
 				});
 			}
+		}
+
+		if(errorEvent.length > 0){
+			return result;
 		}
 
 		bulkQuote.status = status;
@@ -708,6 +731,42 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region Validations
+	private validateQuoteRequestSchemeOrGetErrorEvent(fspId:string, quoteId:string, quote: QuoteRequestReceivedEvtPayload ): {errorEvent:QuoteErrorEvent | null, valid: boolean} {
+		const currency = quote.amount.currency;
+		return this.schemeValidation(currency, fspId, quoteId);
+	}
+
+	private validateQuoteResponseSchemeOrGetErrorEvent(fspId:string, quoteId:string, quote: QuoteResponseReceivedEvtPayload ): {errorEvent: QuoteErrorEvent | null, valid: boolean} {
+		const currency = quote.transferAmount.currency;
+		return this.schemeValidation(currency, fspId, quoteId);
+	}
+
+	private schemeValidation(currency: string, fspId: string, quoteId: string) :{errorEvent:QuoteErrorEvent | null, valid: boolean}  {
+		let errorEvent!:QuoteErrorEvent | null;
+		const result = {errorEvent, valid: false};
+
+		const currenciesSupported = this._schemeRules.currencies.map((currency) => currency.toLocaleLowerCase());
+		if (currency) {
+			if (!currenciesSupported.includes(currency)) {
+				const errorMessage = "Currency is not supported";
+				this._logger.error(errorMessage);
+				result.errorEvent = createQuoteRuleSchemeViolated(errorMessage, fspId, quoteId);
+				return result;
+			}
+		}
+		else {
+			const errorMessage = "Currency is not provided in quote request";
+			this._logger.error(errorMessage);
+			result.errorEvent = createQuoteRuleSchemeViolated(errorMessage, fspId, quoteId);
+			return result;
+		}
+
+		result.valid = true;
+		return result;
+	}
+
+
+
 	private validateExpirationDateOrGetErrorEvent(fspId:string, quoteId:string|null, bulkQuoteId:string|null, expirationDate: string): {errorEvent:QuoteErrorEvent | null, valid: boolean} {
 		let errorEvent!:QuoteErrorEvent | null;
 		const result = {errorEvent, valid: false};
