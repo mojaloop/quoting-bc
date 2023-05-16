@@ -35,14 +35,15 @@
 import {QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCBulkQuoteNotFoundErrorPayload, QuoteBCUnknownErrorEvent, QuoteBCUnknownErrorPayload,
     QuoteBCInvalidMessagePayloadErrorPayload, QuoteBCDuplicateQuoteErrorEvent, QuoteBCDuplicateQuoteErrorPayload,
-    //QuoteBCInvalidDestinationPartyInformationErrorEvent, QuoteBCInvalidDestinationPartyInformationErrorPayload,
     QuoteBCInvalidMessagePayloadErrorEvent,
     QuoteBCInvalidMessageTypeErrorEvent, QuoteBCInvalidMessageTypeErrorPayload,
-    QuoteBCParticipantNotFoundErrorEvent,
-    QuoteBCInvalidParticipantIdErrorEvent, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent,
+    QuoteBCParticipantNotFoundErrorEvent, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent,
     QuoteBCRequiredParticipantIsNotActiveErrorEvent,
-    QuoteBCInvalidDestinationFspIdErrorPayload, QuoteBCInvalidParticipantIdErrorPayload, QuoteBCInvalidRequesterFspIdErrorPayload, QuoteBCParticipantNotFoundErrorPayload, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteNotFoundErrorPayload
-
+    QuoteBCBulkQuoteExpiredErrorPayload, QuoteBCBulkQuoteExpiredErrorEvent,
+    QuoteBCUnableToAddQuoteToDatabaseErrorPayload, QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
+    QuoteBCQuoteExpiredErrorPayload, QuoteBCQuoteExpiredErrorEvent,
+    QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
+    QuoteBCInvalidDestinationFspIdErrorPayload, QuoteBCInvalidRequesterFspIdErrorPayload, QuoteBCParticipantNotFoundErrorPayload, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteNotFoundErrorPayload, QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorPayload, QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorPayload, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCQuoteRuleSchemeViolatedErrorPayload, QuoteBCQuoteRuleSchemeViolatedErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 export function createInvalidMessagePayloadErrorEvent(errorDescription:string, fspId:string, quoteId: string, bulkQuoteId:string ): QuoteBCInvalidMessagePayloadErrorEvent {
@@ -116,18 +117,6 @@ export function createParticipantNotFoundErrorEvent(errorDescription:string, fsp
 
 }
 
-export function createInvalidParticipantIdErrorEvent(errorDescription:string, fspId:string, quoteId:string | null, bulkQuoteId:string | null):QuoteBCInvalidParticipantIdErrorEvent {
-    const errorPayload: QuoteBCInvalidParticipantIdErrorPayload = {
-        bulkQuoteId,
-        errorDescription,
-        fspId,
-        quoteId
-    };
-    const errorEvent = new QuoteBCInvalidParticipantIdErrorEvent(errorPayload);
-    return errorEvent;
-}
-
-
 export function createInvalidRequesterFspIdErrorEvent(errorDescription:string, fspId:string, quoteId:string|null, bulkQuoteId:string|null):QuoteBCInvalidRequesterFspIdErrorEvent{
     const errorPayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
         bulkQuoteId,
@@ -166,32 +155,84 @@ export function createUnknownErrorEvent(errorDescription:string, fspId:string, q
 }
 
 //TODO: Add following errors to shared lib
-export function createQuoteExpiredErrorEvent(errorDescription:string, fspId:string, quoteId:string| null, bulkQuoteId:string | null): any{
-    return null;
+export function createQuoteExpiredErrorEvent(errorDescription:string, fspId:string, quoteId:string): QuoteBCQuoteExpiredErrorEvent {
+    const errorPayload : QuoteBCQuoteExpiredErrorPayload = {
+        errorDescription,
+        fspId,
+        quoteId
+    }
+    const errorEvent = new QuoteBCQuoteExpiredErrorEvent(errorPayload);
+    return errorEvent;
 }
 
-export function createUnableToAddQuoteToDatabaseErrorEvent(errorDescription:string, fspId:string, quoteId:string): any{
-    return null;
+export function createExpiredBulkQuoteErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): QuoteBCBulkQuoteExpiredErrorEvent {
+    const errorPayload : QuoteBCBulkQuoteExpiredErrorPayload = {
+        errorDescription,
+        fspId,
+        bulkQuoteId
+    };
+    const errorEvent = new QuoteBCBulkQuoteExpiredErrorEvent(errorPayload);
+    return errorEvent;
 }
 
-export function createUnableToAddBulkQuoteToDatabaseErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): any{
-    return null;
+export function createUnableToAddQuoteToDatabaseErrorEvent(errorDescription:string, fspId:string, quoteId:string): QuoteBCUnableToAddQuoteToDatabaseErrorEvent {
+    const errorPayload : QuoteBCUnableToAddQuoteToDatabaseErrorPayload = {
+        errorDescription,
+        fspId,
+        quoteId
+    };
+    const errorEvent = new QuoteBCUnableToAddQuoteToDatabaseErrorEvent(errorPayload);
+    return errorEvent;
 }
 
-export function createUnableToUpdateQuoteInDatabaseErrorEvent(errorDescription:string, fspId:string, quoteId:string): any{
-    return null;
+export function createUnableToAddBulkQuoteToDatabaseErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent {
+    const errorPayload : QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload = {
+        errorDescription,
+        fspId,
+        bulkQuoteId
+    };
+    const errorEvent = new QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent(errorPayload);
+    return errorEvent;
 }
 
-export function createUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): any{
-    return null;
+export function createUnableToUpdateQuoteInDatabaseErrorEvent(errorDescription:string, fspId:string, quoteId:string): QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent{
+    const errorPayload : QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload = {
+        errorDescription,
+        fspId,
+        quoteId
+    };
+    const errorEvent = new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent(errorPayload);
+    return errorEvent;
 }
 
-export function createInvalidBulkQuoteLengthErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): any{
-    return null;
+export function createUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent{
+    const errorPayload : QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorPayload = {
+        errorDescription,
+        fspId,
+        bulkQuoteId
+    };
+    const errorEvent = new QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorPayload);
+    return errorEvent;
 }
 
-export function createQuoteRuleSchemeViolated(errorDescription:string, fspId:string, quoteId:string): any{
-    return null;
+export function createInvalidBulkQuoteLengthErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): QuoteBCInvalidBulkQuoteLengthErrorEvent {
+    const errorPayload : QuoteBCInvalidBulkQuoteLengthErrorPayload = {
+        errorDescription,
+        fspId,
+        bulkQuoteId
+    };
+    const errorEvent = new QuoteBCInvalidBulkQuoteLengthErrorEvent(errorPayload);
+    return errorEvent;
+}
+
+export function createQuoteRuleSchemeViolated(errorDescription:string, fspId:string, quoteId:string): QuoteBCQuoteRuleSchemeViolatedErrorEvent{
+    const errorPayload : QuoteBCQuoteRuleSchemeViolatedErrorPayload = {
+        errorDescription,
+        fspId,
+        quoteId
+    };
+    const errorEvent = new QuoteBCQuoteRuleSchemeViolatedErrorEvent(errorPayload);
+    return errorEvent;
 }
 
 

@@ -56,7 +56,7 @@ import {
 	QuoteResponseReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules, QuoteErrorEvent, QuoteStatus, QuoteUpdatableFields } from "./types";
-import { createBulkQuoteNotFoundErrorEvent, createInvalidBulkQuoteLengthErrorEvent, createInvalidDestinationFspIdErrorEvent, createInvalidMessageNameErrorEvent, createInvalidMessagePayloadErrorEvent, createInvalidMessageTypeErrorEvent, createInvalidParticipantIdErrorEvent, createParticipantNotFoundErrorEvent, createQuoteExpiredErrorEvent, createQuoteNotFoundErrorEvent, createQuoteRuleSchemeViolated, createUnableToAddBulkQuoteToDatabaseErrorEvent, createUnableToAddQuoteToDatabaseErrorEvent, createUnableToUpdateBulkQuoteInDatabaseErrorEvent, createUnableToUpdateQuoteInDatabaseErrorEvent, createUnknownErrorEvent } from "./error_events";
+import { createBulkQuoteNotFoundErrorEvent, createExpiredBulkQuoteErrorEvent, createInvalidBulkQuoteLengthErrorEvent, createInvalidDestinationFspIdErrorEvent, createInvalidMessagePayloadErrorEvent, createInvalidMessageTypeErrorEvent, createInvalidRequesterFspIdErrorEvent, createParticipantNotFoundErrorEvent, createQuoteExpiredErrorEvent, createQuoteNotFoundErrorEvent, createQuoteRuleSchemeViolated, createUnableToAddBulkQuoteToDatabaseErrorEvent, createUnableToAddQuoteToDatabaseErrorEvent, createUnableToUpdateBulkQuoteInDatabaseErrorEvent, createUnableToUpdateQuoteInDatabaseErrorEvent, createUnknownErrorEvent } from "./error_events";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -184,9 +184,9 @@ export class QuotingAggregate  {
 		}
 
 		if(expirationDate){
-			const expirationDateValid = this.validateExpirationDateOrGetErrorEvent(requesterFspId, quoteId,null, expirationDate);
-			if(!expirationDateValid.valid){
-				return expirationDateValid.errorEvent as QuoteErrorEvent;
+			const expirationDateValid = this.validateExpirationDate(requesterFspId, quoteId,null, expirationDate);
+			if(!expirationDateValid){
+				return createQuoteExpiredErrorEvent(requesterFspId, requesterFspId, quoteId);
 			}
 		}
 
@@ -268,13 +268,13 @@ export class QuotingAggregate  {
 		let quoteStatus: QuoteStatus = QuoteStatus.ACCEPTED;
 
 		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId,quoteId,null);
-		if(!requesterParticipant.valid && quoteErrorEvent === null){
+		if(!requesterParticipant.valid){
 			quoteErrorEvent = requesterParticipant.errorEvent as QuoteErrorEvent;
 			quoteStatus = QuoteStatus.REJECTED;
 		}
 
 		const schemeValidationResult = this.validateQuoteResponseSchemeOrGetErrorEvent(requesterFspId, quoteId, message.payload);
-		if(!schemeValidationResult.valid){
+		if(!schemeValidationResult.valid && quoteErrorEvent === null){
 			return schemeValidationResult.errorEvent as QuoteErrorEvent;
 		}
 
@@ -284,9 +284,9 @@ export class QuotingAggregate  {
 			quoteStatus = QuoteStatus.REJECTED;
 		}
 
-		const expirationDateValid = this.validateExpirationDateOrGetErrorEvent(requesterFspId, quoteId,null, expirationDate);
-		if(!expirationDateValid.valid && quoteErrorEvent === null){
-			quoteErrorEvent =  expirationDateValid.errorEvent as QuoteErrorEvent;
+		const expirationDateValid = this.validateExpirationDate(requesterFspId, quoteId,null, expirationDate);
+		if(!expirationDateValid){
+			quoteErrorEvent = createQuoteExpiredErrorEvent(requesterFspId, requesterFspId, quoteId);;
 			quoteStatus = QuoteStatus.EXPIRED;
 		}
 
@@ -413,9 +413,9 @@ export class QuotingAggregate  {
 		}
 
 		if(expirationDate){
-			const expirationDateValid = this.validateExpirationDateOrGetErrorEvent(requesterFspId, bulkQuoteId, null, expirationDate);
-			if(!expirationDateValid.valid){
-				return expirationDateValid.errorEvent as QuoteErrorEvent;
+			const expirationDateValid = this.validateExpirationDate(requesterFspId, null, bulkQuoteId, expirationDate);
+			if(!expirationDateValid){
+				return createExpiredBulkQuoteErrorEvent(requesterFspId, requesterFspId, bulkQuoteId);;
 			}
 		}
 
@@ -471,20 +471,20 @@ export class QuotingAggregate  {
 
 		const requesterParticipant = await this.validateParticipantInfoOrGetErrorEvent(requesterFspId,null, bulkQuoteId);
 		if(!requesterParticipant.valid){
-			quoteErrorEvent = requesterParticipant.errorEvent as QuoteErrorEvent;
+			quoteErrorEvent = requesterParticipant.errorEvent;
 			quoteStatus = QuoteStatus.REJECTED;
 		}
 
 		const destinationParticipant = await this.validateParticipantInfoOrGetErrorEvent(destinationFspId,null, bulkQuoteId, true);
 		if(!destinationParticipant.valid && quoteErrorEvent === null){
-			quoteErrorEvent = destinationParticipant.errorEvent as QuoteErrorEvent;
+			quoteErrorEvent = destinationParticipant.errorEvent;
 			quoteStatus = QuoteStatus.REJECTED;
 		}
 
-		if(expirationDate){
-			const expirationDateValid = this.validateExpirationDateOrGetErrorEvent(requesterFspId, bulkQuoteId, null, expirationDate);
-			if(!expirationDateValid.valid && quoteErrorEvent === null){
-				quoteErrorEvent = expirationDateValid.errorEvent as QuoteErrorEvent;
+		if(expirationDate && quoteErrorEvent === null){
+			const expirationDateValid = this.validateExpirationDate(requesterFspId, null, bulkQuoteId, expirationDate);
+			if(!expirationDateValid){
+				quoteErrorEvent = createExpiredBulkQuoteErrorEvent(requesterFspId, requesterFspId, bulkQuoteId);
 				quoteStatus = QuoteStatus.EXPIRED;
 			}
 		}
@@ -494,9 +494,13 @@ export class QuotingAggregate  {
 		if(!this._passThroughMode){
 			const updatedBulkQuote = await this.updateBulkQuoteOrGetErrorEvent(bulkQuoteId,requesterFspId,destinationFspId,expirationDate, quoteStatus, quotes);
 			if(!updatedBulkQuote.valid){
-				const quoteErrorEvents = updatedBulkQuote.errorEvent as QuoteErrorEvent[];
+				const quoteErrorEvents = updatedBulkQuote.errorEvent;
 				return quoteErrorEvents;
 			}
+		}
+
+		if(quoteErrorEvent!==null){
+			return quoteErrorEvent;
 		}
 
 		const payload : BulkQuoteAcceptedEvtPayload = {
@@ -527,8 +531,8 @@ export class QuotingAggregate  {
 			});
 
 		if(!quoteAddedToDatabase){
-			const errorEvent = createUnableToAddQuoteToDatabaseErrorEvent(`Error adding quote to database`, fspId, quote.quoteId);
-			return errorEvent;
+			result.errorEvent = createUnableToAddQuoteToDatabaseErrorEvent(`Error adding quote to database`, fspId, quote.quoteId);
+			return result;
 		}
 
 		result.valid = true;
@@ -767,9 +771,7 @@ export class QuotingAggregate  {
 
 
 
-	private validateExpirationDateOrGetErrorEvent(fspId:string, quoteId:string|null, bulkQuoteId:string|null, expirationDate: string): {errorEvent:QuoteErrorEvent | null, valid: boolean} {
-		let errorEvent!:QuoteErrorEvent | null;
-		const result = {errorEvent, valid: false};
+	private validateExpirationDate(fspId:string, quoteId:string|null, bulkQuoteId:string|null, expirationDate: string): boolean {
 		const serverDateUtc= new Date().toISOString();
 		const serverDate = new Date(serverDateUtc);
 		const quoteDate = new Date(expirationDate);
@@ -779,12 +781,11 @@ export class QuotingAggregate  {
 		if(differenceDate < 0){
 			const errorMessage = (bulkQuoteId) ? `BulkQuote with id ${bulkQuoteId} has expired`  : `Quote with id ${quoteId} has expired` + ` at ${expirationDate}`;
 			this._logger.error(errorMessage);
-			result.errorEvent = createQuoteExpiredErrorEvent(errorMessage, fspId, quoteId , bulkQuoteId);
+			return false;
 		}
 		else{
-			result.valid = true;
+			return true;
 		}
-		return result;
 	}
 
 	private validateMessageOrGetErrorEvent(message:IMessage): {errorEvent:QuoteErrorEvent | null, valid: boolean} {
@@ -828,7 +829,8 @@ export class QuotingAggregate  {
 		if(!participantId){
 			const errorMessage = `${(isDestinationParticipant)?"Destination":"Requester"} fspId is null or undefined`;
 			this._logger.error(errorMessage);
-			errorEvent = createInvalidDestinationFspIdErrorEvent(errorMessage, participantId, quoteId, bulkQuoteId);
+			errorEvent = (isDestinationParticipant) ? createInvalidDestinationFspIdErrorEvent(errorMessage, participantId, quoteId, bulkQuoteId):
+				createInvalidRequesterFspIdErrorEvent(errorMessage, participantId, quoteId, bulkQuoteId);
 			result.errorEvent = errorEvent;
 			return result;
 		}
@@ -850,7 +852,8 @@ export class QuotingAggregate  {
 		if(participant.id !== participantId){
 			const errorMessage = `${(isDestinationParticipant)?"Destination":"Requester"} participant id mismatch ${participant.id} - ${participantId}`;
 			this._logger.error(errorMessage);
-			errorEvent = createInvalidParticipantIdErrorEvent(errorMessage,participantId, quoteId, bulkQuoteId);
+			errorEvent =(isDestinationParticipant) ? createInvalidDestinationFspIdErrorEvent(errorMessage, participantId, quoteId, bulkQuoteId):
+				createInvalidRequesterFspIdErrorEvent(errorMessage, participantId, quoteId, bulkQuoteId);
 			result.errorEvent = errorEvent;
 			return result;
 		}

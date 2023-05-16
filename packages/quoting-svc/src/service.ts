@@ -113,7 +113,9 @@ const consumerOptions: MLKafkaJsonConsumerOptions = {
 
 // Application variables
 const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"]=== "true" )? true : false;
-const SCHEME_RULES = process.env["SCHEME_RULES"];
+const SCHEME_RULES: IQuoteSchemeRules = {
+	currencies: ["USD", "EUR", "GBP"],
+}
 
 const producerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL,
@@ -184,14 +186,18 @@ export class Service {
 		}
 		this.auditClient = auditClient;
 		*/
-		let schemeRules: IQuoteSchemeRules;
-		try{
-			schemeRules = JSON.parse(SCHEME_RULES as string);
-		}
-		catch(e: any){
-			logger.error(`Invalid SCHEMA_RULES: ${e.message}`);
-			throw new Error("Invalid SCHEMA_RULES");
-		}
+
+
+
+		//TODO: parse scheme rules to object
+		// let schemeRules: IQuoteSchemeRules;
+		// try{
+		// 	schemeRules = JSON.parse(SCHEME_RULES as string);
+		// }
+		// catch(e: any){
+		// 	logger.error(`Invalid SCHEMA_RULES: ${e.message}`);
+		// 	throw new Error("Invalid SCHEMA_RULES");
+		// }
 
 
 		if(!quotesRepo){
@@ -250,7 +256,7 @@ export class Service {
 		logger.info("Bulk Quote Registry Repo Initialized");
 
 		if(!aggregate){
-			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE, schemeRules);
+			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE, SCHEME_RULES);
 		}
 
 		this.aggregate = aggregate;

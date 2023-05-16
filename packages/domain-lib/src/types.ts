@@ -1,4 +1,4 @@
-import { QuoteBCQuoteNotFoundErrorEvent } from '@mojaloop/platform-shared-lib-public-messages-lib';
+import { QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteRuleSchemeViolatedErrorEvent, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent } from '@mojaloop/platform-shared-lib-public-messages-lib';
 /**
  License
  --------------
@@ -34,9 +34,9 @@ import { QuoteBCQuoteNotFoundErrorEvent } from '@mojaloop/platform-shared-lib-pu
 "use strict";
 
 import {QuoteBCBulkQuoteNotFoundErrorEvent, QuoteBCUnknownErrorEvent,
-    QuoteBCInvalidMessagePayloadErrorEvent, QuoteBCDuplicateQuoteErrorEvent, QuoteBCInvalidDestinationPartyInformationErrorEvent,
+    QuoteBCInvalidMessagePayloadErrorEvent, QuoteBCDuplicateQuoteErrorEvent,
     QuoteBCInvalidMessageTypeErrorEvent, QuoteBCParticipantNotFoundErrorEvent,
-    QuoteBCInvalidParticipantIdErrorEvent, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent,
+    QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent,
     QuoteBCRequiredParticipantIsNotActiveErrorEvent } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 export enum QuoteStatus {
@@ -162,10 +162,16 @@ export type QuoteUpdatableFields = Pick<IQuote, "transferAmount" | "expiration" 
 
 
 export type QuoteErrorEvent = QuoteBCBulkQuoteNotFoundErrorEvent | QuoteBCUnknownErrorEvent |
-    QuoteBCInvalidMessagePayloadErrorEvent | QuoteBCDuplicateQuoteErrorEvent | QuoteBCInvalidDestinationPartyInformationErrorEvent |
+    QuoteBCInvalidMessagePayloadErrorEvent | QuoteBCDuplicateQuoteErrorEvent |
     QuoteBCInvalidMessageTypeErrorEvent  | QuoteBCParticipantNotFoundErrorEvent |
-    QuoteBCInvalidParticipantIdErrorEvent | QuoteBCInvalidRequesterFspIdErrorEvent | QuoteBCInvalidDestinationFspIdErrorEvent |
-    QuoteBCRequiredParticipantIsNotActiveErrorEvent | QuoteBCQuoteNotFoundErrorEvent;
+    QuoteBCInvalidRequesterFspIdErrorEvent | QuoteBCInvalidDestinationFspIdErrorEvent |
+    QuoteBCRequiredParticipantIsNotActiveErrorEvent | QuoteBCQuoteNotFoundErrorEvent |
+    QuoteBCQuoteExpiredErrorEvent | QuoteBCBulkQuoteExpiredErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent |
+    QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent | QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent |
+    QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent | QuoteBCInvalidBulkQuoteLengthErrorEvent |
+    QuoteBCQuoteRuleSchemeViolatedErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent;
+
+
 
 
 
