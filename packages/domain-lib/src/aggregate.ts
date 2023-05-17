@@ -100,7 +100,7 @@ export class QuotingAggregate  {
 		if(!eventMessage.valid){
 			const errorEvent = eventMessage.errorEvent as QuoteErrorEvent;
 			errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
-			await this.publishEvent(errorEvent);
+			await this.publishEvent(errorEvent, message.fspiopOpaqueState);
 			return;
 		}
 
@@ -134,19 +134,21 @@ export class QuotingAggregate  {
 			this._logger.error(errorMessage + `- ${error}`);
 			eventToPublish = createUnknownErrorEvent(errorMessage, requesterFspId, quoteId, bulkQuoteId);
 			eventToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
-			await this.publishEvent(eventToPublish);
+			await this.publishEvent(eventToPublish, message.fspiopOpaqueState);
 		}
 
-		await this.publishEvent(eventToPublish);
+		await this.publishEvent(eventToPublish,message.fspiopOpaqueState);
 	}
 
-	private async publishEvent(eventToPublish: QuoteRequestAcceptedEvt | QuoteResponseAccepted | QuoteQueryResponseEvt | BulkQuoteReceivedEvt[] | BulkQuoteAcceptedEvt | QuoteErrorEvent| QuoteErrorEvent[]): Promise<void> {
+	private async publishEvent(eventToPublish: QuoteRequestAcceptedEvt | QuoteResponseAccepted | QuoteQueryResponseEvt | BulkQuoteReceivedEvt[] | BulkQuoteAcceptedEvt | QuoteErrorEvent| QuoteErrorEvent[], fspiopOpaqueState: any): Promise<void> {
 		if (Array.isArray(eventToPublish)) {
 			for await (const event of eventToPublish) {
+				event.fspiopOpaqueState = fspiopOpaqueState;
 				await this._messageProducer.send(event);
 			}
 		} else {
 			if (eventToPublish){
+				eventToPublish.fspiopOpaqueState = fspiopOpaqueState;
 				await this._messageProducer.send(eventToPublish);
 			}
 		}
@@ -566,15 +568,14 @@ export class QuotingAggregate  {
 		quoteInDatabase.extensionList = quote.extensionList;
 		quoteInDatabase.status = status;
 
-		const quoteUpdated = await this._quotesRepo.updateQuote(quoteInDatabase).catch((err) => {
+		await this._quotesRepo.updateQuote(quoteInDatabase).catch((err) => {
 			const errorMessage = `Error updating quote for quoteId: ${quoteId}.`;
 			this._logger.error(errorMessage + " " + err.message);
 			result.errorEvent = createUnableToUpdateQuoteInDatabaseErrorEvent(errorMessage, requesterFspId, quoteId);
 			result.valid = false;
-			return false;
 		});
 
-		if (!quoteUpdated) {
+		if (result.errorEvent) {
 			return result;
 		}
 
@@ -751,7 +752,7 @@ export class QuotingAggregate  {
 
 		const currenciesSupported = this._schemeRules.currencies.map((currency) => currency.toLocaleLowerCase());
 		if (currency) {
-			if (!currenciesSupported.includes(currency)) {
+			if (!currenciesSupported.includes(currency.toLocaleLowerCase())) {
 				const errorMessage = "Currency is not supported";
 				this._logger.error(errorMessage);
 				result.errorEvent = createQuoteRuleSchemeViolated(errorMessage, fspId, quoteId);
