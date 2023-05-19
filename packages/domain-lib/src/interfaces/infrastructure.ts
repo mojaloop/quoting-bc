@@ -53,7 +53,7 @@ export interface IQuoteRepo {
     quoteId?: string,
     amountType?: string,
     transactionType?: string
-  ): Promise<IQuote[] | null>;
+  ): Promise<IQuote[]>;
 }
 
 export interface IBulkQuoteRepo {

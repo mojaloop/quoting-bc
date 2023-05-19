@@ -99,7 +99,7 @@ export class MemoryQuoteRepo implements IQuoteRepo {
     quoteId?: string | undefined,
     amountType?: string | undefined,
     transactionType?: string | undefined
-  ): Promise<IQuote[] | null> {
+  ): Promise<IQuote[]> {
     return Promise.resolve(
       this._quotes.filter(
         (quote) =>
