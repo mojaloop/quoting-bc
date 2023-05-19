@@ -81,12 +81,6 @@ export class MemoryQuoteRepo implements IQuoteRepo {
     return Promise.resolve(this._quotes.find((q) => q.quoteId === id) || null);
   }
 
-  getQuoteByTransactionId(transactionId: string): Promise<IQuote | null> {
-    return Promise.resolve(
-      this._quotes.find((q) => q.transactionId === transactionId) || null
-    );
-  }
-
   getQuotesByBulkQuoteIdAndStatus(
     id: string,
     status: QuoteStatus

@@ -159,22 +159,6 @@ export class MongoQuotesRepo implements IQuoteRepo {
     }
   }
 
-  async getQuoteByTransactionId(transactionId: string): Promise<IQuote | null> {
-    const quote = await this.quotes
-      .findOne({ transactionId: transactionId })
-      .catch((e: unknown) => {
-        this._logger.error(
-          `Unable to get quote by transactionId: ${(e as Error).message}`
-        );
-        throw new UnableToGetQuoteError();
-      });
-
-    if (!quote) {
-      return null;
-    }
-    return this.mapToQuote(quote);
-  }
-
   async getQuoteById(quoteId: string): Promise<IQuote | null> {
     const quote = await this.quotes
       .findOne({ quoteId: quoteId })

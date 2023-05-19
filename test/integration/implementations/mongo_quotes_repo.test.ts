@@ -296,19 +296,7 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         expect(result).toBeDefined();
         expect(result).toHaveLength(4);
         expect(result).toEqual([quote1, quote2, quote3, quote4]);
-    });
-
-    test("should return null when there are no quotes with given transactionId", async () => {
-        //Arrange
-        const transactionId = "NonExistingTransactionId";
-
-        // Act
-        const result = await mongoQuotesRepo.getQuoteByTransactionId(transactionId);
-
-        // Assert
-        expect(result).toEqual(null);
-    });
-    
+    }); 
  });
 
 
