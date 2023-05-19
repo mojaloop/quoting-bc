@@ -33,12 +33,36 @@
 "use strict";
 
 import request from "supertest";
-import { MemoryAuthenticatedHttpRequesterMock, MemoryAccountLookupService, MemoryBulkQuoteRepo, MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, mockedBulkQuote1, mockedQuote1, mockedQuote2, mockedQuote3 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { IMessageConsumer, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
-import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "../../../packages/domain-lib/src";
-import {Service} from "../../../packages/quoting-svc/src";
+import {
+  MemoryAuthenticatedHttpRequesterMock,
+  MemoryAccountLookupService,
+  MemoryBulkQuoteRepo,
+  MemoryMessageConsumer,
+  MemoryMessageProducer,
+  MemoryParticipantService,
+  MemoryQuoteRepo,
+  mockedBulkQuote1,
+  mockedQuote1,
+  mockedQuote2,
+  mockedQuote3,
+} from "@mojaloop/quoting-bc-shared-mocks-lib";
+import {
+  ConsoleLogger,
+  ILogger,
+  LogLevel,
+} from "@mojaloop/logging-bc-public-types-lib";
+import {
+  IMessageConsumer,
+  IMessageProducer,
+} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
+import {
+  IAccountLookupService,
+  IBulkQuoteRepo,
+  IParticipantService,
+  IQuoteRepo,
+} from "../../../packages/domain-lib/src";
+import { Service } from "../../../packages/quoting-svc/src";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
@@ -47,117 +71,136 @@ const mockedProducer: IMessageProducer = new MemoryMessageProducer(logger);
 
 const mockedConsumer: IMessageConsumer = new MemoryMessageConsumer();
 
-const mockedParticipantService: IParticipantService = new MemoryParticipantService(logger);
+const mockedParticipantService: IParticipantService =
+  new MemoryParticipantService(logger);
 
-const mockedAccountLookupService: IAccountLookupService = new MemoryAccountLookupService(logger);
+const mockedAccountLookupService: IAccountLookupService =
+  new MemoryAccountLookupService(logger);
 
-const mockedAuthRequester: IAuthenticatedHttpRequester = new MemoryAuthenticatedHttpRequesterMock(logger,"fake token");
+const mockedAuthRequester: IAuthenticatedHttpRequester =
+  new MemoryAuthenticatedHttpRequesterMock(logger, "fake token");
 
 let mockedQuoteRepository: IQuoteRepo = new MemoryQuoteRepo(logger);
 
 let mockedBulkQuoteRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logger);
 
-const server = (process.env["QUOTING_ADM_URL"] || "http://localhost:3033");
+const server = process.env["QUOTING_ADM_URL"] || "http://localhost:3033";
 
 describe("Quoting Admin Routes - Integration", () => {
+  beforeAll(async () => {
+    await Service.start(
+      logger,
+      mockedConsumer,
+      mockedProducer,
+      mockedQuoteRepository,
+      mockedBulkQuoteRepository,
+      mockedAuthRequester,
+      mockedParticipantService,
+      mockedAccountLookupService
+    );
+  });
 
-    beforeAll(async () => {
-        await Service.start(logger, mockedConsumer, mockedProducer, mockedQuoteRepository, mockedBulkQuoteRepository,mockedAuthRequester, mockedParticipantService, mockedAccountLookupService);
-    });
+  afterEach(async () => {
+    const quotes = await mockedQuoteRepository.getQuotes();
+    for await (const quote of quotes) {
+      await mockedQuoteRepository.removeQuote(quote.quoteId);
+    }
 
-    afterEach(async () => {
-        const quotes = await mockedQuoteRepository.getQuotes();
-        for await (const quote of quotes) {
-            await mockedQuoteRepository.removeQuote(quote.quoteId);
-        }
+    const bulkQuotes = await mockedBulkQuoteRepository.getBulkQuotes();
+    for await (const bulkQuote of bulkQuotes) {
+      await mockedBulkQuoteRepository.removeBulkQuote(bulkQuote.bulkQuoteId);
+    }
+  });
 
-        const bulkQuotes = await mockedBulkQuoteRepository.getBulkQuotes();
-        for await (const bulkQuote of bulkQuotes) {
-            await mockedBulkQuoteRepository.removeBulkQuote(bulkQuote.bulkQuoteId);
-        }
-    });
+  afterAll(async () => {
+    await Service.stop();
+  });
 
+  test("GET - should get a quote by it's id", async () => {
+    // Arrange
+    const newQuote = mockedQuote1;
+    const quoteId = await mockedQuoteRepository.addQuote(newQuote);
 
-    afterAll(async () => {
-        await Service.stop();
-    });
+    // Act
+    const response = await request(server).get(`/quotes/${quoteId}`);
 
-    test("GET - should get a quote by it's id", async () => {
-        // Arrange
-        const newQuote = mockedQuote1;
-        const quoteId = await mockedQuoteRepository.addQuote(newQuote);
+    // Assert
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(newQuote);
+  });
 
-        // Act
-        const response = await request(server)
-            .get(`/quotes/${quoteId}`);
+  test("GET - should get a list of quotes", async () => {
+    // Arrange
+    await mockedQuoteRepository.addQuote(mockedQuote1);
+    await mockedQuoteRepository.addQuote(mockedQuote2);
+    await mockedQuoteRepository.addQuote(mockedQuote3);
 
-        // Assert
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual(newQuote);
+    // Act
+    const response = await request(server).get("/quotes");
 
-    });
+    // Assert
+    expect(response.status).toBe(200);
+    expect(response.body[0]).toEqual(mockedQuote1);
+    expect(response.body[1]).toEqual(mockedQuote2);
+    expect(response.body[2]).toEqual(mockedQuote3);
+    expect(response.body.length).toBe(3);
+  });
 
-    test("GET - should get a list of quotes", async () => {
-        // Arrange
-        await mockedQuoteRepository.addQuote(mockedQuote1);
-        await mockedQuoteRepository.addQuote(mockedQuote2);
-        await mockedQuoteRepository.addQuote(mockedQuote3);
+  test("GET - should get a quote by transactionId", async () => {
+    // Arrange
+    const newQuote = mockedQuote1;
+    const quoteId = await mockedQuoteRepository.addQuote(newQuote);
+    const quoteInfo = await mockedQuoteRepository.getQuoteById(quoteId);
 
-        // Act
-        const response = await request(server)
-            .get("/quotes");
+    // Act
+    const response = await request(server).get(
+      `/quotes?transactionId=${quoteInfo?.transactionId}`
+    );
 
-        // Assert
-        expect(response.status).toBe(200);
-        expect(response.body[0]).toEqual(mockedQuote1);
-        expect(response.body[1]).toEqual(mockedQuote2);
-        expect(response.body[2]).toEqual(mockedQuote3);
-        expect(response.body.length).toBe(3);
+    // Assert
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(newQuote);
+  });
 
-    });
+  test("GET - should get a bulk quote by it's id", async () => {
+    // Arrange
+    const bulkQuoteId = await mockedBulkQuoteRepository.addBulkQuote(
+      mockedBulkQuote1
+    );
 
-    test("GET - should get a quote by transactionId", async () => {
-        // Arrange
-        const newQuote = mockedQuote1;
-        const quoteId = await mockedQuoteRepository.addQuote(newQuote);
-        const quoteInfo = await mockedQuoteRepository.getQuoteById(quoteId);
-        
-        // Act
-        const response = await request(server)
-            .get(`/quotes?transactionId=${quoteInfo?.transactionId}`);
+    // Act
+    const response = await request(server).get(`/bulk-quotes/${bulkQuoteId}`);
 
-        // Assert
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual(newQuote);
+    // Assert
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(mockedBulkQuote1);
+  });
 
-    });
+  test("GET - should get a list of bulk quotes", async () => {
+    // Arrange
+    await mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);
 
-    test("GET - should get a bulk quote by it's id", async () => {
-        // Arrange
-        const bulkQuoteId = await mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);
+    // Act
+    const response = await request(server).get("/bulk-quotes");
 
-        // Act
-        const response = await request(server)
-            .get(`/bulk-quotes/${bulkQuoteId}`);
+    // Assert
+    expect(response.status).toBe(200);
+    // expect(response.body[0]).toEqual(mockedBulkQuote1);
+    expect(response.body.length).toBe(1);
+  });
 
-        // Assert
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual(mockedBulkQuote1);
-    });
+  test("GET - should get a list of filtered quotes", async () => {
+    // Arrange
+    const newQuote = mockedQuote1;
+    await mockedQuoteRepository.addQuote(newQuote);
 
-    test("GET - should get a list of bulk quotes", async () => {
-        // Arrange
-        await mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);
+    // Act
+    const response = await request(server).get(
+      `/quotes?transactionId=${newQuote?.transactionId}&quoteId=${newQuote?.quoteId}&amountType=${newQuote?.amountType}&transactionType=${newQuote.transactionType.scenario}`
+    );
 
-        // Act
-        const response = await request(server)
-            .get("/bulk-quotes");
-
-        // Assert
-        expect(response.status).toBe(200);
-        // expect(response.body[0]).toEqual(mockedBulkQuote1);
-        expect(response.body.length).toBe(1);
-    });
-
+    // Assert
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([newQuote]);
+  });
 });
-

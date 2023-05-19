@@ -41,134 +41,166 @@
 "use strict";
 
 import express from "express";
-import { ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IBulkQuoteRepo, IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
 import { check } from "express-validator";
 import { BaseRoutes } from "./base/base_routes";
 
 export class QuotingAdminExpressRoutes extends BaseRoutes {
+  constructor(
+    quotesRepo: IQuoteRepo,
+    bulkQuoteRepo: IBulkQuoteRepo,
+    logger: ILogger
+  ) {
+    super(logger, quotesRepo, bulkQuoteRepo);
+    this.logger.createChild(this.constructor.name);
 
-    constructor(quotesRepo: IQuoteRepo, bulkQuoteRepo:IBulkQuoteRepo, logger: ILogger) {
-        super(logger, quotesRepo, bulkQuoteRepo);
-        this.logger.createChild(this.constructor.name);
+    this.mainRouter.get("/quotes", this.getAllQuotes.bind(this));
 
-        this.mainRouter.get("/quotes" ,this.getAllQuotes.bind(this));
+    this.mainRouter.get("/bulk-quotes", this.getAllBulkQuotes.bind(this));
 
-        this.mainRouter.get("/bulk-quotes" ,this.getAllBulkQuotes.bind(this));
+    this.mainRouter.get(
+      "/quotes/:id",
+      [
+        check("id")
+          .isString()
+          .notEmpty()
+          .withMessage("id must be a non empty string"),
+      ],
+      this.getQuoteById.bind(this)
+    );
 
-        this.mainRouter.get("/quotes/:id",[
-            check("id").isString().notEmpty().withMessage("id must be a non empty string")
-        ],this.getQuoteById.bind(this));
+    this.mainRouter.get(
+      "/bulk-quotes/:id",
+      [
+        check("id")
+          .isString()
+          .notEmpty()
+          .withMessage("id must be a non empty string"),
+      ],
+      this.getBulkQuoteById.bind(this)
+    );
+  }
 
-        this.mainRouter.get("/bulk-quotes/:id",[
-            check("id").isString().notEmpty().withMessage("id must be a non empty string")
-        ],this.getBulkQuoteById.bind(this));
+  private async getAllQuotes(
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) {
+    const transactionId = _req.query.transactionId as string;
+    const quoteId = _req.query.quoteId as string;
+    const amountType = _req.query.amountType as string;
+    const transactionType = _req.query.transactionType as string;
 
+    try {
+      let fetched;
 
+      if (quoteId || transactionId || amountType || transactionType) {
+        this.logger.info("Filtering quotes");
+        fetched = await this.quoteRepo.searchQuotes(
+          transactionId,
+          quoteId,
+          amountType,
+          transactionType
+        );
+      } else {
+        this.logger.info("Fetching all quotes");
+        fetched = await this.quoteRepo.getQuotes();
+      }
+
+      res.send(fetched);
+    } catch (err: unknown) {
+      this.logger.error(err);
+      res.status(500).json({
+        status: "error",
+        msg: (err as Error).message,
+      });
+    }
+  }
+
+  private async getAllBulkQuotes(
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) {
+    this.logger.info("Fetching all bulk quotes");
+    try {
+      const fetched = await this.bulkQuoteRepo.getBulkQuotes();
+      res.send(fetched);
+    } catch (err: unknown) {
+      this.logger.error(err);
+      res.status(500).json({
+        status: "error",
+        msg: (err as Error).message,
+      });
+    }
+  }
+
+  private async getQuoteById(
+    req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) {
+    if (!this.validateRequest(req, res)) {
+      return;
     }
 
-    private async getAllQuotes(_req: express.Request, res: express.Response, _next: express.NextFunction) {
+    const id = req.params["id"] ?? null;
+    this.logger.info(`Fetching Oracle [${id}].`);
 
-        const transactionId  = await _req.query.transactionId as string;
-        
-        try {
-            let fetched;
+    this.logger.info("Fetching quote by id " + id);
 
-            if (transactionId) {
-                this.logger.info("Fetching quote by transactionId");
-                fetched = await this.quoteRepo.getQuoteByTransactionId(transactionId)
-            }
-            else {
-                this.logger.info("Fetching all quotes");
-                fetched = await this.quoteRepo.getQuotes();
-            }
+    try {
+      const fetched = await this.quoteRepo.getQuoteById(id);
+      if (!fetched) {
+        res.status(404).json({
+          status: "error",
+          msg: "Quote not found",
+        });
 
-            res.send(fetched);
-        }
-        catch (err: unknown) {
-            this.logger.error(err);
-            res.status(500).json({
-                status: "error",
-                msg: (err as Error).message
-            });
-        }
+        return;
+      }
+      res.send(fetched);
+    } catch (err: unknown) {
+      this.logger.error(err);
+      res.status(500).json({
+        status: "error",
+        msg: (err as Error).message,
+      });
+    }
+  }
+
+  private async getBulkQuoteById(
+    req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) {
+    if (!this.validateRequest(req, res)) {
+      return;
     }
 
-    private async getAllBulkQuotes(_req: express.Request, res: express.Response, _next: express.NextFunction) {
+    const id = req.params["id"] ?? null;
+    this.logger.info(`Fetching Oracle [${id}].`);
 
-        this.logger.info("Fetching all bulk quotes");
-        try {
-            const fetched = await this.bulkQuoteRepo.getBulkQuotes();
-            res.send(fetched);
-        }
-        catch (err: unknown) {
-            this.logger.error(err);
-            res.status(500).json({
-                status: "error",
-                msg: (err as Error).message
-            });
-        }
+    this.logger.info("Fetching bulk quote by id " + id);
+
+    try {
+      const fetched = await this.bulkQuoteRepo.getBulkQuoteById(id);
+      if (!fetched) {
+        res.status(404).json({
+          status: "error",
+          msg: "Bulk Quote not found",
+        });
+
+        return;
+      }
+      res.send(fetched);
+    } catch (err: unknown) {
+      this.logger.error(err);
+      res.status(500).json({
+        status: "error",
+        msg: (err as Error).message,
+      });
     }
-
-    private async getQuoteById (req: express.Request, res: express.Response, _next: express.NextFunction) {
-        if (!this.validateRequest(req, res)) {
-            return;
-        }
-
-        const id = req.params["id"] ?? null;
-        this.logger.info(`Fetching Oracle [${id}].`);
-
-        this.logger.info("Fetching quote by id " + id);
-
-        try {
-            const fetched = await this.quoteRepo.getQuoteById(id);
-            if(!fetched){
-                res.status(404).json({
-                    status: "error",
-                    msg: "Quote not found"
-                });
-
-                return;
-            }
-            res.send(fetched);
-        }
-        catch (err: unknown) {
-            this.logger.error(err);
-            res.status(500).json({
-                status: "error",
-                msg: (err as Error).message
-            });
-        }
-    }
-
-    private async getBulkQuoteById (req: express.Request, res: express.Response, _next: express.NextFunction) {
-        if (!this.validateRequest(req, res)) {
-            return;
-        }
-
-        const id = req.params["id"] ?? null;
-        this.logger.info(`Fetching Oracle [${id}].`);
-
-        this.logger.info("Fetching bulk quote by id " + id);
-
-        try {
-            const fetched = await this.bulkQuoteRepo.getBulkQuoteById(id);
-            if(!fetched){
-                res.status(404).json({
-                    status: "error",
-                    msg: "Bulk Quote not found"
-                });
-
-                return;
-            }
-            res.send(fetched);
-        }
-        catch (err: unknown) {
-            this.logger.error(err);
-            res.status(500).json({
-                status: "error",
-                msg: (err as Error).message
-            });
-        }
-    }
+  }
 }
