@@ -31,61 +31,83 @@
 
 "use strict";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { IQuoteRepo, IQuote, QuoteStatus } from "@mojaloop/quoting-bc-domain-lib";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import {
+  IQuoteRepo,
+  IQuote,
+  QuoteStatus,
+} from "@mojaloop/quoting-bc-domain-lib";
 
 export class MemoryQuoteRepo implements IQuoteRepo {
-	private readonly _logger: ILogger;
-    private readonly _quotes: IQuote[] = [];
+  private readonly _logger: ILogger;
+  private readonly _quotes: IQuote[] = [];
 
-	constructor(
-		logger: ILogger,
-	) {
-		this._logger = logger;
-	}
+  constructor(logger: ILogger) {
+    this._logger = logger;
+  }
 
-    init(): Promise<void> {
-        return Promise.resolve();
-    }
-    destroy(): Promise<void> {
-        return Promise.resolve();
-    }
-    addQuote(quote: IQuote): Promise<string> {
-        this._quotes.push(quote);
-        return Promise.resolve(quote.quoteId);
-    }
-    addQuotes(quotes: IQuote[]): Promise<void> {
-        this._quotes.push(...quotes);
-        return Promise.resolve();
-    }
+  init(): Promise<void> {
+    return Promise.resolve();
+  }
+  destroy(): Promise<void> {
+    return Promise.resolve();
+  }
+  addQuote(quote: IQuote): Promise<string> {
+    this._quotes.push(quote);
+    return Promise.resolve(quote.quoteId);
+  }
+  addQuotes(quotes: IQuote[]): Promise<void> {
+    this._quotes.push(...quotes);
+    return Promise.resolve();
+  }
 
-    updateQuote(quote: IQuote): Promise<void> {
-        const quoteToUpdate = this._quotes.find(q => q.quoteId === quote.quoteId);
-        if (quoteToUpdate) {
-            Object.assign(quoteToUpdate, quote);
-        }
-        else{
-            throw new Error(`Quote with id ${quote.quoteId} not found`);
-        }
-        return Promise.resolve();
+  updateQuote(quote: IQuote): Promise<void> {
+    const quoteToUpdate = this._quotes.find((q) => q.quoteId === quote.quoteId);
+    if (quoteToUpdate) {
+      Object.assign(quoteToUpdate, quote);
+    } else {
+      throw new Error(`Quote with id ${quote.quoteId} not found`);
     }
-    removeQuote(id: string): Promise<void> {
-        this._quotes.splice(this._quotes.findIndex(q => q.quoteId === id), 1);
-        return Promise.resolve();
-    }
-    getQuoteById(id: string): Promise<IQuote | null> {
-        return Promise.resolve(this._quotes.find(q => q.quoteId === id) || null);
-    }
+    return Promise.resolve();
+  }
+  removeQuote(id: string): Promise<void> {
+    this._quotes.splice(
+      this._quotes.findIndex((q) => q.quoteId === id),
+      1
+    );
+    return Promise.resolve();
+  }
+  getQuoteById(id: string): Promise<IQuote | null> {
+    return Promise.resolve(this._quotes.find((q) => q.quoteId === id) || null);
+  }
 
-    getQuoteByTransactionId(transactionId: string): Promise<IQuote | null> {
-        return Promise.resolve(this._quotes.find(q => q.transactionId === transactionId) || null);
-    }
+  getQuotesByBulkQuoteIdAndStatus(
+    id: string,
+    status: QuoteStatus
+  ): Promise<IQuote[]> {
+    return Promise.resolve(
+      this._quotes.filter((q) => q.bulkQuoteId === id && q.status === status)
+    );
+  }
 
-    getQuotesByBulkQuoteIdAndStatus(id: string, status: QuoteStatus): Promise<IQuote[]> {
-        return Promise.resolve(this._quotes.filter(q => q.bulkQuoteId === id && q.status === status));
-    }
+  getQuotes(): Promise<IQuote[]> {
+    return Promise.resolve(this._quotes);
+  }
 
-    getQuotes(): Promise<IQuote[]> {
-        return Promise.resolve(this._quotes);
-    }
+  searchQuotes(
+    transactionId?: string | undefined,
+    quoteId?: string | undefined,
+    amountType?: string | undefined,
+    transactionType?: string | undefined
+  ): Promise<IQuote[] | null> {
+    return Promise.resolve(
+      this._quotes.filter(
+        (quote) =>
+          quote.quoteId === quoteId ||
+          quote.transactionId === transactionId ||
+          quote.amountType === amountType ||
+          quote.transactionType.scenario === transactionType
+      )
+    );
+  }
 }
