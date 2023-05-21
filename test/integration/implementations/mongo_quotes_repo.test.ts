@@ -42,19 +42,20 @@ const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
 
 const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
-//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
-const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
+const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
+//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
 const COLLECTION_NAME = "quotes";
 
 let mongoQuotesRepo : MongoQuotesRepo;
 
 let mongoClient: MongoClient;
 let collection : Collection;
-const connectionString = `${CONNECTION_STRING}/${DB_NAME}`;
+const connectionString = `${CONNECTION_STRING}`;
 
 describe("Implementations - Mongo Quotes Repo Integration tests", () => {
 
     beforeAll(async () => {
+
         mongoClient = await MongoClient.connect(connectionString);
         collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
         mongoQuotesRepo = new MongoQuotesRepo(logger, CONNECTION_STRING, DB_NAME);
@@ -296,7 +297,6 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         expect(result).toHaveLength(4);
         expect(result).toEqual([quote1, quote2, quote3, quote4]);
     });
-
  });
 
 

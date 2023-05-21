@@ -33,12 +33,36 @@
 "use strict";
 
 import request from "supertest";
-import { MemoryAuthenticatedHttpRequesterMock, MemoryAccountLookupService, MemoryBulkQuoteRepo, MemoryMessageConsumer, MemoryMessageProducer, MemoryParticipantService, MemoryQuoteRepo, mockedBulkQuote1, mockedQuote1, mockedQuote2, mockedQuote3 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { IMessageConsumer, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
-import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "../../../packages/domain-lib/src";
-import {Service} from "../../../packages/quoting-svc/src";
+import {
+    MemoryAuthenticatedHttpRequesterMock,
+    MemoryAccountLookupService,
+    MemoryBulkQuoteRepo,
+    MemoryMessageConsumer,
+    MemoryMessageProducer,
+    MemoryParticipantService,
+    MemoryQuoteRepo,
+    mockedBulkQuote1,
+    mockedQuote1,
+    mockedQuote2,
+    mockedQuote3,
+} from "@mojaloop/quoting-bc-shared-mocks-lib";
+import {
+    ConsoleLogger,
+    ILogger,
+    LogLevel,
+} from "@mojaloop/logging-bc-public-types-lib";
+import {
+    IMessageConsumer,
+    IMessageProducer,
+} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
+import {
+    IAccountLookupService,
+    IBulkQuoteRepo,
+    IParticipantService,
+    IQuoteRepo,
+} from "../../../packages/domain-lib/src";
+import { Service } from "../../../packages/quoting-svc/src";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
@@ -47,22 +71,33 @@ const mockedProducer: IMessageProducer = new MemoryMessageProducer(logger);
 
 const mockedConsumer: IMessageConsumer = new MemoryMessageConsumer();
 
-const mockedParticipantService: IParticipantService = new MemoryParticipantService(logger);
+const mockedParticipantService: IParticipantService =
+    new MemoryParticipantService(logger);
 
-const mockedAccountLookupService: IAccountLookupService = new MemoryAccountLookupService(logger);
+const mockedAccountLookupService: IAccountLookupService =
+    new MemoryAccountLookupService(logger);
 
-const mockedAuthRequester: IAuthenticatedHttpRequester = new MemoryAuthenticatedHttpRequesterMock(logger,"fake token");
+const mockedAuthRequester: IAuthenticatedHttpRequester =
+    new MemoryAuthenticatedHttpRequesterMock(logger, "fake token");
 
 let mockedQuoteRepository: IQuoteRepo = new MemoryQuoteRepo(logger);
 
 let mockedBulkQuoteRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logger);
 
-const server = (process.env["QUOTING_ADM_URL"] || "http://localhost:3033");
+const server = process.env["QUOTING_ADM_URL"] || "http://localhost:3033";
 
 describe("Quoting Admin Routes - Integration", () => {
-
     beforeAll(async () => {
-        await Service.start(logger, mockedConsumer, mockedProducer, mockedQuoteRepository, mockedBulkQuoteRepository,mockedAuthRequester, mockedParticipantService, mockedAccountLookupService);
+        await Service.start(
+            logger,
+            mockedConsumer,
+            mockedProducer,
+            mockedQuoteRepository,
+            mockedBulkQuoteRepository,
+            mockedAuthRequester,
+            mockedParticipantService,
+            mockedAccountLookupService
+        );
     });
 
     afterEach(async () => {
@@ -73,10 +108,11 @@ describe("Quoting Admin Routes - Integration", () => {
 
         const bulkQuotes = await mockedBulkQuoteRepository.getBulkQuotes();
         for await (const bulkQuote of bulkQuotes) {
-            await mockedBulkQuoteRepository.removeBulkQuote(bulkQuote.bulkQuoteId);
+            await mockedBulkQuoteRepository.removeBulkQuote(
+                bulkQuote.bulkQuoteId
+            );
         }
     });
-
 
     afterAll(async () => {
         await Service.stop();
@@ -88,13 +124,11 @@ describe("Quoting Admin Routes - Integration", () => {
         const quoteId = await mockedQuoteRepository.addQuote(newQuote);
 
         // Act
-        const response = await request(server)
-            .get(`/quotes/${quoteId}`);
+        const response = await request(server).get(`/quotes/${quoteId}`);
 
         // Assert
         expect(response.status).toBe(200);
         expect(response.body).toEqual(newQuote);
-
     });
 
     test("GET - should get a list of quotes", async () => {
@@ -104,8 +138,7 @@ describe("Quoting Admin Routes - Integration", () => {
         await mockedQuoteRepository.addQuote(mockedQuote3);
 
         // Act
-        const response = await request(server)
-            .get("/quotes");
+        const response = await request(server).get("/quotes");
 
         // Assert
         expect(response.status).toBe(200);
@@ -113,16 +146,18 @@ describe("Quoting Admin Routes - Integration", () => {
         expect(response.body[1]).toEqual(mockedQuote2);
         expect(response.body[2]).toEqual(mockedQuote3);
         expect(response.body.length).toBe(3);
-
     });
 
     test("GET - should get a bulk quote by it's id", async () => {
         // Arrange
-        const bulkQuoteId = await mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);
+        const bulkQuoteId = await mockedBulkQuoteRepository.addBulkQuote(
+            mockedBulkQuote1
+        );
 
         // Act
-        const response = await request(server)
-            .get(`/bulk-quotes/${bulkQuoteId}`);
+        const response = await request(server).get(
+            `/bulk-quotes/${bulkQuoteId}`
+        );
 
         // Assert
         expect(response.status).toBe(200);
@@ -134,8 +169,7 @@ describe("Quoting Admin Routes - Integration", () => {
         await mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);
 
         // Act
-        const response = await request(server)
-            .get("/bulk-quotes");
+        const response = await request(server).get("/bulk-quotes");
 
         // Assert
         expect(response.status).toBe(200);
@@ -143,5 +177,18 @@ describe("Quoting Admin Routes - Integration", () => {
         expect(response.body.length).toBe(1);
     });
 
-});
+    test("GET - should get a list of filtered quotes", async () => {
+        // Arrange
+        const newQuote = mockedQuote1;
+        await mockedQuoteRepository.addQuote(newQuote);
 
+        // Act
+        const response = await request(server).get(
+            `/quotes?transactionId=${newQuote?.transactionId}&quoteId=${newQuote?.quoteId}&amountType=${newQuote?.amountType}&transactionType=${newQuote.transactionType.scenario}`
+        );
+
+        // Assert
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([newQuote]);
+    });
+});

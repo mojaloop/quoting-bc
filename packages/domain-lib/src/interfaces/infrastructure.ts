@@ -33,33 +33,42 @@
 "use strict";
 
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import {IQuote, IBulkQuote, QuoteStatus } from "../types";
+import { IQuote, IBulkQuote, QuoteStatus } from "../types";
 
 export interface IQuoteRepo {
-    init(): Promise<void>;
-	destroy(): Promise<void>;
-    addQuote(quote: IQuote):Promise<string>;
-    addQuotes(quotes: IQuote[]):Promise<void>;
-    updateQuote(quote: IQuote):Promise<void>;
-    removeQuote(id: string):Promise<void>;
-    getQuoteById(id:string):Promise<IQuote|null>;
-    getQuotes():Promise<IQuote[]>;
-    getQuotesByBulkQuoteIdAndStatus(id:string, status: QuoteStatus):Promise<IQuote[]>;
+  init(): Promise<void>;
+  destroy(): Promise<void>;
+  addQuote(quote: IQuote): Promise<string>;
+  addQuotes(quotes: IQuote[]): Promise<void>;
+  updateQuote(quote: IQuote): Promise<void>;
+  removeQuote(id: string): Promise<void>;
+  getQuoteById(id: string): Promise<IQuote | null>;
+  getQuotes(): Promise<IQuote[]>;
+  getQuotesByBulkQuoteIdAndStatus(
+    id: string,
+    status: QuoteStatus
+  ): Promise<IQuote[]>;
+  searchQuotes(
+    transactionId?: string,
+    quoteId?: string,
+    amountType?: string,
+    transactionType?: string
+  ): Promise<IQuote[]>;
 }
 
 export interface IBulkQuoteRepo {
-    init(): Promise<void>;
-	destroy(): Promise<void>;
-    addBulkQuote(bulkQuote: IBulkQuote):Promise<string>;
-    updateBulkQuote(bulkQuote: IBulkQuote):Promise<void>;
-    removeBulkQuote(id: string):Promise<void>;
-    getBulkQuoteById(id:string):Promise<IBulkQuote|null>;
-    getBulkQuotes():Promise<IBulkQuote[]>;
+  init(): Promise<void>;
+  destroy(): Promise<void>;
+  addBulkQuote(bulkQuote: IBulkQuote): Promise<string>;
+  updateBulkQuote(bulkQuote: IBulkQuote): Promise<void>;
+  removeBulkQuote(id: string): Promise<void>;
+  getBulkQuoteById(id: string): Promise<IBulkQuote | null>;
+  getBulkQuotes(): Promise<IBulkQuote[]>;
 }
 
 export interface IParticipantService {
-    getParticipantInfo(fspId: string): Promise<IParticipant| null>;
-    // getParticipantsInfo(fspIds: string[]): Promise<IParticipant[]>;
+  getParticipantInfo(fspId: string): Promise<IParticipant | null>;
+  // getParticipantsInfo(fspIds: string[]): Promise<IParticipant[]>;
 }
 
 
@@ -73,4 +82,3 @@ export interface IAccountLookupService {
     getAccountLookup(partyId:string, partyType:string, currency:string | null): Promise<string| null>;
     getBulkAccountLookup(partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null}>;
 }
-

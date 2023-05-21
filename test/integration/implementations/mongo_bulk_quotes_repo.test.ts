@@ -42,19 +42,20 @@ const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
 
 const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
-//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
-const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
+const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
+//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
 const COLLECTION_NAME = "bulk_quotes";
 
 let mongoBulkQuotesRepo : IBulkQuoteRepo;
 
 let mongoClient: MongoClient;
 let collection : Collection;
-const connectionString = `${CONNECTION_STRING}/${DB_NAME}`;
+const connectionString = `${CONNECTION_STRING}`;
 
 describe("Implementations - Mongo Bulk Quotes Repo Integration tests", () => {
 
     beforeAll(async () => {
+
         mongoClient = await MongoClient.connect(connectionString);
         collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
         mongoBulkQuotesRepo = new MongoBulkQuotesRepo(logger, CONNECTION_STRING, DB_NAME);

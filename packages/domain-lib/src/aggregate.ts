@@ -146,6 +146,7 @@ export class QuotingAggregate  {
 			}
 		} else {
 			if (eventToPublish){
+				eventToPublish.fspiopOpaqueState = fspiopOpaqueState;
 				await this._messageProducer.send(eventToPublish);
 			}
 		}
