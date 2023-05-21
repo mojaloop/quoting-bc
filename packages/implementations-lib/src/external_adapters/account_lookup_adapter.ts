@@ -81,11 +81,7 @@ export class AccountLookupAdapter implements IAccountLookupService {
 			if (Object.keys(partyIdentifiers).length === 0) {
 				return result;
 			}
-
 			this._logger.debug(`getBulkAccountLookup: calling external account lookup service for partyIdentifiers: ${JSON.stringify(partyIdentifiers)}`);
-
-
-
 			const externalFspIds = await this._externalAccountLookupClient.participantBulkLookUp(partyIdentifiers);
 			result = {...result, ...externalFspIds};
 		} catch (e: unknown) {

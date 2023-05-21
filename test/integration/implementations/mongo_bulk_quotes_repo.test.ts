@@ -35,15 +35,15 @@
 import { ILogger,ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import { MongoClient, Collection } from "mongodb";
 import { mockedBulkQuote1, mockedBulkQuote2 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import { BulkQuoteAlreadyExistsError, BulkQuoteNotFoundError, MongoBulkQuotesRepo } from "../../../packages/Implementations-lib/src";
+import { BulkQuoteAlreadyExistsError, BulkQuoteNotFoundError, MongoBulkQuotesRepo } from "../../../packages/implementations-lib/src";
 import { IBulkQuote, IBulkQuoteRepo } from "../../../packages/domain-lib/src";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
 
 const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
-//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
-const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017/";
+//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
+const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
 const COLLECTION_NAME = "bulk_quotes";
 
 let mongoBulkQuotesRepo : IBulkQuoteRepo;

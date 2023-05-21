@@ -125,7 +125,6 @@ export class QuotingAggregate  {
 						const errorMessage = `Message type has invalid format or value ${message.msgName}`;
 						this._logger.error(errorMessage);
 						eventToPublish = createInvalidMessageTypeErrorEvent(errorMessage, requesterFspId, quoteId, bulkQuoteId);
-						eventToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
 					}
 				}
 		}
@@ -133,7 +132,6 @@ export class QuotingAggregate  {
 			const errorMessage = `Error while handling message ${message.msgName}`;
 			this._logger.error(errorMessage + `- ${error}`);
 			eventToPublish = createUnknownErrorEvent(errorMessage, requesterFspId, quoteId, bulkQuoteId);
-			eventToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
 			await this.publishEvent(eventToPublish, message.fspiopOpaqueState);
 		}
 
@@ -148,7 +146,6 @@ export class QuotingAggregate  {
 			}
 		} else {
 			if (eventToPublish){
-				eventToPublish.fspiopOpaqueState = fspiopOpaqueState;
 				await this._messageProducer.send(eventToPublish);
 			}
 		}
@@ -288,7 +285,7 @@ export class QuotingAggregate  {
 
 		const expirationDateValid = this.validateExpirationDate(requesterFspId, quoteId,null, expirationDate);
 		if(!expirationDateValid){
-			quoteErrorEvent = createQuoteExpiredErrorEvent(requesterFspId, requesterFspId, quoteId);;
+			quoteErrorEvent = createQuoteExpiredErrorEvent(requesterFspId, requesterFspId, quoteId);
 			quoteStatus = QuoteStatus.EXPIRED;
 		}
 
@@ -417,7 +414,7 @@ export class QuotingAggregate  {
 		if(expirationDate){
 			const expirationDateValid = this.validateExpirationDate(requesterFspId, null, bulkQuoteId, expirationDate);
 			if(!expirationDateValid){
-				return createExpiredBulkQuoteErrorEvent(requesterFspId, requesterFspId, bulkQuoteId);;
+				return createExpiredBulkQuoteErrorEvent(requesterFspId, requesterFspId, bulkQuoteId);
 			}
 		}
 

@@ -307,7 +307,6 @@ describe("Account Lookup Adapter - Unit Tests", () => {
             "key2":{
                 currency: "USD",
                 partyId: "partyId2",
-                partySubIdOrType: "partySubType2",
                 partyType: "partyType2",
             }
         }]]);
@@ -345,8 +344,8 @@ describe("Account Lookup Adapter - Unit Tests", () => {
         await accountLookupClient.getBulkAccountLookup(request);
 
         // Assert
-        expect(cacheSpy).toBeCalledWith("fspId1", "partyId", "partyType", "partySubIdOrType", "USD");
-        expect(cacheSpy).toBeCalledWith("fspId2", "partyId2", "partyType2", "partySubType2", "USD");
+        expect(cacheSpy).toBeCalledWith("fspId1", "partyId", "partyType", "USD");
+        expect(cacheSpy).toBeCalledWith("fspId2", "partyId2", "partyType2", "USD");
 
     });
 

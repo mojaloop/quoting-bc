@@ -160,7 +160,7 @@ export function createQuoteExpiredErrorEvent(errorDescription:string, fspId:stri
         errorDescription,
         fspId,
         quoteId
-    }
+    };
     const errorEvent = new QuoteBCQuoteExpiredErrorEvent(errorPayload);
     return errorEvent;
 }

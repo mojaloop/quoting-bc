@@ -35,7 +35,8 @@
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { MemoryQuoteRepo, MemoryBulkQuoteRepo, MemoryMessageProducer, MemoryParticipantService, MemoryAccountLookupService } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import { IQuoteRepo, IBulkQuoteRepo, IParticipantService, IAccountLookupService, QuotingAggregate } from "../../dist";
+import { IQuoteRepo, IBulkQuoteRepo, IParticipantService, IAccountLookupService } from "../../src/interfaces/infrastructure";
+import {IQuoteSchemeRules } from "../../src/types";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
@@ -50,4 +51,8 @@ const participantService: IParticipantService = new MemoryParticipantService(log
 
 const accountLookupService: IAccountLookupService = new MemoryAccountLookupService(logger);
 
-export { logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService };
+const schemaRules: IQuoteSchemeRules = {
+    currencies: ["USD", "EUR", "GBP"],
+}
+
+export { logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService, schemaRules };

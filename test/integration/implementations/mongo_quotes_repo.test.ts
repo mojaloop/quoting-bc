@@ -35,15 +35,15 @@
 import { ILogger,ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import { MongoClient, Collection } from "mongodb";
 import { mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import {  MongoQuotesRepo, QuoteNotFoundError, QuoteAlreadyExistsError } from "../../../packages/Implementations-lib/src";
+import {  MongoQuotesRepo, QuoteNotFoundError, QuoteAlreadyExistsError } from "../../../packages/implementations-lib/src";
 import { QuoteStatus } from "../../../packages/domain-lib/src";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
 
 const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
-//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
-const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017/";
+//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
+const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
 const COLLECTION_NAME = "quotes";
 
 let mongoQuotesRepo : MongoQuotesRepo;

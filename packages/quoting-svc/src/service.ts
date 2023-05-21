@@ -115,7 +115,7 @@ const consumerOptions: MLKafkaJsonConsumerOptions = {
 const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"]=== "true" )? true : false;
 const SCHEME_RULES: IQuoteSchemeRules = {
 	currencies: ["USD", "EUR", "GBP"],
-}
+};
 
 const producerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL,
