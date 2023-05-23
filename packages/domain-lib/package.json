@@ -35,10 +35,9 @@
   "dependencies": {
     "@mojaloop/logging-bc-public-types-lib": "~0.1.19",
     "@mojaloop/platform-shared-lib-messaging-types-lib": "0.2.98",
-    "@mojaloop/platform-shared-lib-public-messages-lib": "0.1.100"
+    "@mojaloop/platform-shared-lib-public-messages-lib": "0.1.106"
   },
   "devDependencies": {
-    "@mojaloop/quoting-bc-shared-mocks-lib":"*"
+    "@mojaloop/quoting-bc-shared-mocks-lib": "*"
   }
-
 }

@@ -56,7 +56,7 @@ import {
 	QuoteResponseReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules, QuoteErrorEvent, QuoteStatus, QuoteUpdatableFields } from "./types";
-import { createBulkQuoteNotFoundErrorEvent, createExpiredBulkQuoteErrorEvent, createInvalidBulkQuoteLengthErrorEvent, createInvalidDestinationFspIdErrorEvent, createInvalidMessagePayloadErrorEvent, createInvalidMessageTypeErrorEvent, createInvalidRequesterFspIdErrorEvent, createParticipantNotFoundErrorEvent, createQuoteExpiredErrorEvent, createQuoteNotFoundErrorEvent, createQuoteRuleSchemeViolated, createUnableToAddBulkQuoteToDatabaseErrorEvent, createUnableToAddQuoteToDatabaseErrorEvent, createUnableToUpdateBulkQuoteInDatabaseErrorEvent, createUnableToUpdateQuoteInDatabaseErrorEvent, createUnknownErrorEvent } from "./error_events";
+import { createBulkQuoteNotFoundErrorEvent, createExpiredBulkQuoteErrorEvent, createInvalidBulkQuoteLengthErrorEvent, createInvalidDestinationFspIdErrorEvent, createInvalidMessagePayloadErrorEvent, createInvalidMessageTypeErrorEvent, createInvalidRequesterFspIdErrorEvent, createParticipantNotFoundErrorEvent, createQuoteExpiredErrorEvent, createQuoteNotFoundErrorEvent, createQuoteRuleSchemeViolatedRequestErrorEvent, createQuoteRuleSchemeViolatedResponseErrorEvent, createUnableToAddBulkQuoteToDatabaseErrorEvent, createUnableToAddQuoteToDatabaseErrorEvent, createUnableToUpdateBulkQuoteInDatabaseErrorEvent, createUnableToUpdateQuoteInDatabaseErrorEvent, createUnknownErrorEvent } from "./error_events";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -184,7 +184,7 @@ export class QuotingAggregate  {
 		}
 
 		if(expirationDate){
-			const expirationDateValid = this.validateExpirationDate(requesterFspId, quoteId,null, expirationDate);
+			const expirationDateValid = this.validateExpirationDate(quoteId,null, expirationDate);
 			if(!expirationDateValid){
 				return createQuoteExpiredErrorEvent(requesterFspId, requesterFspId, quoteId);
 			}
@@ -284,7 +284,7 @@ export class QuotingAggregate  {
 			quoteStatus = QuoteStatus.REJECTED;
 		}
 
-		const expirationDateValid = this.validateExpirationDate(requesterFspId, quoteId,null, expirationDate);
+		const expirationDateValid = this.validateExpirationDate(quoteId,null, expirationDate);
 		if(!expirationDateValid){
 			quoteErrorEvent = createQuoteExpiredErrorEvent(requesterFspId, requesterFspId, quoteId);
 			quoteStatus = QuoteStatus.EXPIRED;
@@ -413,7 +413,7 @@ export class QuotingAggregate  {
 		}
 
 		if(expirationDate){
-			const expirationDateValid = this.validateExpirationDate(requesterFspId, null, bulkQuoteId, expirationDate);
+			const expirationDateValid = this.validateExpirationDate(null, bulkQuoteId, expirationDate);
 			if(!expirationDateValid){
 				return createExpiredBulkQuoteErrorEvent(requesterFspId, requesterFspId, bulkQuoteId);
 			}
@@ -482,7 +482,7 @@ export class QuotingAggregate  {
 		}
 
 		if(expirationDate && quoteErrorEvent === null){
-			const expirationDateValid = this.validateExpirationDate(requesterFspId, null, bulkQuoteId, expirationDate);
+			const expirationDateValid = this.validateExpirationDate(null, bulkQuoteId, expirationDate);
 			if(!expirationDateValid){
 				quoteErrorEvent = createExpiredBulkQuoteErrorEvent(requesterFspId, requesterFspId, bulkQuoteId);
 				quoteStatus = QuoteStatus.EXPIRED;
@@ -675,7 +675,8 @@ export class QuotingAggregate  {
 		const updateBulkQuote = await this._bulkQuotesRepo.updateBulkQuote(bulkQuote).catch((err) => {
 			const errorMessage = `Error updating bulkQuote for bulkQuoteId: ${bulkQuoteId}.`;
 			this._logger.error(errorMessage + " " + err.message);
-			result.errorEvent.push(createUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorMessage, requesterFspId, bulkQuoteId));
+			const errorEvent = createUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorMessage, requesterFspId, bulkQuoteId);
+			result.errorEvent.push(errorEvent);
 			result.valid = false;
 			return false;
 		});
@@ -714,17 +715,18 @@ export class QuotingAggregate  {
 	private async getMissingFspIdForBulkQuote(quotes:IQuote[]): Promise<string | null>{
 		let destinationFspId = null;
 		for await (const quote of quotes) {
-			if (!quote.payee.partyIdInfo.fspId) {
-				const payeePartyId = quote.payee?.partyIdInfo?.partyIdentifier;
-				const payeePartyIdType = quote.payee?.partyIdInfo?.partyIdType;
-				if(payeePartyId && payeePartyIdType){
-					const currency = quote.amount?.currency ?? null;
-					this._logger.debug(`Getting destinationFspId for payeePartyId: ${payeePartyId}, and payeePartyType: ${payeePartyIdType}, and currency :${currency} from account lookup service`);
-					destinationFspId = await this.getMissingFspId(payeePartyId, payeePartyIdType, currency);
-					if (destinationFspId) {
-						this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspId}`);
-						return destinationFspId;
-					}
+			const payeePartyId = quote.payee?.partyIdInfo?.partyIdentifier;
+			const payeePartyIdType = quote.payee?.partyIdInfo?.partyIdType;
+
+			if (!quote.payee.partyIdInfo.fspId && payeePartyId && payeePartyIdType) {
+
+				const currency = quote.amount?.currency ?? null;
+				this._logger.debug(`Getting destinationFspId for payeePartyId: ${payeePartyId}, and payeePartyType: ${payeePartyIdType}, and currency :${currency} from account lookup service`);
+				destinationFspId = await this.getMissingFspId(payeePartyId, payeePartyIdType, currency);
+
+				if (destinationFspId) {
+					this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspId}`);
+					return destinationFspId;
 				}
 			}
 		}
@@ -736,41 +738,51 @@ export class QuotingAggregate  {
 	//#region Validations
 	private validateQuoteRequestSchemeOrGetErrorEvent(fspId:string, quoteId:string, quote: QuoteRequestReceivedEvtPayload ): {errorEvent:QuoteErrorEvent | null, valid: boolean} {
 		const currency = quote.amount.currency;
-		return this.schemeValidation(currency, fspId, quoteId);
+		try{
+			this.schemeValidation(currency);
+			return {errorEvent: null, valid: true};
+		}
+		catch(error:any){
+			const errorMessage = error.message;
+			const errorEvent = createQuoteRuleSchemeViolatedRequestErrorEvent(errorMessage, fspId, quoteId);
+			return {errorEvent , valid: false};
+		}
 	}
 
 	private validateQuoteResponseSchemeOrGetErrorEvent(fspId:string, quoteId:string, quote: QuoteResponseReceivedEvtPayload ): {errorEvent: QuoteErrorEvent | null, valid: boolean} {
 		const currency = quote.transferAmount.currency;
-		return this.schemeValidation(currency, fspId, quoteId);
+		try{
+			this.schemeValidation(currency);
+			return {errorEvent: null, valid: true};
+		}
+		catch(error:any){
+			const errorMessage = error.message;
+			const errorEvent = createQuoteRuleSchemeViolatedResponseErrorEvent(errorMessage, fspId, quoteId);
+			return {errorEvent , valid: false};
+		}
 	}
 
-	private schemeValidation(currency: string, fspId: string, quoteId: string) :{errorEvent:QuoteErrorEvent | null, valid: boolean}  {
-		let errorEvent!:QuoteErrorEvent | null;
-		const result = {errorEvent, valid: false};
-
+	private schemeValidation(currency: string) :boolean {
 		const currenciesSupported = this._schemeRules.currencies.map((currency) => currency.toLocaleLowerCase());
+
 		if (currency) {
 			if (!currenciesSupported.includes(currency.toLocaleLowerCase())) {
 				const errorMessage = "Currency is not supported";
 				this._logger.error(errorMessage);
-				result.errorEvent = createQuoteRuleSchemeViolated(errorMessage, fspId, quoteId);
-				return result;
+				throw new Error(errorMessage);
 			}
 		}
 		else {
 			const errorMessage = "Currency is not provided in quote request";
 			this._logger.error(errorMessage);
-			result.errorEvent = createQuoteRuleSchemeViolated(errorMessage, fspId, quoteId);
-			return result;
+			throw new Error(errorMessage);
 		}
 
-		result.valid = true;
-		return result;
+		return true;
 	}
 
 
-
-	private validateExpirationDate(fspId:string, quoteId:string|null, bulkQuoteId:string|null, expirationDate: string): boolean {
+	private validateExpirationDate(quoteId:string|null, bulkQuoteId:string|null, expirationDate: string): boolean {
 		const serverDateUtc= new Date().toISOString();
 		const serverDate = new Date(serverDateUtc);
 		const quoteDate = new Date(expirationDate);

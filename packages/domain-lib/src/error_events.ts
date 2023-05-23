@@ -43,7 +43,7 @@ import {QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCUnableToAddQuoteToDatabaseErrorPayload, QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
     QuoteBCQuoteExpiredErrorPayload, QuoteBCQuoteExpiredErrorEvent,
     QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
-    QuoteBCInvalidDestinationFspIdErrorPayload, QuoteBCInvalidRequesterFspIdErrorPayload, QuoteBCParticipantNotFoundErrorPayload, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteNotFoundErrorPayload, QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorPayload, QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorPayload, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCQuoteRuleSchemeViolatedErrorPayload, QuoteBCQuoteRuleSchemeViolatedErrorEvent
+    QuoteBCInvalidDestinationFspIdErrorPayload, QuoteBCInvalidRequesterFspIdErrorPayload, QuoteBCParticipantNotFoundErrorPayload, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteNotFoundErrorPayload, QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorPayload, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload, QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload, QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 export function createInvalidMessagePayloadErrorEvent(errorDescription:string, fspId:string, quoteId: string, bulkQuoteId:string ): QuoteBCInvalidMessagePayloadErrorEvent {
@@ -67,12 +67,6 @@ export function createInvalidMessageTypeErrorEvent(errorDescription:string, fspI
     };
     const errorEvent = new QuoteBCInvalidMessageTypeErrorEvent(errorPayload);
     return errorEvent;
-}
-
-//TODO: Create the event
-export function createInvalidMessageNameErrorEvent(errorDescription:string, fspId:string, quoteId: string, bulkQuoteId:string): any
-{
-    return null;
 }
 
 export function createBulkQuoteNotFoundErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): QuoteBCBulkQuoteNotFoundErrorEvent {
@@ -205,13 +199,13 @@ export function createUnableToUpdateQuoteInDatabaseErrorEvent(errorDescription:s
     return errorEvent;
 }
 
-export function createUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent{
-    const errorPayload : QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorPayload = {
+export function createUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorDescription:string, fspId:string, bulkQuoteId:string): QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent{
+    const errorPayload : QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload = {
         errorDescription,
         fspId,
         bulkQuoteId
     };
-    const errorEvent = new QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorPayload);
+    const errorEvent = new QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent(errorPayload);
     return errorEvent;
 }
 
@@ -225,13 +219,23 @@ export function createInvalidBulkQuoteLengthErrorEvent(errorDescription:string, 
     return errorEvent;
 }
 
-export function createQuoteRuleSchemeViolated(errorDescription:string, fspId:string, quoteId:string): QuoteBCQuoteRuleSchemeViolatedErrorEvent{
-    const errorPayload : QuoteBCQuoteRuleSchemeViolatedErrorPayload = {
+export function createQuoteRuleSchemeViolatedResponseErrorEvent(errorDescription:string, fspId:string, quoteId:string): QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent{
+    const errorPayload : QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload = {
         errorDescription,
         fspId,
         quoteId
     };
-    const errorEvent = new QuoteBCQuoteRuleSchemeViolatedErrorEvent(errorPayload);
+    const errorEvent = new QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent(errorPayload);
+    return errorEvent;
+}
+
+export function createQuoteRuleSchemeViolatedRequestErrorEvent(errorDescription:string, fspId:string, quoteId:string): QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent{
+    const errorPayload : QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload = {
+        errorDescription,
+        fspId,
+        quoteId
+    };
+    const errorEvent = new QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent(errorPayload);
     return errorEvent;
 }
 

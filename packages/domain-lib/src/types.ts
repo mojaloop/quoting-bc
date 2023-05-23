@@ -1,4 +1,3 @@
-import { QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteNotFoundErrorEvent, QuoteBCQuoteRuleSchemeViolatedErrorEvent, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent } from '@mojaloop/platform-shared-lib-public-messages-lib';
 /**
  License
  --------------
@@ -38,6 +37,11 @@ import {QuoteBCBulkQuoteNotFoundErrorEvent, QuoteBCUnknownErrorEvent,
     QuoteBCInvalidMessageTypeErrorEvent, QuoteBCParticipantNotFoundErrorEvent,
     QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent,
     QuoteBCRequiredParticipantIsNotActiveErrorEvent } from "@mojaloop/platform-shared-lib-public-messages-lib";
+
+import { QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteNotFoundErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent } from '@mojaloop/platform-shared-lib-public-messages-lib';
+
 
 export enum QuoteStatus {
     RECEIVED = "RECEIVED",
@@ -168,8 +172,8 @@ export type QuoteErrorEvent = QuoteBCBulkQuoteNotFoundErrorEvent | QuoteBCUnknow
     QuoteBCRequiredParticipantIsNotActiveErrorEvent | QuoteBCQuoteNotFoundErrorEvent |
     QuoteBCQuoteExpiredErrorEvent | QuoteBCBulkQuoteExpiredErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent |
     QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent | QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent |
-    QuoteBCeUnableToUpdateBulkQuoteInDatabaseErrorEvent | QuoteBCInvalidBulkQuoteLengthErrorEvent |
-    QuoteBCQuoteRuleSchemeViolatedErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent;
+    QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent | QuoteBCInvalidBulkQuoteLengthErrorEvent |
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent | QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent;
 
 
 
