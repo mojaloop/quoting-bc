@@ -173,7 +173,7 @@ export type QuoteErrorEvent = QuoteBCBulkQuoteNotFoundErrorEvent | QuoteBCUnknow
     QuoteBCQuoteExpiredErrorEvent | QuoteBCBulkQuoteExpiredErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent |
     QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent | QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent |
     QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent | QuoteBCInvalidBulkQuoteLengthErrorEvent |
-    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent | QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent;
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent |QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent;
 
 
 
