@@ -219,7 +219,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
             filter.$and.push({ transactionId: { $regex: id, $options: "i" } });
         }
         if (quoteId) {
-            filter.$and.push({ quoteId });
+            filter.$and.push({ quoteId: { $regex: quoteId, $options: "i" }  });
         }
         if (amountType) {
             filter.$and.push({ amountType });
