@@ -793,19 +793,6 @@ export class QuotingAggregate  {
 			return result;
 		}
 
-		if(message.msgType !== MessageTypes.DOMAIN_EVENT){
-			const errorMessage = `Message type is invalid ${message.msgType}`;
-			this._logger.error(errorMessage);
-			const errorPayload: QuoteBCInvalidMessageTypeErrorPayload = {
-				bulkQuoteId,
-				quoteId,
-				errorDescription : errorMessage,
-				fspId: requesterFspId,
-			};
-			result.errorEvent = new QuoteBCInvalidMessageTypeErrorEvent(errorPayload);
-			return result;
-		}
-
 		result.valid = true;
 
 		return result;
