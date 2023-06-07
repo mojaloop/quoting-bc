@@ -160,11 +160,6 @@ export interface IQuoteSchemeRules {
     currencies: string[];
 }
 
-
-export type QuoteUpdatableFields = Pick<IQuote, "transferAmount" | "expiration" | "ilpPacket" | "condition"
-    | "payeeReceiveAmount" | "payeeFspFee" | "payeeFspCommission" | "geoCode" | "extensionList">;
-
-
 export type QuoteErrorEvent = QuoteBCBulkQuoteNotFoundErrorEvent | QuoteBCUnknownErrorEvent |
     QuoteBCInvalidMessagePayloadErrorEvent | QuoteBCDuplicateQuoteErrorEvent |
     QuoteBCInvalidMessageTypeErrorEvent  | QuoteBCParticipantNotFoundErrorEvent |
