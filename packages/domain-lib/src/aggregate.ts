@@ -703,7 +703,7 @@ export class QuotingAggregate  {
 	//#region Validations
 
 	private validateScheme(message: IMessage) :boolean {
-		const currency = message.payload.transferAmount.currency ?? message.payload.amount.currency;
+		const currency = message.payload.transferAmount?.currency ?? message.payload.amount?.currency;
 		if(!currency){
 			this._logger.error("Currency is not sent in the request");
 			return false;
