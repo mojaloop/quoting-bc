@@ -142,17 +142,31 @@ export class MongoQuotesRepo implements IQuoteRepo {
             throw new QuoteNotFoundError("Quote not found");
         }
 
-        const updatedQuote: IQuote = { ...existingQuote, ...quote };
-        updatedQuote.quoteId = existingQuote.quoteId;
-
         await this.quotes
-            .updateOne({ quoteId: quote.quoteId }, { $set: updatedQuote })
+            .updateOne({ quoteId: quote.quoteId }, { $set: quote })
             .catch((e: unknown) => {
                 this._logger.error(
                     `Unable to insert quote: ${(e as Error).message}`
                 );
                 throw new UnableToUpdateQuoteError("Unable to update quote");
-            });
+        });
+    }
+
+    async updateQuotes(quotes: IQuote[]): Promise<void> {
+        const bulkOps = quotes.map((quote) => ({
+            updateOne: {
+              filter: { quoteId: quote.quoteId },
+              update: { $set: quote },
+            },
+        }));
+
+        // Perform the bulk update operation
+        await this.quotes.bulkWrite(bulkOps, { ordered: false,  }).catch((e: unknown) => {
+            this._logger.error(
+                `Unable to update many quotes: ${(e as Error).message}`
+            );
+            throw new UnableToUpdateQuoteError("Unable to update many quotes");
+        });
     }
 
     async removeQuote(quoteId: string): Promise<void> {
@@ -246,14 +260,12 @@ export class MongoQuotesRepo implements IQuoteRepo {
         return mappedTransfers;
     }
 
-    async getQuotesByBulkQuoteIdAndStatus(
-        bulkQuoteId: string,
-        status: QuoteStatus
+    async getQuotesByBulkQuoteId(
+        bulkQuoteId: string
     ): Promise<IQuote[]> {
         const quotes = await this.quotes
             .find({
                 bulkQuoteId: bulkQuoteId,
-                status,
             })
             .toArray()
             .catch((e: unknown) => {

@@ -35,7 +35,6 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {
   IQuoteRepo,
   IQuote,
-  QuoteStatus,
 } from "@mojaloop/quoting-bc-domain-lib";
 
 export class MemoryQuoteRepo implements IQuoteRepo {
@@ -70,6 +69,12 @@ export class MemoryQuoteRepo implements IQuoteRepo {
     }
     return Promise.resolve();
   }
+
+  updateQuotes(quote: IQuote[]): Promise<void> {
+    quote.forEach((q) => this.updateQuote(q));
+    return Promise.resolve();
+  }
+
   removeQuote(id: string): Promise<void> {
     this._quotes.splice(
       this._quotes.findIndex((q) => q.quoteId === id),
@@ -77,16 +82,14 @@ export class MemoryQuoteRepo implements IQuoteRepo {
     );
     return Promise.resolve();
   }
+
   getQuoteById(id: string): Promise<IQuote | null> {
     return Promise.resolve(this._quotes.find((q) => q.quoteId === id) || null);
   }
 
-  getQuotesByBulkQuoteIdAndStatus(
-    id: string,
-    status: QuoteStatus
-  ): Promise<IQuote[]> {
+  getQuotesByBulkQuoteId(id: string): Promise<IQuote[]> {
     return Promise.resolve(
-      this._quotes.filter((q) => q.bulkQuoteId === id && q.status === status)
+      this._quotes.filter((q) => q.bulkQuoteId === id)
     );
   }
 

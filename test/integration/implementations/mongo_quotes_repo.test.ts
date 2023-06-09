@@ -37,13 +37,14 @@ import { MongoClient, Collection } from "mongodb";
 import { mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import {  MongoQuotesRepo, QuoteNotFoundError, QuoteAlreadyExistsError } from "../../../packages/implementations-lib/src";
 import { QuoteStatus } from "../../../packages/domain-lib/src";
+import { IQuote } from "@mojaloop/quoting-bc-domain-lib";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
 
 const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
-const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
-//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
+//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
+const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
 const COLLECTION_NAME = "quotes";
 
 let mongoQuotesRepo : MongoQuotesRepo;
@@ -170,8 +171,8 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
 
     test("should update a quote in the database", async () => {
         // Arrange
-        const quote1 = mockedQuote1;
-        const newQuote = mockedQuote2;
+        const quote1 = deepCopy(mockedQuote1);
+        const newQuote = deepCopy(mockedQuote2);
         await mongoQuotesRepo.addQuote(quote1);
         newQuote.quoteId = quote1.quoteId;
 
@@ -186,10 +187,11 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
 
     test("should update a quote partially in the database", async () => {
         // Arrange
-        const quote1 = mockedQuote1;
-        const newPayee = mockedQuote2.payee;
-        const newQuote = mockedQuote2;
-        newQuote.payee = newPayee;
+        const quote1 = deepCopy(mockedQuote1);
+        const newPayee = {...mockedQuote2.payee};
+        const newQuote = deepCopy(mockedQuote2);
+        newQuote.payee = {...newPayee};
+        newQuote.quoteId = quote1.quoteId;
 
         await mongoQuotesRepo.addQuote(quote1);
 
@@ -202,12 +204,51 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         expect(result?.payee).toEqual(newPayee);
     });
 
+    test("should update a list of quotes in the database", async () => {
+        // Arrange
+
+        const quote1 = deepCopy(mockedQuote1);
+        // Create a deep copy of the quote
+        const quote2 = deepCopy(mockedQuote2);
+        await mongoQuotesRepo.addQuotes([quote1, quote2]);
+
+        const quoteWithNewValues: IQuote = deepCopy(mockedQuote3);
+        quoteWithNewValues.quoteId = mockedQuote1.quoteId;
+        quoteWithNewValues.condition = "should be updated condition";
+        quoteWithNewValues.note = "should be updated note";
+        quoteWithNewValues.amount.currency = "should be updated currency";
+
+        const quoteWithNewValues2: IQuote =deepCopy(mockedQuote4);
+        quoteWithNewValues2.quoteId = mockedQuote2.quoteId;
+        quoteWithNewValues2.condition = "should be updated condition 2";
+        quoteWithNewValues2.note = "should be updated note 2";
+        quoteWithNewValues2.amount.currency = "should be updated currency 2";
+
+        const newQuotesArray = [quoteWithNewValues, quoteWithNewValues2];
+
+        // Act
+        await mongoQuotesRepo.updateQuotes(newQuotesArray);
+
+        // Assert
+        const result = await mongoQuotesRepo.getQuoteById(quote1.quoteId);
+        const result2 = await mongoQuotesRepo.getQuoteById(quote2.quoteId);
+        expect(result?.condition).toEqual("should be updated condition");
+        expect(result?.note).toEqual("should be updated note");
+        expect(result?.amount.currency).toEqual("should be updated currency");
+
+        expect(result2?.condition).toEqual("should be updated condition 2");
+        expect(result2?.note).toEqual("should be updated note 2");
+        expect(result2?.amount.currency).toEqual("should be updated currency 2");
+    });
+
+
+
     test("should return null when a quote that does not exist", async () => {
         // Arrange
         const quote1 = mockedQuote1;
 
         // Act
-        const result = await mongoQuotesRepo.getQuoteById(quote1.quoteId);
+        const result = await mongoQuotesRepo.getQuoteById("non existing id");
 
         // Assert
         expect(result).toBeNull();
@@ -248,27 +289,27 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         expect(result).toBeNull();
     });
 
-    test("should get a list of quotes by bulk quote identifier and status", async () => {
+    test("should get a list of quotes by bulk quote identifier", async () => {
         // Arrange
         const quote1 = mockedQuote1;
+        const bulkQuoteId = quote1.bulkQuoteId as string;
+
         const quote2 = mockedQuote2;
         const quote3 = mockedQuote3;
         const quote4 = mockedQuote4;
+        quote2.bulkQuoteId = quote1.bulkQuoteId;
+        quote3.bulkQuoteId = quote1.bulkQuoteId;
         quote4.bulkQuoteId = quote1.bulkQuoteId;
-        quote4.status = QuoteStatus.ACCEPTED;
-        quote1.status = QuoteStatus.ACCEPTED;
 
         await mongoQuotesRepo.addQuotes([quote1, quote2, quote3, quote4]);
 
         // Act
-        const result = await mongoQuotesRepo.getQuotesByBulkQuoteIdAndStatus(quote1.bulkQuoteId as string,QuoteStatus.ACCEPTED);
+        const result = await mongoQuotesRepo.getQuotesByBulkQuoteId(bulkQuoteId);
 
         // Assert
         expect(result).toBeDefined();
-        expect(result).toHaveLength(2);
-        expect(result).toEqual([quote1, quote4]);
-        expect(result[0].status).toEqual(QuoteStatus.ACCEPTED);
-        expect(result[1].status).toEqual(QuoteStatus.ACCEPTED);
+        expect(result).toHaveLength(4);
+        expect(result).toEqual([quote1,quote2, quote3, quote4]);
 
     });
 
@@ -299,5 +340,6 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
     });
  });
 
+ const deepCopy = (obj: Object) => JSON.parse(JSON.stringify(obj));
 
 

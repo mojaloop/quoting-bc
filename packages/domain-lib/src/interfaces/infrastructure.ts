@@ -41,12 +41,12 @@ export interface IQuoteRepo {
   addQuote(quote: IQuote): Promise<string>;
   addQuotes(quotes: IQuote[]): Promise<void>;
   updateQuote(quote: IQuote): Promise<void>;
+  updateQuotes(quote: IQuote[]): Promise<void>;
   removeQuote(id: string): Promise<void>;
   getQuoteById(id: string): Promise<IQuote | null>;
   getQuotes(): Promise<IQuote[]>;
-  getQuotesByBulkQuoteIdAndStatus(
-    id: string,
-    status: QuoteStatus
+  getQuotesByBulkQuoteId(
+    id: string
   ): Promise<IQuote[]>;
   searchQuotes(
     transactionId?: string,

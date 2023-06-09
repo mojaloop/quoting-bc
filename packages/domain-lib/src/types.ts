@@ -160,15 +160,6 @@ export interface IQuoteSchemeRules {
     currencies: string[];
 }
 
-export type QuoteErrorEvent = QuoteBCBulkQuoteNotFoundErrorEvent | QuoteBCUnknownErrorEvent |
-    QuoteBCInvalidMessagePayloadErrorEvent | QuoteBCDuplicateQuoteErrorEvent |
-    QuoteBCInvalidMessageTypeErrorEvent  | QuoteBCParticipantNotFoundErrorEvent |
-    QuoteBCInvalidRequesterFspIdErrorEvent | QuoteBCInvalidDestinationFspIdErrorEvent |
-    QuoteBCRequiredParticipantIsNotActiveErrorEvent | QuoteBCQuoteNotFoundErrorEvent |
-    QuoteBCQuoteExpiredErrorEvent | QuoteBCBulkQuoteExpiredErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent |
-    QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent | QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent |
-    QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent | QuoteBCInvalidBulkQuoteLengthErrorEvent |
-    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent |QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent | QuoteBCUnableToAddQuoteToDatabaseErrorEvent;
 
 
 
