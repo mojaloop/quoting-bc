@@ -35,6 +35,13 @@
 import {IMessage, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 export class MemoryMessageConsumer implements IMessageConsumer{
+      setBatchCallbackFn(_batchHandlerCallback: (messages: IMessage[]) => Promise<void>): void {
+            return;
+      }
+
+      setBatchSize(size: number): void {
+        return;
+      }
 
       setCallbackFn(_handlerCallback: (message: IMessage) => Promise<void>): void {
             return;

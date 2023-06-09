@@ -32,17 +32,6 @@
 
 "use strict";
 
-import {QuoteBCBulkQuoteNotFoundErrorEvent, QuoteBCUnknownErrorEvent,
-    QuoteBCInvalidMessagePayloadErrorEvent, QuoteBCDuplicateQuoteErrorEvent,
-    QuoteBCInvalidMessageTypeErrorEvent, QuoteBCParticipantNotFoundErrorEvent,
-    QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCInvalidDestinationFspIdErrorEvent,
-    QuoteBCRequiredParticipantIsNotActiveErrorEvent } from "@mojaloop/platform-shared-lib-public-messages-lib";
-
-import { QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCInvalidBulkQuoteLengthErrorEvent, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteNotFoundErrorEvent,
-    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
-    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent, QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent } from '@mojaloop/platform-shared-lib-public-messages-lib';
-
-
 export enum QuoteStatus {
     RECEIVED = "RECEIVED",
     PENDING = "PENDING",

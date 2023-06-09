@@ -49,7 +49,6 @@ import {
 import {
     IQuoteRepo,
     IQuote,
-    QuoteStatus,
 } from "@mojaloop/quoting-bc-domain-lib";
 import { randomUUID } from "crypto";
 
