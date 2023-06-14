@@ -42,11 +42,6 @@ import {
     BulkQuoteRequestedEvt,
     BulkQuoteRequestedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import {
-    InvalidParticipantIdError,
-    InvalidRequesterFspIdError,
-    NoSuchParticipantError,
-    InvalidDestinationFspIdError} from "../../src/errors";
 import { createBulkQuotePendingReceivedEvtPayload, createBulkQuoteRequestedEvtPayload, createMessage } from "../utils/helpers";
 import { logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService, schemaRules } from "../utils/mocked_variables";
 import { mockedBulkQuote1, mockedQuote2 } from "@mojaloop/quoting-bc-shared-mocks-lib";

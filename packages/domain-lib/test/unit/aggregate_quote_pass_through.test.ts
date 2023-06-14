@@ -45,12 +45,6 @@ import {
     QuoteResponseReceivedEvt,
     QuoteResponseReceivedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import {
-    InvalidParticipantIdError,
-    InvalidRequesterFspIdError,
-    NoSuchParticipantError,
-    InvalidDestinationFspIdError,
-} from "../../src/errors";
 import { IMoney, IQuote } from '../../src/types';
 import {
     createMessage,

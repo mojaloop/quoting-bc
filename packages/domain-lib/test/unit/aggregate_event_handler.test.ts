@@ -36,7 +36,6 @@ import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
 import { IMessage, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { QuoteRequestReceivedEvtPayload, QuoteResponseReceivedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { mockedQuote1 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import { InvalidMessagePayloadError, InvalidMessageTypeError } from "../../src/errors";
 import { createMessage, createQuoteRequestReceivedEvtPayload } from "../utils/helpers";
 import { logger, bulkQuoteRepo, accountLookupService, messageProducer, quoteRepo, participantService, schemaRules } from "../utils/mocked_variables";
 import { QuotingAggregate } from "../../src/aggregate";
