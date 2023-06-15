@@ -364,7 +364,10 @@ export class QuotingAggregate  {
 				status: quoteStatus
 			};
 
-			await this._quotesRepo.updateQuote(quote as IQuote).catch((error) => {
+			try{
+				await this._quotesRepo.updateQuote(quote as IQuote);
+			}
+			catch(error:any){
 				this._logger.error(`Error updating quote: ${error.message}`);
 				const errorPayload : QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload = {
 					errorDescription: "Unable to update quote in database",
@@ -372,7 +375,8 @@ export class QuotingAggregate  {
 				};
 				const errorEvent = new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent(errorPayload);
 				return errorEvent;
-			});
+
+			}
 		}
 
 		// Return error event if previous validations failed
