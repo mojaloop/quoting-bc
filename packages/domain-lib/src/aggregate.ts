@@ -260,18 +260,19 @@ export class QuotingAggregate  {
 
 		if(!this._passThroughMode)
 		{
-			const quoteAddedToDatabase = this._quotesRepo.addQuote(quote).catch((error) => {
-				this._logger.error(`Error adding quote to database: ${error}`);
-				return false;
-			});
 
-			if(!quoteAddedToDatabase){
+			try{
+				this._quotesRepo.addQuote(quote);
+			}
+			catch(error:any){
+				this._logger.error(`Error adding quote to database: ${error}`);
 				const errorPayload : QuoteBCUnableToAddQuoteToDatabaseErrorPayload = {
 					errorDescription: "Unable to add quote to database",
 					quoteId
 				};
 				const errorEvent = new QuoteBCUnableToAddQuoteToDatabaseErrorEvent(errorPayload);
 				return errorEvent;
+
 			}
 		}
 
