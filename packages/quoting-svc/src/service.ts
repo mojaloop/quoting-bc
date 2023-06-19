@@ -265,31 +265,36 @@ export class Service {
 
 		this.messageConsumer.setCallbackFn(this.aggregate.handleQuotingEvent.bind(this.aggregate));
 
-		this.setupExpress();
+		await this.setupExpress();
 	}
 
-	static setupExpress(): void {
-		// Start express server
-		this.app = express();
-		this.app.use(express.json()); // for parsing application/json
-		this.app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
+	static async setupExpress(): Promise<void> {
+		return new Promise<void>(resolve => {
+			// Start express server
+			this.app = express();
+			this.app.use(express.json()); // for parsing application/json
+			this.app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
 
-		// Add admin and client http routes
-		const quotingAdminRoutes = new QuotingAdminExpressRoutes(this.quotesRepo, this.bulkQuotesRepo, this.logger);
-		this.app.use("", quotingAdminRoutes.mainRouter);
+			// Add admin and client http routes
+			const quotingAdminRoutes = new QuotingAdminExpressRoutes(this.quotesRepo, this.bulkQuotesRepo, this.logger);
+			this.app.use("", quotingAdminRoutes.mainRouter);
 
-		this.app.use((req, res) => {
-			// catch all
-			res.send(404);
-		});
+			this.app.use((req, res) => {
+				// catch all
+				res.send(404);
+			});
 
-		this.expressServer = this.app.listen(SVC_DEFAULT_HTTP_PORT, () => {
-			this.logger.info(`🚀 Server ready at port: :${SVC_DEFAULT_HTTP_PORT}`);
-			this.logger.info(`Quoting Admin server started with v: ${APP_VERSION}`);
+			this.expressServer = this.app.listen(SVC_DEFAULT_HTTP_PORT, () => {
+				this.logger.info(`🚀 Server ready at port: :${SVC_DEFAULT_HTTP_PORT}`);
+				this.logger.info(`Quoting Admin server started with v: ${APP_VERSION}`);
+				resolve();
+			});
 		});
 	}
 
 	static async stop(): Promise<void> {
+		if (this.expressServer) 
+			this.expressServer.close();
 		this.logger.debug("Tearing down message consumer");
 		await this.messageConsumer.destroy(true);
 		this.logger.debug("Tearing down message producer");
@@ -299,7 +304,6 @@ export class Service {
 		await this.quotesRepo.destroy();
 		this.logger.debug("Tearing down bulk quote Registry");
 		await this.bulkQuotesRepo.destroy();
-
 	}
 }
 
