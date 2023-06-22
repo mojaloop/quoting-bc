@@ -213,7 +213,11 @@ export class QuotingAggregate  {
 			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType ?? null;
 			const currency = message.payload.amount?.currency ?? null;
 			this._logger.debug(`Get destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyIdType}, currency: ${currency}`);
-			destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency);
+			destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency)
+				.catch((error:Error) => {
+					this._logger.error(`Error while getting destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyIdType}, currency: ${currency} - ${error}`);
+					return null;
+				});
 			this._logger.debug(`Got destinationFspId: ${destinationFspId ?? null} from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyIdType}, currency: ${currency}`);
 		}
 
@@ -491,7 +495,12 @@ export class QuotingAggregate  {
 				if (!quote.payee.partyIdInfo.fspId && payeePartyId && payeePartyIdType) {
 					const currency = quote.amount?.currency ?? null;
 					this._logger.debug(`Getting destinationFspId for payeePartyId: ${payeePartyId}, and payeePartyType: ${payeePartyIdType}, and currency :${currency} from account lookup service`);
-					destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency);
+					destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency)
+						.catch((error) => {
+							this._logger.error(`Error getting destinationFspId from account lookup service: ${error.message}`);
+							return null;
+						});
+
 					this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspId ?? null}`);
 
 					if (destinationFspId) {

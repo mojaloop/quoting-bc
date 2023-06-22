@@ -237,7 +237,7 @@ export class Service {
 		this.participantService = participantService;
 
 		if(!accountLookupService){
-			accountLookupService = new AccountLookupAdapter(this.logger, ACCOUNT_LOOKUP_SVC_URL, "fixedToken");
+			accountLookupService = new AccountLookupAdapter(this.logger, ACCOUNT_LOOKUP_SVC_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
 		}
 		this.accountLookupService = accountLookupService;
 
@@ -293,7 +293,7 @@ export class Service {
 	}
 
 	static async stop(): Promise<void> {
-		if (this.expressServer) 
+		if (this.expressServer)
 			this.expressServer.close();
 		this.logger.debug("Tearing down message consumer");
 		await this.messageConsumer.destroy(true);

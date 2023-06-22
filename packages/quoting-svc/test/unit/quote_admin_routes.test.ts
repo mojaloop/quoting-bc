@@ -61,8 +61,8 @@ import {
     IBulkQuoteRepo,
     IParticipantService,
     IQuoteRepo,
-} from "../../../packages/domain-lib/src";
-import { Service } from "../../../packages/quoting-svc/src";
+} from "@mojaloop/quoting-bc-domain-lib";
+import { Service } from "../../src/service";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);

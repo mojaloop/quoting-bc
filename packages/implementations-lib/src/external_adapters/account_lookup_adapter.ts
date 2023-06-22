@@ -32,94 +32,46 @@
 
 "use strict";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { AccountLookupHttpClient } from "@mojaloop/account-lookup-bc-client-lib";
-import { AccountLookupBulkQuoteFspIdRequest, IAccountLookupService } from "@mojaloop/quoting-bc-domain-lib";
-import { ILocalCache, LocalCache } from "../local_cache";
-import { GetAccountLookupAdapterError, GetBulkAccountLookupAdapterError } from "../errors";
+import { IAccountLookupService } from "@mojaloop/quoting-bc-domain-lib";
+import { GetAccountLookupAdapterError } from "../errors";
+import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
+
+const HTTP_CLIENT_TIMEOUT_MS = 10_000;
 
 export class AccountLookupAdapter implements IAccountLookupService {
 	private readonly _logger: ILogger;
-	private readonly _localCache: ILocalCache;
 	private readonly _clientBaseUrl: string;
 	private readonly _externalAccountLookupClient: AccountLookupHttpClient;
-	private token: string;
+	private readonly _authRequester: IAuthenticatedHttpRequester;
+	private readonly _requestTimeout: number;
 
 	constructor(
 		logger: ILogger,
 		clientBaseUrl: string,
-		token: string,
-		localCache?: ILocalCache
-	) {
+		authRequester: IAuthenticatedHttpRequester,
+		requestTimeout: number = HTTP_CLIENT_TIMEOUT_MS
+		)
+	{
 		this._logger = logger;
-		this.token = token;
 		this._clientBaseUrl = clientBaseUrl;
-		this._externalAccountLookupClient = new AccountLookupHttpClient(this._logger, this._clientBaseUrl);
-		this._localCache = localCache ?? new LocalCache(logger);
+		this._authRequester = authRequester;
+		this._requestTimeout = requestTimeout;
+		this._externalAccountLookupClient = new AccountLookupHttpClient(logger, this._clientBaseUrl, this._authRequester, this._requestTimeout);
 	}
 
-	async getBulkAccountLookup(partyIdentifiers: AccountLookupBulkQuoteFspIdRequest): Promise<{[key: string]: string | null}> {
-		let result: { [key: string]: string | null; } = {};
-
-		for (const key of Object.keys(partyIdentifiers)) {
-			const partyId = partyIdentifiers[key].partyId;
-			const partyType = partyIdentifiers[key].partyType;
-			const currency = partyIdentifiers[key]?.currency;
-
-			this._logger.debug(`getBulkAccountLookup: checking cache for key: ${key} or partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
-			const cachedResult = this._localCache.get(partyId, partyType,currency);
-
-			if (cachedResult) {
-				this._logger.debug(`getBulkAccountLookup: returning cached result for key: ${key}`);
-				result[key] = cachedResult.toString();
-				delete partyIdentifiers[key];
-			}
-		}
-
-		try {
-			//check if there are any partyIdentifiers left to lookup
-			if (Object.keys(partyIdentifiers).length === 0) {
-				return result;
-			}
-			this._logger.debug(`getBulkAccountLookup: calling external account lookup service for partyIdentifiers: ${JSON.stringify(partyIdentifiers)}`);
-			const externalFspIds = await this._externalAccountLookupClient.participantBulkLookUp(partyIdentifiers);
-			result = {...result, ...externalFspIds};
-		} catch (e: unknown) {
-			this._logger.error(`getBulkAccountLookup: error calling external account lookup service for partyIdentifiers: ${JSON.stringify(partyIdentifiers)}, error: ${e}`);
-			throw new GetBulkAccountLookupAdapterError("Error calling external account lookup service");
-		}
-
-		this._logger.debug("getBulkAccountLookup: caching result for partyIdentifiers");
-
-		try {
-			for (const [key] of Object.entries(partyIdentifiers)) {
-				this._logger.debug(`getBulkAccountLookup: caching result for partyId: ${partyIdentifiers[key]?.partyId}, partyType ${partyIdentifiers[key]?.partyType}, currency: ${partyIdentifiers[key]?.currency}`);
-				this._localCache.set(result[key],  partyIdentifiers[key]?.partyId, partyIdentifiers[key]?.partyType, partyIdentifiers[key]?.currency);
-			}
-		}
-		catch (e: unknown) {
-			this._logger.error(`getBulkAccountLookup: error caching result for partyIdentifiers: ${JSON.stringify(partyIdentifiers)}, error: ${e}`);
-		}
-
-		return result;
-
-	}
-
-	async getAccountLookup(partyId:string, partyType:string, currency:string | null): Promise<string| null> {
-		const cachedResult = this._localCache.get(partyId, partyType, currency);
-		if (cachedResult) {
-			this._logger.info(`getAccountLookup: returning cached result for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
-			return cachedResult.toString();
-		}
+	async getAccountLookup(partyType:string, partyId:string, currency:string | null): Promise<string| null> {
 		try {
 			this._logger.info(`getAccountLookup: calling external account lookup service for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
 			const result = await this._externalAccountLookupClient.participantLookUp(partyId, partyType, currency);
+			this._logger.info(`getAccountLookup: caching result for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
 
 			if(result) {
-				this._logger.info(`getAccountLookup: caching result for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
-				this._localCache.set(result, partyId, partyType, currency);
+				return result;
 			}
-			return result;
+			return null;
+
 		} catch (e: unknown) {
 			this._logger.error(`getAccountLookup: error getting for partyId: ${partyId}, partyType: ${partyType}, currency: ${currency} - ${e}`);
 			throw new GetAccountLookupAdapterError("Error calling external account lookup service");

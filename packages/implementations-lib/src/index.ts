@@ -30,7 +30,7 @@
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  * Gonçalo Garcia <goncalogarcia99@gmail.com>
- 
+
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
@@ -44,6 +44,5 @@ export * from "./quotes/mongo_quotes_repo";
 export * from "./quotes/mongo_bulk_quotes_repo";
 export * from "./external_adapters/account_lookup_adapter";
 export * from "./external_adapters/participant_adapter";
-export * from "./local_cache";
 export * from "./errors";
 
