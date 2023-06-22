@@ -64,7 +64,7 @@ export class AccountLookupAdapter implements IAccountLookupService {
 	async getAccountLookup(partyType:string, partyId:string, currency:string | null): Promise<string| null> {
 		try {
 			this._logger.info(`getAccountLookup: calling external account lookup service for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
-			const result = await this._externalAccountLookupClient.participantLookUp(partyId, partyType, currency);
+			const result = await this._externalAccountLookupClient.participantLookUp(partyType, partyId,currency);
 			this._logger.info(`getAccountLookup: caching result for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
 
 			if(result) {

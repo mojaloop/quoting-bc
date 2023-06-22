@@ -210,15 +210,15 @@ export class QuotingAggregate  {
 
 		if(!destinationFspId){
 			const payeePartyId = message.payload.payee?.partyIdInfo?.partyIdentifier ?? null;
-			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType ?? null;
+			const payeePartyType = message.payload.payee?.partyIdInfo?.partyIdType ?? null;
 			const currency = message.payload.amount?.currency ?? null;
-			this._logger.debug(`Get destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyIdType}, currency: ${currency}`);
-			destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency)
+			this._logger.debug(`Get destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`);
+			destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyType, payeePartyId, currency)
 				.catch((error:Error) => {
-					this._logger.error(`Error while getting destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyIdType}, currency: ${currency} - ${error}`);
+					this._logger.error(`Error while getting destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency} - ${error}`);
 					return null;
 				});
-			this._logger.debug(`Got destinationFspId: ${destinationFspId ?? null} from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyIdType}, currency: ${currency}`);
+			this._logger.debug(`Got destinationFspId: ${destinationFspId ?? null} from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`);
 		}
 
 		const destinationParticipantError = await this.validateDestinationParticipantInfoOrGetErrorEvent(destinationFspId, quoteId, null);
@@ -490,12 +490,12 @@ export class QuotingAggregate  {
 		if(!destinationFspId){
 			for await (const quote of individualQuotesInsideBulkQuote) {
 				const payeePartyId = quote.payee?.partyIdInfo?.partyIdentifier;
-				const payeePartyIdType = quote.payee?.partyIdInfo?.partyIdType;
+				const payeePartyType = quote.payee?.partyIdInfo?.partyIdType;
 
-				if (!quote.payee.partyIdInfo.fspId && payeePartyId && payeePartyIdType) {
+				if (!quote.payee.partyIdInfo.fspId && payeePartyId && payeePartyType) {
 					const currency = quote.amount?.currency ?? null;
-					this._logger.debug(`Getting destinationFspId for payeePartyId: ${payeePartyId}, and payeePartyType: ${payeePartyIdType}, and currency :${currency} from account lookup service`);
-					destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency)
+					this._logger.debug(`Getting destinationFspId for payeePartyId: ${payeePartyId}, and payeePartyType: ${payeePartyType}, and currency :${currency} from account lookup service`);
+					destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyType,payeePartyId, currency)
 						.catch((error) => {
 							this._logger.error(`Error getting destinationFspId from account lookup service: ${error.message}`);
 							return null;
