@@ -127,6 +127,8 @@ const kafkaProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
 };
 
+const SERVICE_START_TIMEOUT_MS = 60_000;
+
 let globalLogger: ILogger;
 
 export class Service {
@@ -141,6 +143,7 @@ export class Service {
 	static participantService: IParticipantService;
 	static accountLookupService: IAccountLookupService;
 	static aggregate: QuotingAggregate;
+    static startupTimer: NodeJS.Timeout;
 
 	static async start(
 		logger?: ILogger,
@@ -154,6 +157,10 @@ export class Service {
 		aggregate?: QuotingAggregate
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
+
+        this.startupTimer = setTimeout(()=>{
+            throw new Error("Service start timed-out");
+        }, SERVICE_START_TIMEOUT_MS);
 
 		if (!logger) {
 			logger = new KafkaLogger(
@@ -266,6 +273,9 @@ export class Service {
 		this.messageConsumer.setCallbackFn(this.aggregate.handleQuotingEvent.bind(this.aggregate));
 
 		await this.setupExpress();
+
+        // remove startup timeout
+        clearTimeout(this.startupTimer);
 	}
 
 	static async setupExpress(): Promise<void> {
