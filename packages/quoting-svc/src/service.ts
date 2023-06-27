@@ -67,7 +67,7 @@ import {
 
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const packageJSON = require("../../package.json");
+const packageJSON = require("../package.json");
 
 // Global vars
 const BC_NAME = "quoting-bc";
