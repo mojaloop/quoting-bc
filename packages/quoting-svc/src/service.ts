@@ -65,10 +65,14 @@ import {
 	IAuthenticatedHttpRequester
 } from "@mojaloop/security-bc-client-lib";
 
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../../package.json");
+
 // Global vars
 const BC_NAME = "quoting-bc";
 const APP_NAME = "quoting-svc";
-const APP_VERSION = process.env.npm_package_version || "0.0.0";
+const APP_VERSION = packageJSON.version;
 
 // service constants
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
