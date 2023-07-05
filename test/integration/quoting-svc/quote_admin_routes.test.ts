@@ -117,8 +117,7 @@ describe("Quote Admin Routes - Integration", () => {
 
         // Act
         const response = await request(server)
-            .get(`/quotes?transactionId=${mockedQuote1.transactionId}&quoteId=${mockedQuote1.quoteId}
-            &amountType=${mockedQuote1.amountType}&transactionType=${mockedQuote1.transactionType.scenario}`);
+            .get(`/quotes?transactionId=${mockedQuote1.transactionId}&quoteId=${mockedQuote1.quoteId}&amountType=${mockedQuote1.amountType}&transactionType=${mockedQuote1.transactionType.scenario}`);
 
         // Assert
         expect(response.status).toBe(200);
