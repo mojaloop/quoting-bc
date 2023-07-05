@@ -17,7 +17,7 @@ import {
 
 // Logger instances
 const logger: ILogger = new ConsoleLogger();
-logger.setLogLevel(LogLevel.DEBUG);
+logger.setLogLevel(LogLevel.FATAL);
 
 const DB_NAME = process.env.QUOTING_DB_TEST_NAME ?? "quoting";
 const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
@@ -83,9 +83,9 @@ describe("Quote Admin Routes - Integration", () => {
         expect(response.body).toEqual(mockedQuote1);
     });
 
-    test("GET - should return error when invlid id is provided", async () => {
+    test("GET - should return error with invlid id for quote", async () => {
         // Arrange
-        const quoteId = undefined;
+        const quoteId = "invalid-quote-id";
 
         // Act
         const response = await request(server).get(`/quotes/${quoteId}`);
@@ -136,6 +136,17 @@ describe("Quote Admin Routes - Integration", () => {
         // Assert
         expect(response.status).toBe(200);
         expect(response.body).toEqual(mockedBulkQuote1);
+    });
+
+    test("GET - should return error with invlid id for bulk quote", async () => {
+        // Arrange
+        const bulkQuoteId = "invalid-bulk-quote-id";
+
+        // Act
+        const response = await request(server).get(`/bulk-quotes/${bulkQuoteId}`);
+
+        // Assert
+        expect(response.status).toBe(404);
     });
 
     test("GET - should get a list of bulk quotes", async () => {

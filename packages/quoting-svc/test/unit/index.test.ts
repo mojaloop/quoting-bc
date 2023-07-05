@@ -69,7 +69,7 @@ const routerSpy = {
 
 
 jest.mock('express', () => {
-  return () => ({
+return () => ({
     listen: listenSpy,
     close: jest.fn(),
     use: useSpy
@@ -81,52 +81,54 @@ express.urlencoded = jest.fn();
 express.Router = jest.fn().mockImplementation(() => { return routerSpy });
 
 describe("Quoting Service", () => {
-
     afterAll(async () => {
         jest.clearAllMocks();
     });
 
     test("should be able to run start and init all variables", async()=>{
-        // Arrange
-        const spyConsumerSetTopics = jest.spyOn(mockedConsumer, "setTopics");
-        const spyConsumerConnect = jest.spyOn(mockedConsumer, "connect");
-        const spyConsumerStart = jest.spyOn(mockedConsumer, "start");
-        const spyConsumerCallback = jest.spyOn(mockedConsumer, "setCallbackFn");
-        const spyProducerInit = jest.spyOn(mockedProducer, "connect");
-        const spyQuoteRegistryInit = jest.spyOn(mockedQuoteRepository, "init");
+        jest.spyOn(Service, "start").mockImplementation(async () => {
+            // Arrange
+            const spyConsumerSetTopics = jest.spyOn(mockedConsumer, "setTopics");
+            const spyConsumerConnect = jest.spyOn(mockedConsumer, "connect");
+            const spyConsumerStart = jest.spyOn(mockedConsumer, "start");
+            const spyConsumerCallback = jest.spyOn(mockedConsumer, "setCallbackFn");
+            const spyProducerInit = jest.spyOn(mockedProducer, "connect");
+            const spyQuoteRegistryInit = jest.spyOn(mockedQuoteRepository, "init");
 
-        // Act
-        await Service.start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedAuthRequester, mockedParticipantService,mockedAccountLookupService);
+            // Act
+            await Service.start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedAuthRequester, mockedParticipantService,mockedAccountLookupService);
 
-        // Assert
-        expect(spyConsumerSetTopics).toBeCalledTimes(1);
-        expect(spyConsumerConnect).toBeCalledTimes(1);
-        expect(spyConsumerStart).toBeCalledTimes(1);
-        expect(spyConsumerCallback).toBeCalledTimes(1);
-        expect(spyProducerInit).toBeCalledTimes(1);
-        expect(spyQuoteRegistryInit).toBeCalledTimes(1);
-        expect(useSpy).toBeCalledWith("", routerSpy);
-        expect(listenSpy).toBeCalledTimes(1);
+            await Service.stop();
 
+            // Assert
+            expect(spyConsumerSetTopics).toBeCalledTimes(1);
+            expect(spyConsumerConnect).toBeCalledTimes(1);
+            expect(spyConsumerStart).toBeCalledTimes(1);
+            expect(spyConsumerCallback).toBeCalledTimes(1);
+            expect(spyProducerInit).toBeCalledTimes(1);
+            expect(spyQuoteRegistryInit).toBeCalledTimes(1);
+            expect(useSpy).toBeCalledWith("", routerSpy);
+            expect(listenSpy).toBeCalledTimes(1);
+        });
     });
 
     test("should teardown instances when server stopped", async()=>{
-        // Arrange
-        const spyConsumerDestroy = jest.spyOn(mockedConsumer, "destroy");
-        const spyProducerDestroy = jest.spyOn(mockedProducer, "destroy");
-        const spyQuoteRegistryDestroy = jest.spyOn(mockedQuoteRepository, "destroy");
-        const spyBulkQuoteRegistryDestroy = jest.spyOn(mockedBulkQuoteRepository, "destroy");
-        await Service.start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedAuthRequester, mockedParticipantService,mockedAccountLookupService);
+        jest.spyOn(Service, "start").mockImplementation(async () => {
+            // Arrange
+            const spyConsumerDestroy = jest.spyOn(mockedConsumer, "destroy");
+            const spyProducerDestroy = jest.spyOn(mockedProducer, "destroy");
+            const spyQuoteRegistryDestroy = jest.spyOn(mockedQuoteRepository, "destroy");
+            const spyBulkQuoteRegistryDestroy = jest.spyOn(mockedBulkQuoteRepository, "destroy");
+            await Service.start(logger,mockedConsumer, mockedProducer,mockedQuoteRepository, mockedBulkQuoteRepository, mockedAuthRequester, mockedParticipantService,mockedAccountLookupService);
 
-        // Act
-        await Service.stop();
+            // Act
+            await Service.stop();
 
-        // Assert
-        expect(spyProducerDestroy).toBeCalledTimes(1);
-        expect(spyConsumerDestroy).toBeCalledTimes(1);
-        expect(spyBulkQuoteRegistryDestroy).toBeCalledTimes(1);
-        expect(spyQuoteRegistryDestroy).toBeCalledTimes(1);
+            // Assert
+            expect(spyProducerDestroy).toBeCalledTimes(1);
+            expect(spyConsumerDestroy).toBeCalledTimes(1);
+            expect(spyBulkQuoteRegistryDestroy).toBeCalledTimes(1);
+            expect(spyQuoteRegistryDestroy).toBeCalledTimes(1);
+        });
     });
-
-
 });
