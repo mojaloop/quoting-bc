@@ -1,4 +1,4 @@
-/**
+/*****
  License
  --------------
  Copyright © 2017 Bill & Melinda Gates Foundation
@@ -12,35 +12,43 @@
  --------------
  This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
- should be listed with a '' in the first column. People who have
+ should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
  Gates Foundation organization for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
-
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
 
  --------------
- **/
+ ******/
 
-"use strict";
+import { AuditEntryLabel, AuditSecurityContext } from "@mojaloop/auditing-bc-public-types-lib/dist/audit_types";
 
-export * from "./memory_authorization_client";
-export * from "./memory_audit_client";
-export * from "./memory_authorization_client";
-export * from "./memory_message_producer";
-export * from "./memory_message_consumer";
-export * from "./memory_accountlookup_service";
-export * from "./memory_quote_repo";
-export * from "./memory_bulkquote_repo";
-export * from "./memory_participant_service";
-export * from "./mocked_data";
-export * from "./memory_auth_requester";
+import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
+import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 
+export class MemoryAuditClient implements IAuditClient {
 
+    private readonly _logger: ILogger;
+
+    constructor(logger:ILogger){
+        this._logger = logger;
+    }
+
+    init(): Promise<void> {
+        return Promise.resolve();
+    }
+
+    destroy(): Promise<void> {
+        return Promise.resolve();
+    }
+
+    audit(actionType: string, actionSuccessful: boolean, securityContext?: AuditSecurityContext | undefined, labels?: AuditEntryLabel[] | undefined): Promise<void> {
+        return Promise.resolve();
+    }
+
+ }

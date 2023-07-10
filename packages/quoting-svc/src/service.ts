@@ -33,38 +33,47 @@
 "use strict";
 
 import {
-	QuotingAggregate,
-	IQuoteRepo,
-	IBulkQuoteRepo,
-	IParticipantService,
-	IAccountLookupService,
-	IQuoteSchemeRules,
-} from "@mojaloop/quoting-bc-domain-lib";
-import {IMessageProducer, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
-import {
-	MLKafkaJsonConsumer,
-	MLKafkaJsonProducer,
-	MLKafkaJsonConsumerOptions,
-	MLKafkaJsonProducerOptions
-} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
-import {QuotingBCTopics} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import {
-	MongoQuotesRepo,
+	AccountLookupAdapter,
 	MongoBulkQuotesRepo,
-	ParticipantAdapter,
-	AccountLookupAdapter
+	MongoQuotesRepo,
+	ParticipantAdapter
 } from "@mojaloop/quoting-bc-implementations-lib";
-import {Server} from "net";
-import process from "process";
-import {QuotingAdminExpressRoutes} from "./routes/quote_admin_routes";
-import express, {Express} from "express";
+import {
+		AuditClient,
+		KafkaAuditClientDispatcher,
+		LocalAuditClientCryptoProvider
+} from "@mojaloop/auditing-bc-client-lib";
 import {
 	AuthenticatedHttpRequester,
-	IAuthenticatedHttpRequester
+	AuthorizationClient,
+	IAuthenticatedHttpRequester,
 } from "@mojaloop/security-bc-client-lib";
+import {
+	IAccountLookupService,
+	IBulkQuoteRepo,
+	IParticipantService,
+	IQuoteRepo,
+	IQuoteSchemeRules,
+	QuotingAggregate,
+} from "@mojaloop/quoting-bc-domain-lib";
+import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
+import {IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {
+	MLKafkaJsonConsumer,
+	MLKafkaJsonConsumerOptions,
+	MLKafkaJsonProducer,
+	MLKafkaJsonProducerOptions
+} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import express, {Express} from "express";
 
+import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
+import { IAuthorizationClient } from "@mojaloop/security-bc-public-types-lib";
+import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
+import {QuotingAdminExpressRoutes} from "./routes/quote_admin_routes";
+import {QuotingBCTopics} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {Server} from "net";
+import { existsSync } from "fs";
+import process from "process";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -82,9 +91,7 @@ const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEB
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 
-const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-//const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
 // security
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
@@ -93,6 +100,11 @@ const AUTH_N_TOKEN_ISSUER_NAME = process.env["AUTH_N_TOKEN_ISSUER_NAME"] || "moj
 const AUTH_N_TOKEN_AUDIENCE = process.env["AUTH_N_TOKEN_AUDIENCE"] || "mojaloop.vnext.dev.default_audience";
 const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_BASEURL}/.well-known/jwks.json`;
 const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
+
+// Audit
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
+const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
+
 
 // Other services
 const ACCOUNT_LOOKUP_SVC_URL = process.env["ACCOUNT_LOOKUP_SVC_URL"] || "http://localhost:3030";
@@ -136,29 +148,32 @@ const SERVICE_START_TIMEOUT_MS = 60_000;
 let globalLogger: ILogger;
 
 export class Service {
-	static logger: ILogger;
-	static app: Express;
-	static expressServer: Server;
-	static messageConsumer: IMessageConsumer;
-	static messageProducer: IMessageProducer;
-	static quotesRepo: IQuoteRepo;
-	static bulkQuotesRepo: IBulkQuoteRepo;
-	static authRequester: IAuthenticatedHttpRequester;
-	static participantService: IParticipantService;
 	static accountLookupService: IAccountLookupService;
 	static aggregate: QuotingAggregate;
+	static app: Express;
+	static auditingClient: IAuditClient;
+	static authorizationClient: IAuthorizationClient;
+	static authRequester: IAuthenticatedHttpRequester;
+	static bulkQuotesRepo: IBulkQuoteRepo;
+	static expressServer: Server;
+	static logger: ILogger;
+	static messageConsumer: IMessageConsumer;
+	static messageProducer: IMessageProducer;
+	static participantService: IParticipantService;
+	static quotesRepo: IQuoteRepo;
     static startupTimer: NodeJS.Timeout;
 
 	static async start(
+		accountLookupService?: IAccountLookupService,
+		auditingClient?: IAuditClient,
+		authorizationClient?: IAuthorizationClient,
+		authRequester?: IAuthenticatedHttpRequester,
+		bulkQuotesRepo?: IBulkQuoteRepo,
 		logger?: ILogger,
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
-		quotesRepo?: IQuoteRepo,
-		bulkQuotesRepo?: IBulkQuoteRepo,
-		authRequester?: IAuthenticatedHttpRequester,
 		participantService?: IParticipantService,
-		accountLookupService?: IAccountLookupService,
-		aggregate?: QuotingAggregate
+		quotesRepo?: IQuoteRepo
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -179,9 +194,9 @@ export class Service {
 		}
 		globalLogger = this.logger = logger.createChild("Service");
 
-		/*
+
 		// start auditClient
-		if (!auditClient) {
+		if (!auditingClient) {
 			if (!existsSync(AUDIT_KEY_FILE_PATH)) {
 				if (PRODUCTION_MODE) process.exit(9);
 				// create e tmp file
@@ -192,13 +207,26 @@ export class Service {
 			const cryptoProvider = new LocalAuditClientCryptoProvider(AUDIT_KEY_FILE_PATH);
 			const auditDispatcher = new KafkaAuditClientDispatcher(kafkaProducerOptions, KAFKA_AUDITS_TOPIC, auditLogger);
 			// NOTE: to pass the same kafka logger to the audit client, make sure the logger is started/initialised already
-			auditClient = new AuditClient(BC_NAME, APP_NAME, APP_VERSION, cryptoProvider, auditDispatcher);
-			await auditClient.init();
+			auditingClient = new AuditClient(BC_NAME, APP_NAME, APP_VERSION, cryptoProvider, auditDispatcher);
+			await auditingClient.init();
 		}
-		this.auditClient = auditClient;
-		*/
+		this.auditingClient = auditingClient;
+
+		if (!authorizationClient) {
+            authorizationClient = new AuthorizationClient(BC_NAME, APP_NAME, APP_VERSION, AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"));
+            //TODO: need to define the privileges for lookup
+			//authorizationClient.addPrivilegesArray(ChartOfAccountsPrivilegesDefinition);
+            await (authorizationClient as AuthorizationClient).bootstrap(true);
+            await (authorizationClient as AuthorizationClient).fetch();
+        }
+        this.authorizationClient = authorizationClient;
 
 
+		if (!authRequester) {
+			authRequester = new AuthenticatedHttpRequester(this.logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+		}
+		this.authRequester = authRequester;
 
 		//TODO: parse scheme rules to object
 		// let schemeRules: IQuoteSchemeRules;
@@ -232,13 +260,6 @@ export class Service {
 		this.messageConsumer = messageConsumer;
 
 
-		if (!authRequester) {
-			authRequester = new AuthenticatedHttpRequester(this.logger, AUTH_N_SVC_TOKEN_URL);
-			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-		}
-		this.authRequester = authRequester;
-
-
 		if (!participantService) {
 			// const participantLogger = logger.createChild("participantLogger");
 			// participantLogger.setLogLevel(LogLevel.INFO);
@@ -266,11 +287,16 @@ export class Service {
 		await bulkQuotesRepo.init();
 		logger.info("Bulk Quote Registry Repo Initialized");
 
-		if(!aggregate){
-			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE, SCHEME_RULES);
-		}
-
-		this.aggregate = aggregate;
+		this.aggregate = new QuotingAggregate(this.accountLookupService,
+			this.auditingClient,
+			this.authorizationClient,
+			this.bulkQuotesRepo,this.logger,
+			this.messageProducer,
+			this.participantService,
+			this.quotesRepo,
+			PASS_THROUGH_MODE,
+			SCHEME_RULES
+			);
 
 		logger.info("Aggregate Initialized");
 

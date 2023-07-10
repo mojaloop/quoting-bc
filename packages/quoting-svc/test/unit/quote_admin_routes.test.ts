@@ -32,10 +32,26 @@
 
 "use strict";
 
-import request from "supertest";
 import {
-    MemoryAuthenticatedHttpRequesterMock,
+    ConsoleLogger,
+    ILogger,
+    LogLevel,
+} from "@mojaloop/logging-bc-public-types-lib";
+import {
+    IAccountLookupService,
+    IBulkQuoteRepo,
+    IParticipantService,
+    IQuoteRepo,
+} from "@mojaloop/quoting-bc-domain-lib";
+import {
+    IMessageConsumer,
+    IMessageProducer,
+} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {
     MemoryAccountLookupService,
+    MemoryAuditClient,
+    MemoryAuthenticatedHttpRequesterMock,
+    MemoryAuthorizationClient,
     MemoryBulkQuoteRepo,
     MemoryMessageConsumer,
     MemoryMessageProducer,
@@ -46,23 +62,12 @@ import {
     mockedQuote2,
     mockedQuote3,
 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import {
-    ConsoleLogger,
-    ILogger,
-    LogLevel,
-} from "@mojaloop/logging-bc-public-types-lib";
-import {
-    IMessageConsumer,
-    IMessageProducer,
-} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+
+import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
 import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
-import {
-    IAccountLookupService,
-    IBulkQuoteRepo,
-    IParticipantService,
-    IQuoteRepo,
-} from "@mojaloop/quoting-bc-domain-lib";
+import { IAuthorizationClient } from '@mojaloop/security-bc-public-types-lib';
 import { Service } from "../../src/service";
+import request from "supertest";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
@@ -84,19 +89,25 @@ let mockedQuoteRepository: IQuoteRepo = new MemoryQuoteRepo(logger);
 
 let mockedBulkQuoteRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logger);
 
+let mockedAuditClient: IAuditClient = new MemoryAuditClient(logger);
+
+let mockedAuthorizationClient: IAuthorizationClient = new MemoryAuthorizationClient(logger);
+
 const server = process.env["QUOTING_ADM_URL"] || "http://localhost:3033";
 
 describe("Quoting Admin Routes - Integration", () => {
     beforeAll(async () => {
         await Service.start(
+            mockedAccountLookupService,
+            mockedAuditClient,
+            mockedAuthorizationClient,
+            mockedAuthRequester,
+            mockedBulkQuoteRepository,
             logger,
             mockedConsumer,
             mockedProducer,
-            mockedQuoteRepository,
-            mockedBulkQuoteRepository,
-            mockedAuthRequester,
             mockedParticipantService,
-            mockedAccountLookupService
+            mockedQuoteRepository,
         );
     });
 

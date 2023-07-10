@@ -1,3 +1,9 @@
+import {ConsoleLogger, ILogger, LogLevel} from '@mojaloop/logging-bc-public-types-lib';
+
+import { AccountLookupAdapter } from '../../src/external_adapters/account_lookup_adapter';
+import { GetAccountLookupAdapterError } from '../../src/errors';
+import { IAccountLookupService } from "@mojaloop/quoting-bc-domain-lib";
+import { IAuthenticatedHttpRequester } from '@mojaloop/security-bc-client-lib';
 import { MemoryAuthenticatedHttpRequesterMock } from '@mojaloop/quoting-bc-shared-mocks-lib';
 // /*****
 //  License
@@ -24,14 +30,8 @@ import { MemoryAuthenticatedHttpRequesterMock } from '@mojaloop/quoting-bc-share
 
 "use strict";
 
-import {LogLevel, ILogger, ConsoleLogger} from '@mojaloop/logging-bc-public-types-lib';
-import { IAccountLookupService } from "@mojaloop/quoting-bc-domain-lib";
-import { AccountLookupAdapter } from '../../src/external_adapters/account_lookup_adapter';
-import { IAuthenticatedHttpRequester } from '@mojaloop/security-bc-client-lib';
-import { GetAccountLookupAdapterError } from '../../src/errors';
 
 const BASE_URL_ACCOUNT_LOOKUP_CLIENT: string = "http://localhost:1234";
-const FAKE_TOKEN = "fakeToken";
 
 const participantLookUpSpy = jest.fn();
 const participantBulkLookUpSpy = jest.fn();

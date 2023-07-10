@@ -29,96 +29,102 @@
 
  --------------
  **/
-
 "use strict";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
-import { DomainEventMsg, IMessage, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
-	QuoteRequestReceivedEvt,
-	QuoteRequestAcceptedEvt,
-	QuoteRequestAcceptedEvtPayload,
-	QuoteResponseReceivedEvt,
-	QuoteResponseAccepted,
-	QuoteResponseAcceptedEvtPayload,
+	BulkQuoteAcceptedEvt,
+	BulkQuoteAcceptedEvtPayload,
+	BulkQuotePendingReceivedEvt,
+	BulkQuoteReceivedEvt,
+	BulkQuoteReceivedEvtPayload,
+	BulkQuoteRequestedEvt,
+	QuoteBCBulkQuoteExpiredErrorEvent,
+	QuoteBCBulkQuoteExpiredErrorPayload,
+	QuoteBCDestinationParticipantNotFoundErrorEvent,
+	QuoteBCDestinationParticipantNotFoundErrorPayload,
+	QuoteBCInvalidBulkQuoteLengthErrorEvent,
+	QuoteBCInvalidBulkQuoteLengthErrorPayload,
+	QuoteBCInvalidDestinationFspIdErrorEvent,
+	QuoteBCInvalidDestinationFspIdErrorPayload,
+	QuoteBCInvalidMessagePayloadErrorEvent,
+	QuoteBCInvalidMessagePayloadErrorPayload,
+	QuoteBCInvalidMessageTypeErrorEvent,
+	QuoteBCInvalidMessageTypeErrorPayload,
+	QuoteBCInvalidRequesterFspIdErrorEvent,
+	QuoteBCInvalidRequesterFspIdErrorPayload,
+	QuoteBCQuoteExpiredErrorEvent,
+	QuoteBCQuoteExpiredErrorPayload,
+	QuoteBCQuoteNotFoundErrorEvent,
+	QuoteBCQuoteNotFoundErrorPayload,
+	QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
+	QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload,
+	QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
+	QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload,
+	QuoteBCRequesterParticipantNotFoundErrorEvent,
+	QuoteBCRequesterParticipantNotFoundErrorPayload,
+	QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
+	QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload,
+	QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
+	QuoteBCUnableToAddQuoteToDatabaseErrorPayload,
+	QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
+	QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload,
+	QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
+	QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload,
+	QuoteBCUnknownErrorEvent,
+	QuoteBCUnknownErrorPayload,
 	QuoteQueryReceivedEvt,
 	QuoteQueryResponseEvt,
 	QuoteQueryResponseEvtPayload,
-	BulkQuoteRequestedEvt,
-	BulkQuoteReceivedEvt,
-	BulkQuoteReceivedEvtPayload,
-	BulkQuotePendingReceivedEvt,
-	BulkQuoteAcceptedEvt,
-	BulkQuoteAcceptedEvtPayload,
-	QuoteBCQuoteExpiredErrorPayload,
-	QuoteBCQuoteExpiredErrorEvent,
-	QuoteBCBulkQuoteExpiredErrorPayload,
-	QuoteBCInvalidMessageTypeErrorEvent,
-	QuoteBCInvalidMessageTypeErrorPayload,
-	QuoteBCInvalidMessagePayloadErrorPayload,
-	QuoteBCInvalidMessagePayloadErrorEvent,
-	QuoteBCInvalidDestinationFspIdErrorPayload,
-	QuoteBCInvalidDestinationFspIdErrorEvent,
-	QuoteBCInvalidRequesterFspIdErrorPayload,
-	QuoteBCInvalidRequesterFspIdErrorEvent,
-	QuoteBCUnknownErrorPayload,
-	QuoteBCUnknownErrorEvent,
-	QuoteBCUnableToAddQuoteToDatabaseErrorPayload,
-	QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
-	QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload,
-	QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
-	QuoteBCInvalidBulkQuoteLengthErrorPayload,
-	QuoteBCInvalidBulkQuoteLengthErrorEvent,
-	QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
-	QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload,
-	QuoteBCQuoteNotFoundErrorPayload,
-	QuoteBCQuoteNotFoundErrorEvent,
-	QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload,
-	QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
-	QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload,
-	QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
-	QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload,
-	QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
-	QuoteBCBulkQuoteExpiredErrorEvent,
-	QuoteBCDestinationParticipantNotFoundErrorPayload,
-	QuoteBCDestinationParticipantNotFoundErrorEvent,
-	QuoteBCRequesterParticipantNotFoundErrorEvent,
-	QuoteBCRequesterParticipantNotFoundErrorPayload,
-
-
+	QuoteRequestAcceptedEvt,
+	QuoteRequestAcceptedEvtPayload,
+	QuoteRequestReceivedEvt,
+	QuoteResponseAccepted,
+	QuoteResponseAcceptedEvtPayload,
+	QuoteResponseReceivedEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules, QuoteStatus } from "./types";
 import { BulkQuoteNotFoundError, UnableToAddBatchQuoteError, UnableToAddBulkQuoteError, UnableToUpdateBatchQuotesError, UnableToUpdateBulkQuoteError } from "./errors";
+import { DomainEventMsg, IMessage, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "./interfaces/infrastructure";
+import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules, QuoteStatus } from "./types";
+
+import { IAuditClient } from '@mojaloop/auditing-bc-public-types-lib';
+import { IAuthorizationClient } from '@mojaloop/security-bc-public-types-lib';
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
 
 export class QuotingAggregate  {
-	private readonly _logger: ILogger;
-	private readonly _quotesRepo: IQuoteRepo;
+	private readonly _accountLookupService: IAccountLookupService;
+	private readonly _auditClient: IAuditClient;
+	private readonly _authorizationClient: IAuthorizationClient;
 	private readonly _bulkQuotesRepo: IBulkQuoteRepo;
+	private readonly _logger: ILogger;
 	private readonly _messageProducer: IMessageProducer;
 	private readonly _participantService: IParticipantService;
-	private readonly _accountLookupService: IAccountLookupService;
 	private readonly _passThroughMode: boolean;
+	private readonly _quotesRepo: IQuoteRepo;
 	private readonly _schemeRules: IQuoteSchemeRules;
 
 	constructor(
-		logger: ILogger,
-		quoteRepo:IQuoteRepo,
+		accountLookupService: IAccountLookupService,
+		auditClient: IAuditClient,
+		authorizationClient: IAuthorizationClient,
 		bulkQuoteRepo:IBulkQuoteRepo,
+		logger: ILogger,
 		messageProducer:IMessageProducer,
 		participantService: IParticipantService,
-		accountLookupService: IAccountLookupService,
+		quoteRepo:IQuoteRepo,
 		passThroughMode: boolean,
 		schemeRules: IQuoteSchemeRules
 	) {
-		this._logger = logger.createChild(this.constructor.name);
-		this._quotesRepo = quoteRepo;
+		this._accountLookupService = accountLookupService;
+		this._auditClient = auditClient;
+		this._authorizationClient = authorizationClient;
 		this._bulkQuotesRepo = bulkQuoteRepo;
+		this._logger = logger.createChild(this.constructor.name);
 		this._messageProducer = messageProducer;
 		this._participantService = participantService;
-		this._accountLookupService = accountLookupService;
 		this._passThroughMode = passThroughMode ?? false;
+		this._quotesRepo = quoteRepo;
 		this._schemeRules = schemeRules;
 	}
 

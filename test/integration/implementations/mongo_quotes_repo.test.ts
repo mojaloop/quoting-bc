@@ -32,12 +32,13 @@
 
 "use strict";
 
-import { ILogger,ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
-import { MongoClient, Collection } from "mongodb";
+import { Collection, MongoClient } from "mongodb";
+import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
+import { MongoQuotesRepo, QuoteAlreadyExistsError, QuoteNotFoundError } from "../../../packages/implementations-lib/src";
 import { mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import {  MongoQuotesRepo, QuoteNotFoundError, QuoteAlreadyExistsError } from "../../../packages/implementations-lib/src";
-import { QuoteStatus } from "../../../packages/domain-lib/src";
+
 import { IQuote } from "@mojaloop/quoting-bc-domain-lib";
+import { QuoteStatus } from "../../../packages/domain-lib/src";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);

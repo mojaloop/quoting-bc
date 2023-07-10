@@ -32,8 +32,7 @@
 
 "use strict";
 
-import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
+import { IMoney, IQuote } from '../../src/types';
 import {
     QuoteQueryReceivedEvt,
     QuoteQueryReceivedEvtPayload,
@@ -45,31 +44,45 @@ import {
     QuoteResponseReceivedEvt,
     QuoteResponseReceivedEvtPayload
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IMoney, IQuote } from '../../src/types';
+import {
+    accountLookupService,
+    auditClient,
+    authorizationClient,
+    bulkQuoteRepo,
+    logger,
+    messageProducer,
+    participantService,
+    quoteRepo,
+    schemaRules
+} from "../utils/mocked_variables";
 import {
     createMessage,
     createQuoteRequestReceivedEvtPayload,
     createQuoteResponseReceivedEvtPayload
 } from "../utils/helpers";
-import {
-    quoteRepo,
-    messageProducer,
-    participantService,
-    accountLookupService,
-    logger,
-    bulkQuoteRepo,
-    schemaRules
-} from "../utils/mocked_variables";
 import { mockedQuote1, mockedQuote4 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import { QuotingAggregate } from "../../src/aggregate";
 
+import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
+import { QuotingAggregate } from "../../src/aggregate";
 
 let aggregate: QuotingAggregate;
 
 describe("Domain - Unit Tests for Quote Events with Passthrough Mode", () => {
 
     beforeAll(async () => {
-        aggregate = new QuotingAggregate(logger,quoteRepo,bulkQuoteRepo,messageProducer,participantService,accountLookupService, true, schemaRules);
+        aggregate = new QuotingAggregate(
+            accountLookupService,
+            auditClient,
+            authorizationClient,
+            bulkQuoteRepo,
+            logger,
+            messageProducer,
+            participantService,
+            quoteRepo,
+            true,
+            schemaRules,
+        );
     });
 
     afterEach(async () => {

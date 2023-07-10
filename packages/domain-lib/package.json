@@ -33,9 +33,11 @@
     "test:unit": "jest --passWithNoTests --testMatch **/test/unit/**/*.test.ts"
   },
   "dependencies": {
+    "@mojaloop/auditing-bc-public-types-lib": "~0.0.15",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.19",
     "@mojaloop/platform-shared-lib-messaging-types-lib": "0.2.100",
-    "@mojaloop/platform-shared-lib-public-messages-lib": "0.1.119"
+    "@mojaloop/platform-shared-lib-public-messages-lib": "0.1.119",
+    "@mojaloop/security-bc-public-types-lib": "~0.2.1"
   },
   "devDependencies": {
     "@mojaloop/quoting-bc-shared-mocks-lib": "*"

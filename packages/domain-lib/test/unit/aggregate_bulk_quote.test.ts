@@ -32,13 +32,14 @@
 
 "use strict";
 
+import {BulkQuoteAcceptedEvtPayload, BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { accountLookupService, auditClient, authorizationClient, bulkQuoteRepo, logger, messageProducer, participantService, quoteRepo, schemaRules } from "../utils/mocked_variables";
+import { createBulkQuotePendingReceivedEvtPayload, createBulkQuoteRequestedEvtPayload, createMessage } from "../utils/helpers";
+import { mockedBulkQuote1, mockedQuote2 } from "@mojaloop/quoting-bc-shared-mocks-lib";
+
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import {BulkQuoteAcceptedEvtPayload, BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {QuoteStatus} from '../../src/types';
-import { createBulkQuotePendingReceivedEvtPayload, createBulkQuoteRequestedEvtPayload, createMessage } from "../utils/helpers";
-import { logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService, schemaRules } from "../utils/mocked_variables";
-import { mockedBulkQuote1, mockedQuote2 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { QuotingAggregate } from "../../src/aggregate";
 
 let aggregate: QuotingAggregate;
@@ -47,7 +48,18 @@ let aggregate: QuotingAggregate;
 describe("Domain - Unit Tests for Bulk Quote Events", () => {
 
     beforeAll(async () => {
-        aggregate = new QuotingAggregate(logger,quoteRepo,bulkQuoteRepo,messageProducer,participantService,accountLookupService, false, schemaRules );
+        aggregate = new QuotingAggregate(
+            accountLookupService,
+            auditClient,
+            authorizationClient,
+            bulkQuoteRepo,
+            logger,
+            messageProducer,
+            participantService,
+            quoteRepo,
+            false,
+            schemaRules,
+        );
     });
 
     afterEach(async () => {
