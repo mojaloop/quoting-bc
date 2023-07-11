@@ -338,6 +338,23 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         expect(result).toHaveLength(4);
         expect(result).toEqual([quote1, quote2, quote3, quote4]);
     });
+
+    test("should return a list of filtered quotes", async () => {
+        // Arrange
+        const quote1 = mockedQuote1;
+        const quote2 = mockedQuote2;
+        const quote3 = mockedQuote3;
+        await mongoQuotesRepo.addQuotes([quote1, quote2, quote3]);
+
+        // Act
+        const result = await mongoQuotesRepo.searchQuotes(quote1.transactionId, quote1.quoteId, 
+            quote1.amountType, quote1.transactionType.scenario);
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result).toHaveLength(1);
+        expect(result).toEqual([quote1]);
+    });
  });
 
  const deepCopy = (obj: Object) => JSON.parse(JSON.stringify(obj));
