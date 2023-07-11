@@ -95,7 +95,7 @@ let mockedAuthorizationClient: IAuthorizationClient = new MemoryAuthorizationCli
 
 const server = process.env["QUOTING_ADM_URL"] || "http://localhost:3033";
 
-describe("Quoting Admin Routes - Integration", () => {
+describe("Quoting Admin Routes - Unit", () => {
     beforeAll(async () => {
         await Service.start(
             mockedAccountLookupService,
