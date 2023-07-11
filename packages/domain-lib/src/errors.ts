@@ -33,79 +33,31 @@
 "use strict";
 
 // Quote
-export class InvalidIdError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class DuplicateQuoteError extends Error {
+export class UnableToUpdateBatchQuotesError extends Error {
     constructor(message: string) {
         super(message);
     }
 }
 
-export class QuoteNotFoundError extends Error {
+export class UnableToAddBatchQuoteError extends Error {
     constructor(message: string) {
         super(message);
     }
 }
 
-// BulkQuotes
+// BulkQuote
 export class BulkQuoteNotFoundError extends Error {
     constructor(message: string) {
         super(message);
     }
 }
-
-// Message Producer
-export class InvalidMessagePayloadError extends Error {
+export class UnableToUpdateBulkQuoteError extends Error {
     constructor(message: string) {
         super(message);
     }
 }
 
-export class InvalidMessageTypeError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class UnableToProcessMessageError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-// Participant Adapter
-export class NoSuchParticipantError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class InvalidParticipantIdError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class RequiredParticipantIsNotActive extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class InvalidRequesterFspIdError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class InvalidDestinationFspIdError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class InvalidDestinationPartyInformationError extends Error {
+export class UnableToAddBulkQuoteError extends Error {
     constructor(message: string) {
         super(message);
     }

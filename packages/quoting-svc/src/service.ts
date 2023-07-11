@@ -65,10 +65,14 @@ import {
 	IAuthenticatedHttpRequester
 } from "@mojaloop/security-bc-client-lib";
 
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../package.json");
+
 // Global vars
 const BC_NAME = "quoting-bc";
 const APP_NAME = "quoting-svc";
-const APP_VERSION = process.env.npm_package_version || "0.0.0";
+const APP_VERSION = packageJSON.version;
 
 // service constants
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
@@ -127,6 +131,8 @@ const kafkaProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
 };
 
+const SERVICE_START_TIMEOUT_MS = 60_000;
+
 let globalLogger: ILogger;
 
 export class Service {
@@ -141,6 +147,7 @@ export class Service {
 	static participantService: IParticipantService;
 	static accountLookupService: IAccountLookupService;
 	static aggregate: QuotingAggregate;
+    static startupTimer: NodeJS.Timeout;
 
 	static async start(
 		logger?: ILogger,
@@ -154,6 +161,10 @@ export class Service {
 		aggregate?: QuotingAggregate
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
+
+        this.startupTimer = setTimeout(()=>{
+            throw new Error("Service start timed-out");
+        }, SERVICE_START_TIMEOUT_MS);
 
 		if (!logger) {
 			logger = new KafkaLogger(
@@ -237,13 +248,13 @@ export class Service {
 		this.participantService = participantService;
 
 		if(!accountLookupService){
-			accountLookupService = new AccountLookupAdapter(this.logger, ACCOUNT_LOOKUP_SVC_URL, "fixedToken");
+			accountLookupService = new AccountLookupAdapter(this.logger, ACCOUNT_LOOKUP_SVC_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
 		}
 		this.accountLookupService = accountLookupService;
 
 		this.messageConsumer.setTopics([QuotingBCTopics.DomainRequests]);
 		await this.messageConsumer.connect();
-		await this.messageConsumer.start();
+		await this.messageConsumer.startAndWaitForRebalance();
 		this.logger.info("Kafka Consumer Initialized");
 
 		await this.messageProducer.connect();
@@ -266,6 +277,9 @@ export class Service {
 		this.messageConsumer.setCallbackFn(this.aggregate.handleQuotingEvent.bind(this.aggregate));
 
 		await this.setupExpress();
+
+        // remove startup timeout
+        clearTimeout(this.startupTimer);
 	}
 
 	static async setupExpress(): Promise<void> {
@@ -293,7 +307,7 @@ export class Service {
 	}
 
 	static async stop(): Promise<void> {
-		if (this.expressServer) 
+		if (this.expressServer)
 			this.expressServer.close();
 		this.logger.debug("Tearing down message consumer");
 		await this.messageConsumer.destroy(true);

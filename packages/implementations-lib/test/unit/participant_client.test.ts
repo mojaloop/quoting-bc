@@ -30,9 +30,9 @@
 
 import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import { ParticipantAdapter} from "../../src/external_adapters/participant_adapter";
-import { ILocalCache, LocalCache } from "@mojaloop/quoting-bc-implementations-lib";
 import { IParticipant} from "@mojaloop/participant-bc-public-types-lib";
 import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
+import { MemoryAuthenticatedHttpRequesterMock } from "@mojaloop/quoting-bc-shared-mocks-lib";
 
 
 const BASE_URL_PARTICIPANT_CLIENT: string = "http://localhost:1234";
@@ -52,27 +52,24 @@ jest.mock("@mojaloop/participants-bc-client-lib", () => {
 });
 
 let participantAdapter: ParticipantAdapter;
-let localCache: ILocalCache;
-let authRequester: IAuthenticatedHttpRequester;
+let authenticatedRequester: IAuthenticatedHttpRequester;
 let timeoutMs: number = 1000;
 
 describe("Participants Client - Unit Tests", () => {
     beforeAll(async () => {
          const logger: ILogger = new ConsoleLogger();
          logger.setLogLevel(LogLevel.FATAL);
-         localCache = new LocalCache(logger);
+         authenticatedRequester = new MemoryAuthenticatedHttpRequesterMock(logger, "token");
          participantAdapter = new ParticipantAdapter(
              logger,
              BASE_URL_PARTICIPANT_CLIENT,
-             authRequester,
+             authenticatedRequester,
              timeoutMs,
-             localCache
          );
      });
 
     afterEach(() => {
         jest.restoreAllMocks();
-        localCache.destroy();
     });
 
     afterAll(async () => {
@@ -127,98 +124,6 @@ describe("Participants Client - Unit Tests", () => {
 
         // Assert
         expect(participantInfo).toBeNull();
-    });
-
-    /*test("should get participants info", async () => {
-        // Arrange
-        const participantId1: string = "existingParticipantId1";
-        const participantId2: string = "existingParticipantId2";
-        const participant1: Partial<IParticipant> = {
-            id: participantId1,
-            name: "existingParticipantName1",
-            isActive: true,
-            createdBy: "existingParticipantCreatedBy1",
-            type: "DFSP",
-            createdDate: 1232131,
-            approved: true,
-            approvedBy: "existingParticipantApprovedBy1",
-            approvedDate: 1232131,
-            description: "existingParticipantDescription1"
-        }
-        const participant2: Partial<IParticipant> = {
-            id: participantId2,
-            name: "existingParticipantName2",
-            isActive: true,
-            createdBy: "existingParticipantCreatedBy2",
-            type: "DFSP",
-            createdDate: 1232131,
-            approved: true,
-            approvedBy: "existingParticipantApprovedBy2",
-            approvedDate: 1232131,
-            description: "existingParticipantDescription2"
-        }
-
-        getParticipantsByIdsSpy.mockResolvedValueOnce([participant1, participant2]);
-
-        // Act
-        const participantsInfo =
-            await participantAdapter.getParticipantsInfo([participantId1, participantId2]);
-
-        // Assert
-        expect(participantsInfo).toEqual([participant1, participant2]);
-    });*/
-
-   /* test("should get participants info from cache", async () => {
-        // Arrange
-        const participantId1: string = "existingParticipantId1";
-        const participantId2: string = "existingParticipantId2";
-        const participant1: Partial<IParticipant> = {
-            id: participantId1,
-            name: "existingParticipantName1",
-            isActive: true,
-            createdBy: "existingParticipantCreatedBy1",
-            type: "DFSP",
-            createdDate: 1232131,
-            approved: true,
-            approvedBy: "existingParticipantApprovedBy1",
-            approvedDate: 1232131,
-            description: "existingParticipantDescription1"
-        }
-        const participant2: Partial<IParticipant> = {
-            id: participantId2,
-            name: "existingParticipantName2",
-            isActive: true,
-            createdBy: "existingParticipantCreatedBy2",
-            type: "DFSP",
-            createdDate: 1232131,
-            approved: true,
-            approvedBy: "existingParticipantApprovedBy2",
-            approvedDate: 1232131,
-            description: "existingParticipantDescription2"
-        }
-
-        jest.spyOn(localCache, "get")
-            .mockReturnValueOnce(participant1)
-            .mockReturnValueOnce(participant2);
-
-        // Act
-        const participantsInfo =
-            await participantAdapter.getParticipantsInfo([participantId1, participantId2]);
-
-        // Assert
-        expect(participantsInfo).toEqual([participant1, participant2]);
-    });*/
-
-    test("should retrieve participant from cache", async () => {
-         // Arrange
-        const participantId: string = "existingParticipantId";
-        jest.spyOn(localCache, "get").mockReturnValue({"id":1, "name":"cache"});
-
-         // Act
-        const participantInfo = await participantAdapter.getParticipantInfo(participantId);
-
-         // Assert
-         expect(participantInfo).toEqual({"id":1, "name":"cache"});
     });
 
 });

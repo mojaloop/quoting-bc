@@ -1,6 +1,4 @@
 {
-  "reject": [
-    "typescript",
-    "@mojaloop/logging-bc-common"
-  ]
+    "reject": [],
+    "target": "patch"
 }

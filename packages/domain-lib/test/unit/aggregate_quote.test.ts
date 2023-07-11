@@ -35,7 +35,6 @@
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import { QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload, QuoteQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseAcceptedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { InvalidParticipantIdError, InvalidRequesterFspIdError, NoSuchParticipantError, InvalidDestinationFspIdError} from "../../src/errors";
 import {IMoney, IQuote, QuoteStatus} from '../../src/types';
 import { createMessage, createQuoteRequestReceivedEvtPayload, createQuoteResponseReceivedEvtPayload } from "../utils/helpers";
 import { quoteRepo, messageProducer, participantService, accountLookupService, logger, bulkQuoteRepo, schemaRules } from "../utils/mocked_variables";

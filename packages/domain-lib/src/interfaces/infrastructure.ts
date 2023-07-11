@@ -79,6 +79,5 @@ export type AccountLookupBulkQuoteFspIdRequest = { [key:string] : {
 };
 
 export interface IAccountLookupService {
-    getAccountLookup(partyId:string, partyType:string, currency:string | null): Promise<string| null>;
-    getBulkAccountLookup(partyIdentifiersList: AccountLookupBulkQuoteFspIdRequest): Promise<{[key:string]:string | null}>;
+    getAccountLookup(partyType:string, partyId:string, currency:string | null): Promise<string| null>;
 }

@@ -90,6 +90,7 @@ import {
 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules, QuoteStatus } from "./types";
+import { BulkQuoteNotFoundError, UnableToAddBatchQuoteError, UnableToAddBulkQuoteError, UnableToUpdateBatchQuotesError, UnableToUpdateBulkQuoteError } from "./errors";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -124,9 +125,9 @@ export class QuotingAggregate  {
 	//#region Event Handlers
 	async handleQuotingEvent(message: IMessage): Promise<void> {
 		this._logger.debug(`Got message in Quoting handler - msg: ${message}`);
-		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
-		const quoteId = message.payload?.quoteId;
-		const bulkQuoteId = message.payload?.bulkQuoteId;
+		const requesterFspId = message.fspiopOpaqueState?.requesterFspId ?? null;
+		const quoteId = message.payload?.quoteId ?? null;
+		const bulkQuoteId = message.payload?.bulkQuoteId ?? null;
 
 		const eventMessageError = this.validateMessageOrGetErrorEvent(message);
 		let eventToPublish = null;
@@ -189,7 +190,7 @@ export class QuotingAggregate  {
 		const quoteId = message.payload.quoteId;
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`);
 		const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
-		let destinationFspId = message.fspiopOpaqueState?.destinationFspId ?? message.payload?.payee?.partyIdInfo?.fspId;
+		let destinationFspId = message.fspiopOpaqueState.destinationFspId ?? message.payload.payee?.partyIdInfo?.fspId ?? null;
 		const expirationDate = message.payload.expiration ?? null;
 
 		const requesterParticipantError = await this.validateRequesterParticipantInfoOrGetErrorEvent(requesterFspId, quoteId, null);
@@ -208,12 +209,16 @@ export class QuotingAggregate  {
 		}
 
 		if(!destinationFspId){
-			const payeePartyId = message.payload.payee?.partyIdInfo?.partyIdentifier;
-			const payeePartyIdType = message.payload.payee?.partyIdInfo?.partyIdType;
+			const payeePartyId = message.payload.payee?.partyIdInfo?.partyIdentifier ?? null;
+			const payeePartyType = message.payload.payee?.partyIdInfo?.partyIdType ?? null;
 			const currency = message.payload.amount?.currency ?? null;
-			this._logger.debug(`Get destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyIdType}, currency: ${currency}`);
-			destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency);
-			this._logger.debug(`Got destinationFspId: ${destinationFspId ?? null} from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyIdType}, currency: ${currency}`);
+			this._logger.debug(`Get destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`);
+			destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyType, payeePartyId, currency)
+				.catch((error:Error) => {
+					this._logger.error(`Error while getting destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency} - ${error}`);
+					return null;
+				});
+			this._logger.debug(`Got destinationFspId: ${destinationFspId ?? null} from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`);
 		}
 
 		const destinationParticipantError = await this.validateDestinationParticipantInfoOrGetErrorEvent(destinationFspId, quoteId, null);
@@ -259,18 +264,19 @@ export class QuotingAggregate  {
 
 		if(!this._passThroughMode)
 		{
-			const quoteAddedToDatabase = this._quotesRepo.addQuote(quote).catch((error) => {
-				this._logger.error(`Error adding quote to database: ${error}`);
-				return false;
-			});
 
-			if(!quoteAddedToDatabase){
+			try{
+				this._quotesRepo.addQuote(quote);
+			}
+			catch(error:any){
+				this._logger.error(`Error adding quote to database: ${error}`);
 				const errorPayload : QuoteBCUnableToAddQuoteToDatabaseErrorPayload = {
 					errorDescription: "Unable to add quote to database",
 					quoteId
 				};
 				const errorEvent = new QuoteBCUnableToAddQuoteToDatabaseErrorEvent(errorPayload);
 				return errorEvent;
+
 			}
 		}
 
@@ -363,18 +369,18 @@ export class QuotingAggregate  {
 				status: quoteStatus
 			};
 
-			const updatedQuote = await this._quotesRepo.updateQuote(quote as IQuote).catch((error) => {
+			try{
+				await this._quotesRepo.updateQuote(quote as IQuote);
+			}
+			catch(error:any){
 				this._logger.error(`Error updating quote: ${error.message}`);
-				return false;
-			});
-
-			if(!updatedQuote){
 				const errorPayload : QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload = {
 					errorDescription: "Unable to update quote in database",
 					quoteId
 				};
 				const errorEvent = new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent(errorPayload);
 				return errorEvent;
+
 			}
 		}
 
@@ -484,12 +490,17 @@ export class QuotingAggregate  {
 		if(!destinationFspId){
 			for await (const quote of individualQuotesInsideBulkQuote) {
 				const payeePartyId = quote.payee?.partyIdInfo?.partyIdentifier;
-				const payeePartyIdType = quote.payee?.partyIdInfo?.partyIdType;
+				const payeePartyType = quote.payee?.partyIdInfo?.partyIdType;
 
-				if (!quote.payee.partyIdInfo.fspId && payeePartyId && payeePartyIdType) {
+				if (!quote.payee.partyIdInfo.fspId && payeePartyId && payeePartyType) {
 					const currency = quote.amount?.currency ?? null;
-					this._logger.debug(`Getting destinationFspId for payeePartyId: ${payeePartyId}, and payeePartyType: ${payeePartyIdType}, and currency :${currency} from account lookup service`);
-					destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyId, payeePartyIdType, currency);
+					this._logger.debug(`Getting destinationFspId for payeePartyId: ${payeePartyId}, and payeePartyType: ${payeePartyType}, and currency :${currency} from account lookup service`);
+					destinationFspId = await this._accountLookupService.getAccountLookup(payeePartyType,payeePartyId, currency)
+						.catch((error) => {
+							this._logger.error(`Error getting destinationFspId from account lookup service: ${error.message}`);
+							return null;
+						});
+
 					this._logger.debug(`Got destinationFspId from account lookup service: ${destinationFspId ?? null}`);
 
 					if (destinationFspId) {
@@ -636,20 +647,22 @@ export class QuotingAggregate  {
 		await this._bulkQuotesRepo.addBulkQuote(bulkQuote).catch((err) => {
 			const errorMessage = `Error adding bulkQuote for bulkQuoteId: ${bulkQuote.bulkQuoteId}.`;
 			this._logger.error(errorMessage + " " + err.message);
-			throw new Error(errorMessage);
+			throw new UnableToAddBulkQuoteError(errorMessage);
 		});
 
 		const quotes = bulkQuote.individualQuotes;
 
-		for await (const quote of quotes) {
-			quote.bulkQuoteId = bulkQuote.bulkQuoteId;
+		// change quote status to Pending for all
+		quotes.forEach((quote) => {
 			quote.status = QuoteStatus.PENDING;
-			await this._quotesRepo.addQuote(quote).catch((err) => {
-				const errorMessage = `Error adding quote for quoteId: ${quote.quoteId} in bulkQuoteId: ${bulkQuote.bulkQuoteId}.`;
-				this._logger.error(errorMessage + " " + err.message);
-				throw new Error(`Error adding quote for quoteId: ${quote.quoteId} in bulkQuoteId: ${bulkQuote.bulkQuoteId}.`);
-			});
-		}
+		});
+
+		// add quotes to database
+		await this._quotesRepo.addQuotes(quotes).catch((err) => {
+			const errorMessage = `Error adding quotes for bulkQuoteId: ${bulkQuote.bulkQuoteId}.`;
+			this._logger.error(errorMessage + " " + err.message);
+			throw new UnableToAddBatchQuoteError(errorMessage);
+		});
 	}
 
 	private async updateBulkQuote(bulkQuoteId:string, requesterFspId:string, destinationFspId:string, expiration:string | null, status:QuoteStatus, quotes: IQuote[]): Promise<void> {
@@ -658,7 +671,7 @@ export class QuotingAggregate  {
 		if (!bulkQuote) {
 			const errorMessage = `Bulk Quote not found for bulkQuoteId: ${bulkQuoteId}`;
 			this._logger.error(errorMessage);
-			throw new Error(errorMessage);
+			throw new BulkQuoteNotFoundError(errorMessage);
 		}
 
 		const quotesInDatabase = await this._quotesRepo.getQuotesByBulkQuoteId(bulkQuoteId);
@@ -686,14 +699,14 @@ export class QuotingAggregate  {
 		await this._quotesRepo.updateQuotes(quotesInDatabase).catch((err) => {
 			const errorMessage = `Error updating multiple quotes for bulkQuoteId: ${bulkQuoteId}.`;
 			this._logger.error(errorMessage + " " + err.message);
-			throw new Error(errorMessage);
+			throw new UnableToUpdateBatchQuotesError(errorMessage);
 		});
 
 
 		await this._bulkQuotesRepo.updateBulkQuote(bulkQuote).catch((err) => {
 			const errorMessage = `Error updating bulkQuote for bulkQuoteId: ${bulkQuoteId}.`;
 			this._logger.error(errorMessage + " " + err.message);
-			throw new Error(errorMessage);
+			throw new UnableToUpdateBulkQuoteError(errorMessage);
 		});
 
 	}
@@ -733,7 +746,8 @@ export class QuotingAggregate  {
 				this._logger.error(errorMessage);
 				const errorPayload: QuoteBCBulkQuoteExpiredErrorPayload = {
 					errorDescription: errorMessage,
-					bulkQuoteId
+					bulkQuoteId,
+					expirationDate,
 				};
 				const errorEvent = new QuoteBCBulkQuoteExpiredErrorEvent(errorPayload);
 				return errorEvent;
@@ -744,6 +758,7 @@ export class QuotingAggregate  {
 				const errorPayload : QuoteBCQuoteExpiredErrorPayload = {
 					errorDescription:errorMessage,
 					quoteId: quoteId as string,
+					expirationDate,
 				};
 				const errorEvent = new QuoteBCQuoteExpiredErrorEvent(errorPayload);
 				return errorEvent;

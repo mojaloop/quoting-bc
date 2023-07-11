@@ -35,7 +35,6 @@
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import {BulkQuoteAcceptedEvtPayload, BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteReceivedEvtPayload, BulkQuoteRequestedEvt, BulkQuoteRequestedEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { InvalidParticipantIdError, InvalidRequesterFspIdError, NoSuchParticipantError, InvalidDestinationFspIdError, QuoteNotFoundError} from "../../src/errors";
 import {QuoteStatus} from '../../src/types';
 import { createBulkQuotePendingReceivedEvtPayload, createBulkQuoteRequestedEvtPayload, createMessage } from "../utils/helpers";
 import { logger, quoteRepo, bulkQuoteRepo, messageProducer, participantService, accountLookupService, schemaRules } from "../utils/mocked_variables";
