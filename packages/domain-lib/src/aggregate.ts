@@ -85,10 +85,10 @@ import {
 import { BulkQuoteNotFoundError, UnableToAddBatchQuoteError, UnableToAddBulkQuoteError, UnableToUpdateBatchQuotesError, UnableToUpdateBulkQuoteError } from "./errors";
 import { DomainEventMsg, IMessage, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "./interfaces/infrastructure";
+import { IAuthorizationClient, ILoginHelper } from '@mojaloop/security-bc-public-types-lib';
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules, QuoteStatus } from "./types";
 
 import { IAuditClient } from '@mojaloop/auditing-bc-public-types-lib';
-import { IAuthorizationClient } from '@mojaloop/security-bc-public-types-lib';
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
 
@@ -135,7 +135,7 @@ export class QuotingAggregate  {
 		const quoteId = message.payload?.quoteId ?? null;
 		const bulkQuoteId = message.payload?.bulkQuoteId ?? null;
 
-		const eventMessageError = this.validateMessageOrGetErrorEvent(message);
+		const eventMessageError = this._validateMessageOrGetErrorEvent(message);
 		let eventToPublish = null;
 
 		if(eventMessageError){
@@ -147,19 +147,19 @@ export class QuotingAggregate  {
 		try{
 			switch(message.msgName){
 				case QuoteRequestReceivedEvt.name:
-					eventToPublish = await this.handleQuoteRequestReceivedEvent(message as QuoteRequestReceivedEvt);
+					eventToPublish = await this._handleQuoteRequestReceivedEvent(message as QuoteRequestReceivedEvt);
 					break;
 				case QuoteResponseReceivedEvt.name:
-					eventToPublish = await this.handleQuoteResponseReceivedEvent(message as QuoteResponseReceivedEvt);
+					eventToPublish = await this._handleQuoteResponseReceivedEvent(message as QuoteResponseReceivedEvt);
 					break;
 				case QuoteQueryReceivedEvt.name:
-					eventToPublish = await this.handleQuoteQueryReceivedEvent(message as QuoteQueryReceivedEvt);
+					eventToPublish = await this._handleQuoteQueryReceivedEvent(message as QuoteQueryReceivedEvt);
 					break;
 				case BulkQuoteRequestedEvt.name:
-					eventToPublish = await this.handleBulkQuoteRequestedEvent(message as BulkQuoteRequestedEvt);
+					eventToPublish = await this._handleBulkQuoteRequestedEvent(message as BulkQuoteRequestedEvt);
 					break;
 				case BulkQuotePendingReceivedEvt.name:
-					eventToPublish = await this.handleBulkQuotePendingReceivedEvent(message as BulkQuotePendingReceivedEvt);
+					eventToPublish = await this._handleBulkQuotePendingReceivedEvent(message as BulkQuotePendingReceivedEvt);
 					break;
 				default:{
 						const errorMessage = `Message type has invalid format or value ${message.msgName}`;
@@ -192,7 +192,7 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region handleQuoteRequestReceivedEvt
-	private async handleQuoteRequestReceivedEvent(message: QuoteRequestReceivedEvt):Promise<DomainEventMsg> {
+	private async _handleQuoteRequestReceivedEvent(message: QuoteRequestReceivedEvt):Promise<DomainEventMsg> {
 		const quoteId = message.payload.quoteId;
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`);
 		const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
@@ -204,7 +204,7 @@ export class QuotingAggregate  {
 			return requesterParticipantError;
 		}
 
-		const isSchemaValid = this.validateScheme(message);
+		const isSchemaValid = this._validateScheme(message);
 		if(!isSchemaValid){
 			const errorPayload: QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload = {
 				quoteId,
@@ -233,7 +233,7 @@ export class QuotingAggregate  {
 		}
 
 		if(expirationDate){
-			const expirationDateValidationError = this.validateExpirationDateOrGetErrorEvent(quoteId,null, expirationDate);
+			const expirationDateValidationError = this._validateExpirationDateOrGetErrorEvent(quoteId,null, expirationDate);
 			if(expirationDateValidationError){
 				return expirationDateValidationError;
 			}
@@ -316,7 +316,7 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region handleQuoteResponseReceivedEvt
-	private async handleQuoteResponseReceivedEvent(message: QuoteResponseReceivedEvt):Promise<DomainEventMsg> {
+	private async _handleQuoteResponseReceivedEvent(message: QuoteResponseReceivedEvt):Promise<DomainEventMsg> {
 		const quoteId = message.payload.quoteId;
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`);
 
@@ -326,7 +326,7 @@ export class QuotingAggregate  {
 		let quoteErrorEvent: DomainEventMsg|null = null;
 		let quoteStatus: QuoteStatus = QuoteStatus.ACCEPTED;
 
-		const isSchemaValid = this.validateScheme(message);
+		const isSchemaValid = this._validateScheme(message);
 		if(!isSchemaValid){
 			const errorPayload : QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload = {
 				errorDescription: `Quote request scheme validation failed for quoteId: ${quoteId}`,
@@ -352,7 +352,7 @@ export class QuotingAggregate  {
 		}
 
 		if(quoteErrorEvent !== null){
-			const expirationDateError = this.validateExpirationDateOrGetErrorEvent(quoteId,null, expirationDate);
+			const expirationDateError = this._validateExpirationDateOrGetErrorEvent(quoteId,null, expirationDate);
 			if(expirationDateError){
 				quoteErrorEvent = expirationDateError;
 				quoteStatus = QuoteStatus.EXPIRED;
@@ -417,7 +417,7 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region handleQuoteQueryReceivedEvt
-	private async handleQuoteQueryReceivedEvent(message: QuoteQueryReceivedEvt):Promise<DomainEventMsg> {
+	private async _handleQuoteQueryReceivedEvent(message: QuoteQueryReceivedEvt):Promise<DomainEventMsg> {
 		const quoteId = message.payload.quoteId;
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`);
 
@@ -470,7 +470,7 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region handleBulkQuoteRequestedEvt
-	private async handleBulkQuoteRequestedEvent(message: BulkQuoteRequestedEvt):Promise<DomainEventMsg> {
+	private async _handleBulkQuoteRequestedEvent(message: BulkQuoteRequestedEvt):Promise<DomainEventMsg> {
 		const bulkQuoteId = message.payload.bulkQuoteId;
 		this._logger.debug(`Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`);
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
@@ -523,7 +523,7 @@ export class QuotingAggregate  {
 		}
 
 		if(expirationDate){
-			const expirationDateError = this.validateExpirationDateOrGetErrorEvent(null, bulkQuoteId, expirationDate);
+			const expirationDateError = this._validateExpirationDateOrGetErrorEvent(null, bulkQuoteId, expirationDate);
 			if(expirationDateError){
 				return expirationDateError;
 			}
@@ -543,7 +543,7 @@ export class QuotingAggregate  {
 		if(!this._passThroughMode)
 		{
 			try{
-				await this.addBulkQuote(bulkQuote);
+				await this._addBulkQuote(bulkQuote);
 			}
 			catch(error:any){
 				this._logger.error(`Error adding bulk quote ${bulkQuoteId} to database: ${error.message}`);
@@ -576,7 +576,7 @@ export class QuotingAggregate  {
 	//#endregion
 
 	//#region handleBulkQuotePendingReceivedEvt
-	private async handleBulkQuotePendingReceivedEvent(message: BulkQuotePendingReceivedEvt):Promise<DomainEventMsg> {
+	private async _handleBulkQuotePendingReceivedEvent(message: BulkQuotePendingReceivedEvt):Promise<DomainEventMsg> {
 		const bulkQuoteId = message.payload.bulkQuoteId;
 		this._logger.debug(`Got BulkQuotePendingReceivedEvt msg for bulkQuoteId:${bulkQuoteId} and bulkQuotes: ${message.payload.individualQuoteResults}`);
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
@@ -600,7 +600,7 @@ export class QuotingAggregate  {
 		}
 
 		if(bulkQuoteErrorEvent === null && expirationDate){
-			const expirationDateError = this.validateExpirationDateOrGetErrorEvent(null, bulkQuoteId, expirationDate);
+			const expirationDateError = this._validateExpirationDateOrGetErrorEvent(null, bulkQuoteId, expirationDate);
 			if(expirationDateError){
 				bulkQuoteErrorEvent = expirationDateError;
 				quoteStatus = QuoteStatus.EXPIRED;
@@ -612,7 +612,7 @@ export class QuotingAggregate  {
 		if(!this._passThroughMode){
 
 			try{
-				await this.updateBulkQuote(bulkQuoteId,requesterFspId,destinationFspId,expirationDate, quoteStatus, quotes);
+				await this._updateBulkQuote(bulkQuoteId,requesterFspId,destinationFspId,expirationDate, quoteStatus, quotes);
 			}
 			catch(error:any) {
 				this._logger.error(`Error updating bulk quote ${bulkQuoteId} in database: ${error.message}`);
@@ -648,7 +648,7 @@ export class QuotingAggregate  {
 
 	//#region Quotes database operations
 
-	private async addBulkQuote(bulkQuote:IBulkQuote): Promise<void>{
+	private async _addBulkQuote(bulkQuote:IBulkQuote): Promise<void>{
 		//Add bulkQuote to database and iterate through quotes to add them to database
 		await this._bulkQuotesRepo.addBulkQuote(bulkQuote).catch((err) => {
 			const errorMessage = `Error adding bulkQuote for bulkQuoteId: ${bulkQuote.bulkQuoteId}.`;
@@ -671,7 +671,7 @@ export class QuotingAggregate  {
 		});
 	}
 
-	private async updateBulkQuote(bulkQuoteId:string, requesterFspId:string, destinationFspId:string, expiration:string | null, status:QuoteStatus, quotes: IQuote[]): Promise<void> {
+	private async _updateBulkQuote(bulkQuoteId:string, requesterFspId:string, destinationFspId:string, expiration:string | null, status:QuoteStatus, quotes: IQuote[]): Promise<void> {
 		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
 
 		if (!bulkQuote) {
@@ -721,7 +721,7 @@ export class QuotingAggregate  {
 
 	//#region Validations
 
-	private validateScheme(message: IMessage) :boolean {
+	private _validateScheme(message: IMessage) :boolean {
 		const currency = message.payload.transferAmount?.currency ?? message.payload.amount?.currency;
 		if(!currency){
 			this._logger.error("Currency is not sent in the request");
@@ -739,7 +739,7 @@ export class QuotingAggregate  {
 	}
 
 
-	private validateExpirationDateOrGetErrorEvent(quoteId:string|null, bulkQuoteId:string|null, expirationDate: string): DomainEventMsg | null {
+	private _validateExpirationDateOrGetErrorEvent(quoteId:string|null, bulkQuoteId:string|null, expirationDate: string): DomainEventMsg | null {
 		const serverDateUtc= new Date().toISOString();
 		const serverDate = new Date(serverDateUtc);
 		const quoteDate = new Date(expirationDate);
@@ -774,7 +774,7 @@ export class QuotingAggregate  {
 		return null;
 	}
 
-	private validateMessageOrGetErrorEvent(message:IMessage): DomainEventMsg | null {
+	private _validateMessageOrGetErrorEvent(message:IMessage): DomainEventMsg | null {
 		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
 		const quoteId = message.payload?.quoteId;
 		const bulkQuoteId = message.payload?.bulkQuoteId;

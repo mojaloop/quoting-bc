@@ -47,6 +47,8 @@ import {
 	AuthenticatedHttpRequester,
 	AuthorizationClient,
 	IAuthenticatedHttpRequester,
+	LoginHelper,
+	TokenHelper,
 } from "@mojaloop/security-bc-client-lib";
 import {
 	IAccountLookupService,
@@ -56,6 +58,7 @@ import {
 	IQuoteSchemeRules,
 	QuotingAggregate,
 } from "@mojaloop/quoting-bc-domain-lib";
+import { IAuthorizationClient, ILoginHelper } from "@mojaloop/security-bc-public-types-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
@@ -67,7 +70,6 @@ import {
 import express, {Express} from "express";
 
 import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
-import { IAuthorizationClient } from "@mojaloop/security-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {QuotingAdminExpressRoutes} from "./routes/quote_admin_routes";
 import {QuotingBCTopics} from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -162,6 +164,7 @@ export class Service {
 	static participantService: IParticipantService;
 	static quotesRepo: IQuoteRepo;
     static startupTimer: NodeJS.Timeout;
+	static tokenHelper: TokenHelper;
 
 	static async start(
 		accountLookupService?: IAccountLookupService,
@@ -214,19 +217,22 @@ export class Service {
 
 		if (!authorizationClient) {
             authorizationClient = new AuthorizationClient(BC_NAME, APP_NAME, APP_VERSION, AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"));
-            //TODO: need to define the privileges for lookup
+            //TODO: need to define the privileges for quoting
 			//authorizationClient.addPrivilegesArray(ChartOfAccountsPrivilegesDefinition);
             await (authorizationClient as AuthorizationClient).bootstrap(true);
             await (authorizationClient as AuthorizationClient).fetch();
         }
         this.authorizationClient = authorizationClient;
 
-
 		if (!authRequester) {
 			authRequester = new AuthenticatedHttpRequester(this.logger, AUTH_N_SVC_TOKEN_URL);
 			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 		}
 		this.authRequester = authRequester;
+
+		// token helper
+		this.tokenHelper = new TokenHelper(AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE);
+		await this.tokenHelper.init();
 
 		//TODO: parse scheme rules to object
 		// let schemeRules: IQuoteSchemeRules;
@@ -290,7 +296,8 @@ export class Service {
 		this.aggregate = new QuotingAggregate(this.accountLookupService,
 			this.auditingClient,
 			this.authorizationClient,
-			this.bulkQuotesRepo,this.logger,
+			this.bulkQuotesRepo,
+			this.logger,
 			this.messageProducer,
 			this.participantService,
 			this.quotesRepo,
@@ -316,7 +323,7 @@ export class Service {
 			this.app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
 
 			// Add admin and client http routes
-			const quotingAdminRoutes = new QuotingAdminExpressRoutes(this.quotesRepo, this.bulkQuotesRepo, this.logger);
+			const quotingAdminRoutes = new QuotingAdminExpressRoutes(this.authorizationClient, this.bulkQuotesRepo, this.logger, this.quotesRepo, this.tokenHelper);
 			this.app.use("", quotingAdminRoutes.mainRouter);
 
 			this.app.use((req, res) => {

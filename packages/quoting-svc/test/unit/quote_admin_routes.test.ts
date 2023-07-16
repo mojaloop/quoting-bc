@@ -93,6 +93,34 @@ let mockedAuditClient: IAuditClient = new MemoryAuditClient(logger);
 
 let mockedAuthorizationClient: IAuthorizationClient = new MemoryAuthorizationClient(logger);
 
+const initTokenHelperSpy = jest.fn();
+
+jest.mock("@mojaloop/security-bc-client-lib", () => {
+    return {
+        TokenHelper: jest.fn().mockImplementation(() => {
+            return {
+                init: initTokenHelperSpy,
+                verifyToken: jest.fn().mockImplementation(() => {
+                    return Promise.resolve(true);
+                }),
+                decodeToken: jest.fn().mockImplementation(() => {
+                    //TODO: return decoded token
+                    return "decoded-token"
+                })
+            }
+        }),
+        LoginHelper: jest.requireActual('@mojaloop/security-bc-client-lib').LoginHelper,
+        AuthorizationClient: jest.requireActual('@mojaloop/security-bc-client-lib').AuthorizationClient,
+        AuthenticatedHttpRequester: jest.requireActual('@mojaloop/security-bc-client-lib').AuthenticatedHttpRequester,
+        IAuthenticatedHttpRequester: jest.requireActual('@mojaloop/security-bc-client-lib').IAuthenticatedHttpRequester,
+    }
+});
+
+//TODO: Add valid token
+const TOKEN = "token";
+
+
+
 const server = process.env["QUOTING_ADM_URL"] || "http://localhost:3033";
 
 describe("Quoting Admin Routes - Unit", () => {
@@ -135,7 +163,8 @@ describe("Quoting Admin Routes - Unit", () => {
         const quoteId = await mockedQuoteRepository.addQuote(newQuote);
 
         // Act
-        const response = await request(server).get(`/quotes/${quoteId}`);
+        const response = await request(server).get(`/quotes/${quoteId}`)
+            .set("authorization", `Bearer ${TOKEN}`);
 
         // Assert
         expect(response.status).toBe(200);
@@ -149,7 +178,8 @@ describe("Quoting Admin Routes - Unit", () => {
         await mockedQuoteRepository.addQuote(mockedQuote3);
 
         // Act
-        const response = await request(server).get("/quotes");
+        const response = await request(server).get("/quotes")
+            .set("authorization", `Bearer ${TOKEN}`);
 
         // Assert
         expect(response.status).toBe(200);
@@ -168,7 +198,8 @@ describe("Quoting Admin Routes - Unit", () => {
         // Act
         const response = await request(server).get(
             `/bulk-quotes/${bulkQuoteId}`
-        );
+        )
+        .set("authorization", `Bearer ${TOKEN}`);
 
         // Assert
         expect(response.status).toBe(200);
@@ -180,7 +211,8 @@ describe("Quoting Admin Routes - Unit", () => {
         await mockedBulkQuoteRepository.addBulkQuote(mockedBulkQuote1);
 
         // Act
-        const response = await request(server).get("/bulk-quotes");
+        const response = await request(server).get("/bulk-quotes")
+        .set("authorization", `Bearer ${TOKEN}`);
 
         // Assert
         expect(response.status).toBe(200);
@@ -196,7 +228,8 @@ describe("Quoting Admin Routes - Unit", () => {
         // Act
         const response = await request(server).get(
             `/quotes?transactionId=${newQuote?.transactionId}&quoteId=${newQuote?.quoteId}&amountType=${newQuote?.amountType}&transactionType=${newQuote.transactionType.scenario}`
-        );
+        )
+        .set("authorization", `Bearer ${TOKEN}`);
 
         // Assert
         expect(response.status).toBe(200);
