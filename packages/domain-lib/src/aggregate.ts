@@ -32,65 +32,67 @@
 
 "use strict";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
-import { DomainEventMsg, IMessage, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo} from "./interfaces/infrastructure";
 import {
-	QuoteRequestReceivedEvt,
-	QuoteRequestAcceptedEvt,
-	QuoteRequestAcceptedEvtPayload,
-	QuoteResponseReceivedEvt,
-	QuoteResponseAccepted,
-	QuoteResponseAcceptedEvtPayload,
+	BulkQuoteAcceptedEvt,
+	BulkQuoteAcceptedEvtPayload,
+	BulkQuotePendingReceivedEvt,
+	BulkQuoteReceivedEvt,
+	BulkQuoteReceivedEvtPayload,
+	BulkQuoteRequestedEvt,
+	GetQuoteQueryRejectedEvt,
+	GetQuoteQueryRejectedResponseEvt,
+	GetQuoteQueryRejectedResponseEvtPayload,
+	QuoteBCBulkQuoteExpiredErrorEvent,
+	QuoteBCBulkQuoteExpiredErrorPayload,
+	QuoteBCDestinationParticipantNotFoundErrorEvent,
+	QuoteBCDestinationParticipantNotFoundErrorPayload,
+	QuoteBCInvalidBulkQuoteLengthErrorEvent,
+	QuoteBCInvalidBulkQuoteLengthErrorPayload,
+	QuoteBCInvalidDestinationFspIdErrorEvent,
+	QuoteBCInvalidDestinationFspIdErrorPayload,
+	QuoteBCInvalidMessagePayloadErrorEvent,
+	QuoteBCInvalidMessagePayloadErrorPayload,
+	QuoteBCInvalidMessageTypeErrorEvent,
+	QuoteBCInvalidMessageTypeErrorPayload,
+	QuoteBCInvalidRequesterFspIdErrorEvent,
+	QuoteBCInvalidRequesterFspIdErrorPayload,
+	QuoteBCQuoteExpiredErrorEvent,
+	QuoteBCQuoteExpiredErrorPayload,
+	QuoteBCQuoteNotFoundErrorEvent,
+	QuoteBCQuoteNotFoundErrorPayload,
+	QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
+	QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload,
+	QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
+	QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload,
+	QuoteBCRequesterParticipantNotFoundErrorEvent,
+	QuoteBCRequesterParticipantNotFoundErrorPayload,
+	QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
+	QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload,
+	QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
+	QuoteBCUnableToAddQuoteToDatabaseErrorPayload,
+	QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
+	QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload,
+	QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
+	QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload,
+	QuoteBCUnknownErrorEvent,
+	QuoteBCUnknownErrorPayload,
 	QuoteQueryReceivedEvt,
 	QuoteQueryResponseEvt,
 	QuoteQueryResponseEvtPayload,
-	BulkQuoteRequestedEvt,
-	BulkQuoteReceivedEvt,
-	BulkQuoteReceivedEvtPayload,
-	BulkQuotePendingReceivedEvt,
-	BulkQuoteAcceptedEvt,
-	BulkQuoteAcceptedEvtPayload,
-	QuoteBCQuoteExpiredErrorPayload,
-	QuoteBCQuoteExpiredErrorEvent,
-	QuoteBCBulkQuoteExpiredErrorPayload,
-	QuoteBCInvalidMessageTypeErrorEvent,
-	QuoteBCInvalidMessageTypeErrorPayload,
-	QuoteBCInvalidMessagePayloadErrorPayload,
-	QuoteBCInvalidMessagePayloadErrorEvent,
-	QuoteBCInvalidDestinationFspIdErrorPayload,
-	QuoteBCInvalidDestinationFspIdErrorEvent,
-	QuoteBCInvalidRequesterFspIdErrorPayload,
-	QuoteBCInvalidRequesterFspIdErrorEvent,
-	QuoteBCUnknownErrorPayload,
-	QuoteBCUnknownErrorEvent,
-	QuoteBCUnableToAddQuoteToDatabaseErrorPayload,
-	QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
-	QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload,
-	QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
-	QuoteBCInvalidBulkQuoteLengthErrorPayload,
-	QuoteBCInvalidBulkQuoteLengthErrorEvent,
-	QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
-	QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload,
-	QuoteBCQuoteNotFoundErrorPayload,
-	QuoteBCQuoteNotFoundErrorEvent,
-	QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload,
-	QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
-	QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload,
-	QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
-	QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload,
-	QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
-	QuoteBCBulkQuoteExpiredErrorEvent,
-	QuoteBCDestinationParticipantNotFoundErrorPayload,
-	QuoteBCDestinationParticipantNotFoundErrorEvent,
-	QuoteBCRequesterParticipantNotFoundErrorEvent,
-	QuoteBCRequesterParticipantNotFoundErrorPayload,
-
-
+	QuoteRequestAcceptedEvt,
+	QuoteRequestAcceptedEvtPayload,
+	QuoteRequestReceivedEvt,
+	QuoteResponseAccepted,
+	QuoteResponseAcceptedEvtPayload,
+	QuoteResponseReceivedEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules, QuoteStatus } from "./types";
 import { BulkQuoteNotFoundError, UnableToAddBatchQuoteError, UnableToAddBulkQuoteError, UnableToUpdateBatchQuotesError, UnableToUpdateBulkQuoteError } from "./errors";
+import { DomainEventMsg, IMessage, IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo } from "./interfaces/infrastructure";
+import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules, QuoteStatus } from "./types";
+
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -154,6 +156,9 @@ export class QuotingAggregate  {
 					break;
 				case BulkQuotePendingReceivedEvt.name:
 					eventToPublish = await this.handleBulkQuotePendingReceivedEvent(message as BulkQuotePendingReceivedEvt);
+					break;
+				case GetQuoteQueryRejectedEvt.name:
+					eventToPublish = await this.handleGetQuoteQueryRejected(message as GetQuoteQueryRejectedEvt);
 					break;
 				default:{
 						const errorMessage = `Message type has invalid format or value ${message.msgName}`;
@@ -462,6 +467,38 @@ export class QuotingAggregate  {
 		return event;
 	}
 	//#endregion
+
+	//#region GetQuoteQueryRejectedEvt
+	private async handleGetQuoteQueryRejected(message: GetQuoteQueryRejectedEvt):Promise<DomainEventMsg> {
+		this._logger.debug(`Got getQuoteQueryRejected msg for quoteId: ${message.payload.quoteId}`);
+
+		const quoteId = message.payload.quoteId;
+		const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
+		const destinationFspId = message.fspiopOpaqueState.destinationFspId ?? null;
+
+		const requesterParticipantError = await this.validateRequesterParticipantInfoOrGetErrorEvent(requesterFspId,quoteId, null);
+		if(requesterParticipantError){
+			this._logger.error(`Invalid participant info for requesterFspId: ${requesterFspId}`);
+			return requesterParticipantError;
+		}
+
+		const destinationParticipantError = await this.validateDestinationParticipantInfoOrGetErrorEvent(destinationFspId,quoteId, null);
+		if(destinationParticipantError){
+			this._logger.error(`Invalid participant info for destinationFspId: ${destinationFspId}`);
+			return destinationParticipantError;
+		}
+
+		const payload:GetQuoteQueryRejectedResponseEvtPayload = {
+			quoteId,
+			errorInformation: message.payload.errorInformation
+		};
+
+		const event = new GetQuoteQueryRejectedResponseEvt(payload);
+
+		return event;
+	}
+	//#endregion
+
 
 	//#region handleBulkQuoteRequestedEvt
 	private async handleBulkQuoteRequestedEvent(message: BulkQuoteRequestedEvt):Promise<DomainEventMsg> {
