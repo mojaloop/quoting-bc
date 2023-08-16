@@ -178,6 +178,7 @@
                      }
                      catch (error) {
                          this.logger.error(`Cannot deserialize IlpPacket: ${error}`);
+                         
                      }
                  }
              }
