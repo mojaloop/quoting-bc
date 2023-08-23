@@ -28,22 +28,29 @@
  - Rui Rocha <rui.rocha@arg.software>
 
  --------------
- **/
-
-"use strict";
+**/
 
 import {
 	BulkQuoteAcceptedEvt,
 	BulkQuoteAcceptedEvtPayload,
 	BulkQuotePendingReceivedEvt,
+	BulkQuoteQueryReceivedEvt,
+	BulkQuoteQueryReceivedEvtPayload,
+	BulkQuoteQueryResponseEvt,
+	BulkQuoteQueryResponseEvtPayload,
 	BulkQuoteReceivedEvt,
 	BulkQuoteReceivedEvtPayload,
 	BulkQuoteRequestedEvt,
+	GetBulkQuoteQueryRejectedEvt,
+	GetBulkQuoteQueryRejectedResponseEvt,
+	GetBulkQuoteQueryRejectedResponseEvtPayload,
 	GetQuoteQueryRejectedEvt,
 	GetQuoteQueryRejectedResponseEvt,
 	GetQuoteQueryRejectedResponseEvtPayload,
 	QuoteBCBulkQuoteExpiredErrorEvent,
 	QuoteBCBulkQuoteExpiredErrorPayload,
+	QuoteBCBulkQuoteNotFoundErrorEvent,
+	QuoteBCBulkQuoteNotFoundErrorPayload,
 	QuoteBCDestinationParticipantNotFoundErrorEvent,
 	QuoteBCDestinationParticipantNotFoundErrorPayload,
 	QuoteBCInvalidBulkQuoteLengthErrorEvent,
@@ -93,6 +100,8 @@ import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
+
+"use strict";
 
 export class QuotingAggregate  {
 	private readonly _logger: ILogger;
@@ -151,14 +160,20 @@ export class QuotingAggregate  {
 				case QuoteQueryReceivedEvt.name:
 					eventToPublish = await this.handleQuoteQueryReceivedEvent(message as QuoteQueryReceivedEvt);
 					break;
+				case GetQuoteQueryRejectedEvt.name:
+					eventToPublish = await this.handleGetQuoteQueryRejected(message as GetQuoteQueryRejectedEvt);
+					break;
 				case BulkQuoteRequestedEvt.name:
 					eventToPublish = await this.handleBulkQuoteRequestedEvent(message as BulkQuoteRequestedEvt);
 					break;
 				case BulkQuotePendingReceivedEvt.name:
 					eventToPublish = await this.handleBulkQuotePendingReceivedEvent(message as BulkQuotePendingReceivedEvt);
 					break;
-				case GetQuoteQueryRejectedEvt.name:
-					eventToPublish = await this.handleGetQuoteQueryRejected(message as GetQuoteQueryRejectedEvt);
+				case BulkQuoteQueryReceivedEvt.name:
+					eventToPublish = await this.handleGetBulkQuoteQueryReceived(message as BulkQuoteQueryReceivedEvt);
+					break;
+				case GetBulkQuoteQueryRejectedEvt.name:
+					eventToPublish = await this.handleGetBulkQuoteQueryRejected(message as GetBulkQuoteQueryRejectedEvt);
 					break;
 				default:{
 						const errorMessage = `Message type has invalid format or value ${message.msgName}`;
@@ -188,8 +203,10 @@ export class QuotingAggregate  {
 		eventToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
 		await this._messageProducer.send(eventToPublish);
 	}
+
 	//#endregion
 
+	//#region Quotes
 	//#region handleQuoteRequestReceivedEvt
 	private async handleQuoteRequestReceivedEvent(message: QuoteRequestReceivedEvt):Promise<DomainEventMsg> {
 		const quoteId = message.payload.quoteId;
@@ -269,7 +286,6 @@ export class QuotingAggregate  {
 
 		if(!this._passThroughMode)
 		{
-
 			try{
 				await this._quotesRepo.addQuote(quote);
 			}
@@ -498,8 +514,9 @@ export class QuotingAggregate  {
 		return event;
 	}
 	//#endregion
+	//#endregion
 
-
+	//#region BulkQuotes
 	//#region handleBulkQuoteRequestedEvt
 	private async handleBulkQuoteRequestedEvent(message: BulkQuoteRequestedEvt):Promise<DomainEventMsg> {
 		const bulkQuoteId = message.payload.bulkQuoteId;
@@ -643,7 +660,7 @@ export class QuotingAggregate  {
 		if(!this._passThroughMode){
 
 			try{
-				await this.updateBulkQuote(bulkQuoteId,requesterFspId,destinationFspId,expirationDate, quoteStatus, quotes);
+				await this.updateBulkQuote(bulkQuoteId,requesterFspId,destinationFspId,quoteStatus, quotes);
 			}
 			catch(error:any) {
 				this._logger.error(`Error updating bulk quote ${bulkQuoteId} in database: ${error.message}`);
@@ -677,6 +694,103 @@ export class QuotingAggregate  {
 	}
 	//#endregion
 
+	//#region handleGetBulkQuoteQueryReceived
+	private async handleGetBulkQuoteQueryReceived(message: BulkQuoteQueryReceivedEvt): Promise<DomainEventMsg> {
+		const bulkQuoteId = message.payload.bulkQuoteId;
+		this._logger.debug(`Got GetBulkQuoteQueryReceived msg for bulkQuoteId: ${bulkQuoteId}`);
+
+		const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
+		const destinationFspId = message.fspiopOpaqueState?.destinationFspId;
+
+		const requesterParticipantError = await this.validateRequesterParticipantInfoOrGetErrorEvent(requesterFspId, null, bulkQuoteId);
+		if(requesterParticipantError){
+			return requesterParticipantError;
+		}
+
+		const destinationParticipantError = await this.validateDestinationParticipantInfoOrGetErrorEvent(destinationFspId, null, bulkQuoteId);
+		if(destinationParticipantError){
+			return destinationParticipantError;
+		}
+
+		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId).catch((error) => {
+			this._logger.error(`Error getting bulk quote: ${error.message}`);
+			return null;
+		});
+
+		if(!bulkQuote) {
+			const errorPayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
+				bulkQuoteId,
+				errorDescription: `Bulk Quote ${bulkQuoteId} not found`
+			};
+			const errorEvent = new QuoteBCBulkQuoteNotFoundErrorEvent(errorPayload);
+			return errorEvent;
+		}
+
+		const individualQuotes = await this._quotesRepo.getQuotesByBulkQuoteId(bulkQuoteId).catch((error) => {
+			this._logger.error(`Error getting quotes for bulk quote: ${error.message}`);
+			return null;
+		});
+
+		if(!individualQuotes) {
+			const errorPayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
+				bulkQuoteId,
+				errorDescription: `Bulk Quote ${bulkQuoteId} not found`
+			};
+			const errorEvent = new QuoteBCBulkQuoteNotFoundErrorEvent(errorPayload);
+			return errorEvent;
+		}
+
+
+		const payload: BulkQuoteQueryResponseEvtPayload = {
+			bulkQuoteId: bulkQuote.bulkQuoteId,
+			individualQuoteResults: individualQuotes as any,
+			expiration: bulkQuote.expiration,
+			extensionList: bulkQuote.extensionList,
+		};
+
+		const event = new BulkQuoteQueryResponseEvt(payload);
+
+		event.fspiopOpaqueState = message.fspiopOpaqueState;
+
+		return event;
+	}
+
+	//#endregion
+
+	//#region handleGetBulkQuoteQueryRejected
+
+	private async handleGetBulkQuoteQueryRejected(message: GetBulkQuoteQueryRejectedEvt): Promise<DomainEventMsg> {
+		this._logger.debug(`Got GetBulkQuoteQueryRejected msg for quoteId: ${message.payload.bulkQuoteId}`);
+
+		const bulkQuoteId = message.payload.bulkQuoteId;
+		const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
+		const destinationFspId = message.fspiopOpaqueState.destinationFspId ?? null;
+
+		const requesterParticipantError = await this.validateRequesterParticipantInfoOrGetErrorEvent(requesterFspId,null, bulkQuoteId);
+		if(requesterParticipantError){
+			this._logger.error(`Invalid participant info for requesterFspId: ${requesterFspId}`);
+			return requesterParticipantError;
+		}
+
+		const destinationParticipantError = await this.validateDestinationParticipantInfoOrGetErrorEvent(destinationFspId,null, bulkQuoteId);
+		if(destinationParticipantError){
+			this._logger.error(`Invalid participant info for destinationFspId: ${destinationFspId}`);
+			return destinationParticipantError;
+		}
+
+		const payload:GetBulkQuoteQueryRejectedResponseEvtPayload = {
+			bulkQuoteId,
+			errorInformation: message.payload.errorInformation
+		};
+
+		const event = new GetBulkQuoteQueryRejectedResponseEvt(payload);
+
+		return event;
+
+	}
+	//#endregion
+	//#endregion
+
 	//#region Quotes database operations
 
 	private async addBulkQuote(bulkQuote:IBulkQuote): Promise<void>{
@@ -702,7 +816,7 @@ export class QuotingAggregate  {
 		});
 	}
 
-	private async updateBulkQuote(bulkQuoteId:string, requesterFspId:string, destinationFspId:string, expiration:string | null, status:QuoteStatus, quotes: IQuote[]): Promise<void> {
+	private async updateBulkQuote(bulkQuoteId:string, requesterFspId:string, destinationFspId:string, status:QuoteStatus, quotes: IQuote[]): Promise<void> {
 		const bulkQuote = await this._bulkQuotesRepo.getBulkQuoteById(bulkQuoteId);
 
 		if (!bulkQuote) {
@@ -711,9 +825,9 @@ export class QuotingAggregate  {
 			throw new BulkQuoteNotFoundError(errorMessage);
 		}
 
-		const quotesInDatabase = await this._quotesRepo.getQuotesByBulkQuoteId(bulkQuoteId);
+		const quotesThatBelongToBulkQuote = await this._quotesRepo.getQuotesByBulkQuoteId(bulkQuoteId);
 
-		quotesInDatabase.forEach((quote) => {
+		quotesThatBelongToBulkQuote.forEach((quote) => {
 			const quoteReceived = quotes.find((q) => q.quoteId === quote.quoteId);
 			if (quoteReceived) {
 				quote.status = status;
@@ -733,7 +847,7 @@ export class QuotingAggregate  {
 
 		bulkQuote.status = status;
 
-		await this._quotesRepo.updateQuotes(quotesInDatabase).catch((err) => {
+		await this._quotesRepo.updateQuotes(quotesThatBelongToBulkQuote).catch((err) => {
 			const errorMessage = `Error updating multiple quotes for bulkQuoteId: ${bulkQuoteId}.`;
 			this._logger.error(errorMessage + " " + err.message);
 			throw new UnableToUpdateBatchQuotesError(errorMessage);
