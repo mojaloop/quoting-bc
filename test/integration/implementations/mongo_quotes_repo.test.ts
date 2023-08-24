@@ -43,8 +43,8 @@ const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
 
 const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
-//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
-const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
+const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
+//const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
 const COLLECTION_NAME = "quotes";
 
 let mongoQuotesRepo : MongoQuotesRepo;
@@ -347,7 +347,7 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         await mongoQuotesRepo.addQuotes([quote1, quote2, quote3]);
 
         // Act
-        const result = await mongoQuotesRepo.searchQuotes(quote1.transactionId, quote1.quoteId, 
+        const result = await mongoQuotesRepo.searchQuotes(quote1.transactionId, quote1.quoteId,
             quote1.amountType, quote1.transactionType.scenario);
 
         // Assert
