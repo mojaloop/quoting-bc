@@ -211,8 +211,8 @@ export class QuotingAggregate  {
 	private async handleQuoteRequestReceivedEvent(message: QuoteRequestReceivedEvt):Promise<DomainEventMsg> {
 		const quoteId = message.payload.quoteId;
 		this._logger.debug(`Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`);
-		const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
-		let destinationFspId = message.fspiopOpaqueState.destinationFspId ?? message.payload.payee?.partyIdInfo?.fspId ?? null;
+		const requesterFspId = message.payload.payer?.partyIdInfo?.fspId ?? message.fspiopOpaqueState.requesterFspId ?? null;
+		let destinationFspId = message.payload.payee?.partyIdInfo?.fspId ?? message.fspiopOpaqueState.destinationFspId ?? null;
 		const expirationDate = message.payload.expiration ?? null;
 
 		const requesterParticipantError = await this.validateRequesterParticipantInfoOrGetErrorEvent(requesterFspId, quoteId, null);
@@ -465,7 +465,8 @@ export class QuotingAggregate  {
 
 		const payload: QuoteQueryResponseEvtPayload = {
 			quoteId: quote.quoteId,
-			transferAmount: quote.totalTransferAmount as IMoney,
+			transactionId: quote.transactionId,
+			transferAmount: quote.transferAmount as IMoney,
 			expiration: quote.expiration as string,
 			ilpPacket: quote.ilpPacket as string,
 			condition:	quote.condition as string,
@@ -473,7 +474,7 @@ export class QuotingAggregate  {
 			payeeFspFee: quote.payeeFspFee,
 			extensionList: quote.extensionList as IExtensionList,
 			geoCode: quote.geoCode as IGeoCode,
-			payeeFspCommission:	quote.feesPayer as IMoney,
+			payeeFspCommission:	quote.payeeFspCommission as IMoney,
 		};
 
 		const event = new QuoteQueryResponseEvt(payload);
