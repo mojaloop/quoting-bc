@@ -84,8 +84,7 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
 
     private async getAllQuotes(
         _req: express.Request,
-        res: express.Response,
-        _next: express.NextFunction
+        res: express.Response
     ) {
         const transactionId = _req.query.transactionId as string;
         const quoteId = _req.query.quoteId as string;
@@ -120,8 +119,7 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
 
     private async getAllBulkQuotes(
         _req: express.Request,
-        res: express.Response,
-        _next: express.NextFunction
+        res: express.Response
     ) {
         this.logger.info("Fetching all bulk quotes");
         try {
@@ -138,8 +136,7 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
 
     private async getQuoteById(
         req: express.Request,
-        res: express.Response,
-        _next: express.NextFunction
+        res: express.Response
     ) {
         if (!this.validateRequest(req, res)) {
             return;
@@ -172,8 +169,7 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
 
     private async getBulkQuoteById(
         req: express.Request,
-        res: express.Response,
-        _next: express.NextFunction
+        res: express.Response
     ) {
         if (!this.validateRequest(req, res)) {
             return;

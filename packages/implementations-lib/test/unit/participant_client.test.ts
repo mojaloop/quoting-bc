@@ -30,7 +30,7 @@
 
 import {ConsoleLogger, ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import { ParticipantAdapter} from "../../src/external_adapters/participant_adapter";
-import { IParticipant} from "@mojaloop/participant-bc-public-types-lib";
+import { IParticipant, ParticipantTypes} from "@mojaloop/participant-bc-public-types-lib";
 import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
 import { MemoryAuthenticatedHttpRequesterMock } from "@mojaloop/quoting-bc-shared-mocks-lib";
 
@@ -97,7 +97,7 @@ describe("Participants Client - Unit Tests", () => {
             name: "existingParticipantName",
             isActive: true,
             createdBy: "existingParticipantCreatedBy",
-            type: "DFSP",
+            type: ParticipantTypes.DFSP,
             createdDate: 1232131,
             approved: true,
             approvedBy: "existingParticipantApprovedBy",

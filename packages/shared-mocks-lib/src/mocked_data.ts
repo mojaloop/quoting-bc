@@ -492,7 +492,10 @@ export const mockedQuote4 : IQuote = {
       ]
     }
   },
-  transferAmount: null
+  transferAmount: {
+    currency: "EUR",
+    amount: "1010.2"
+  }
 };
 
 export const mockedQuotes : IQuote[] = [

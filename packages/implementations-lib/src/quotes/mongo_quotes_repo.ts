@@ -226,7 +226,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
         amountType?: string,
         transactionType?: string
     ): Promise<IQuote[]> {
-        const filter: any = { $and: [] };
+        const filter: any = { $and: [] }; // eslint-disable-line @typescript-eslint/no-explicit-any
         if (id) {
             filter.$and.push({ transactionId: { $regex: id, $options: "i" } });
         }
