@@ -287,7 +287,7 @@ export class QuotingAggregate  {
 		if(!this._passThroughMode)
 		{
 			try{
-				this._quotesRepo.addQuote(quote);
+				await this._quotesRepo.addQuote(quote);
 			}
 			catch(error:any){
 				this._logger.error(`Error adding quote to database: ${error}`);

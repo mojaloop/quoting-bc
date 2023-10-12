@@ -88,8 +88,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
             await this.mongoClient.close();
         } catch (e: unknown) {
             this._logger.error(
-                `Unable to close the database connection: ${
-                    (e as Error).message
+                `Unable to close the database connection: ${(e as Error).message
                 }`
             );
             throw new UnableToCloseDatabaseConnectionError(
@@ -148,19 +147,19 @@ export class MongoQuotesRepo implements IQuoteRepo {
                     `Unable to insert quote: ${(e as Error).message}`
                 );
                 throw new UnableToUpdateQuoteError("Unable to update quote");
-        });
+            });
     }
 
     async updateQuotes(quotes: IQuote[]): Promise<void> {
         const bulkOps = quotes.map((quote) => ({
             updateOne: {
-              filter: { quoteId: quote.quoteId },
-              update: { $set: quote },
+                filter: { quoteId: quote.quoteId },
+                update: { $set: quote },
             },
         }));
 
         // Perform the bulk update operation
-        await this.quotes.bulkWrite(bulkOps, { ordered: false,  }).catch((e: unknown) => {
+        await this.quotes.bulkWrite(bulkOps, { ordered: false, }).catch((e: unknown) => {
             this._logger.error(
                 `Unable to update many quotes: ${(e as Error).message}`
             );
@@ -232,7 +231,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
             filter.$and.push({ transactionId: { $regex: id, $options: "i" } });
         }
         if (quoteId) {
-            filter.$and.push({ quoteId: { $regex: quoteId, $options: "i" }  });
+            filter.$and.push({ quoteId: { $regex: quoteId, $options: "i" } });
         }
         if (amountType) {
             filter.$and.push({ amountType });
@@ -269,8 +268,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
             .toArray()
             .catch((e: unknown) => {
                 this._logger.error(
-                    `Unable to get quotes by bulk quote id: ${
-                        (e as Error).message
+                    `Unable to get quotes by bulk quote id: ${(e as Error).message
                     }`
                 );
                 throw new UnableToGetQuotesError("Unable to get quotes");
