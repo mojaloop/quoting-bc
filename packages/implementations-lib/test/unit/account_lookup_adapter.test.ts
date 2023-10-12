@@ -27,7 +27,7 @@ import { MemoryAuthenticatedHttpRequesterMock } from '@mojaloop/quoting-bc-share
 import {LogLevel, ILogger, ConsoleLogger} from '@mojaloop/logging-bc-public-types-lib';
 import { IAccountLookupService } from "@mojaloop/quoting-bc-domain-lib";
 import { AccountLookupAdapter } from '../../src/external_adapters/account_lookup_adapter';
-import { IAuthenticatedHttpRequester } from '@mojaloop/security-bc-client-lib';
+import { IAuthenticatedHttpRequester } from '@mojaloop/security-bc-public-types-lib';
 import { GetAccountLookupAdapterError } from '../../src/errors';
 
 const BASE_URL_ACCOUNT_LOOKUP_CLIENT: string = "http://localhost:1234";

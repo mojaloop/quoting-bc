@@ -59,8 +59,7 @@ export class MemoryBulkQuoteRepo implements IBulkQuoteRepo {
         const bulkQuoteToUpdate = this._bulkQuotes.find(q => q.bulkQuoteId === bulkQuote.bulkQuoteId);
         if (bulkQuoteToUpdate) {
             Object.assign(bulkQuoteToUpdate, bulkQuote);
-        }
-        else{
+        } else{
             throw new Error(`Quote with id ${bulkQuote.bulkQuoteId} not found`);
         }
         return Promise.resolve();

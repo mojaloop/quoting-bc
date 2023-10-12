@@ -36,7 +36,7 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import { ParticipantsHttpClient} from "@mojaloop/participants-bc-client-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import { IParticipantService } from "@mojaloop/quoting-bc-domain-lib";
-import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
+import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
 
 export class ParticipantAdapter implements IParticipantService {
 	private readonly _logger: ILogger;

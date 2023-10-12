@@ -187,8 +187,7 @@ export class QuotingAggregate  {
 						eventToPublish = new QuoteBCUnknownErrorEvent(errorPayload);
 					}
 				}
-		}
-		catch(error:unknown) {
+		} catch(error:unknown) {
 			const errorMessage = `Error while handling message ${message.msgName}`;
 			this._logger.error(errorMessage + `- ${error}`);
 			const errorPayload: QuoteBCUnknownErrorPayload = {
@@ -284,12 +283,10 @@ export class QuotingAggregate  {
 			transferAmount: message.payload.amount
 		};
 
-		if(!this._passThroughMode)
-		{
+		if(!this._passThroughMode){
 			try{
 				await this._quotesRepo.addQuote(quote);
-			}
-			catch(error:any){
+			} catch(error:any){
 				this._logger.error(`Error adding quote to database: ${error}`);
 				const errorPayload : QuoteBCUnableToAddQuoteToDatabaseErrorPayload = {
 					errorDescription: "Unable to add quote to database",
@@ -374,8 +371,7 @@ export class QuotingAggregate  {
 			}
 		}
 
-		if(!this._passThroughMode)
-		{
+		if(!this._passThroughMode) {
 			const quote: Partial<IQuote> = {
 				quoteId: message.payload.quoteId,
 				condition: message.payload.condition,
@@ -392,8 +388,7 @@ export class QuotingAggregate  {
 
 			try{
 				await this._quotesRepo.updateQuote(quote as IQuote);
-			}
-			catch(error:any){
+			} catch(error:any){
 				this._logger.error(`Error updating quote: ${error.message}`);
 				const errorPayload : QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload = {
 					errorDescription: "Unable to update quote in database",
@@ -465,7 +460,6 @@ export class QuotingAggregate  {
 
 		const payload: QuoteQueryResponseEvtPayload = {
 			quoteId: quote.quoteId,
-			transactionId: quote.transactionId,
 			transferAmount: quote.transferAmount as IMoney,
 			expiration: quote.expiration as string,
 			ilpPacket: quote.ilpPacket as string,
@@ -589,12 +583,10 @@ export class QuotingAggregate  {
 			status: QuoteStatus.PENDING
 		};
 
-		if(!this._passThroughMode)
-		{
+		if(!this._passThroughMode) {
 			try{
 				await this.addBulkQuote(bulkQuote);
-			}
-			catch(error:any){
+			} catch(error:any){
 				this._logger.error(`Error adding bulk quote ${bulkQuoteId} to database: ${error.message}`);
 				const errorPayload : QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload = {
 					errorDescription: `Error adding bulk quote ${bulkQuoteId} to database`,
@@ -662,8 +654,7 @@ export class QuotingAggregate  {
 
 			try{
 				await this.updateBulkQuote(bulkQuoteId,requesterFspId,destinationFspId,quoteStatus, quotes);
-			}
-			catch(error:any) {
+			} catch(error:any) {
 				this._logger.error(`Error updating bulk quote ${bulkQuoteId} in database: ${error.message}`);
 				const errorPayload : QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload = {
 					errorDescription: "Error updating bulk quote in database",
@@ -903,8 +894,7 @@ export class QuotingAggregate  {
 				};
 				const errorEvent = new QuoteBCBulkQuoteExpiredErrorEvent(errorPayload);
 				return errorEvent;
-			}
-			else{
+			} else {
 				const errorMessage = `Quote with id ${quoteId} has expired at ${expirationDate}`;
 				this._logger.error(errorMessage);
 				const errorPayload : QuoteBCQuoteExpiredErrorPayload = {

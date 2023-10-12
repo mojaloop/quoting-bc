@@ -36,7 +36,7 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { AccountLookupHttpClient } from "@mojaloop/account-lookup-bc-client-lib";
 import { IAccountLookupService } from "@mojaloop/quoting-bc-domain-lib";
 import { GetAccountLookupAdapterError } from "../errors";
-import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
+import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
 
 const HTTP_CLIENT_TIMEOUT_MS = 10_000;
 
@@ -52,8 +52,7 @@ export class AccountLookupAdapter implements IAccountLookupService {
 		clientBaseUrl: string,
 		authRequester: IAuthenticatedHttpRequester,
 		requestTimeout: number = HTTP_CLIENT_TIMEOUT_MS
-		)
-	{
+		) {
 		this._logger = logger;
 		this._clientBaseUrl = clientBaseUrl;
 		this._authRequester = authRequester;

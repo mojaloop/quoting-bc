@@ -62,9 +62,8 @@ import {QuotingAdminExpressRoutes} from "./routes/quote_admin_routes";
 import express, {Express} from "express";
 import {
 	AuthenticatedHttpRequester,
-	IAuthenticatedHttpRequester
 } from "@mojaloop/security-bc-client-lib";
-
+import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");

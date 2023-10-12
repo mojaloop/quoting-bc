@@ -55,7 +55,7 @@ import {
     IMessageConsumer,
     IMessageProducer,
 } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
+import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
 import {
     IAccountLookupService,
     IBulkQuoteRepo,
