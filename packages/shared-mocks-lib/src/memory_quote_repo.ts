@@ -35,8 +35,8 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {
   IQuoteRepo,
   IQuote,
+  QuotingSearchResults
 } from "@mojaloop/quoting-bc-domain-lib";
-import { QuotingSearchResults } from "../../domain-lib/dist/server_types";
 
 export class MemoryQuoteRepo implements IQuoteRepo {
   private readonly _logger: ILogger;

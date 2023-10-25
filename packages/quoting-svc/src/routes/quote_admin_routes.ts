@@ -42,10 +42,9 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { IBulkQuoteRepo, IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
+import { IBulkQuoteRepo, IQuoteRepo, QuotingSearchResults } from "@mojaloop/quoting-bc-domain-lib";
 import { check } from "express-validator";
 import { BaseRoutes } from "./base/base_routes";
-import { QuotingSearchResults } from '../../../domain-lib/dist/server_types';
 
 export class QuotingAdminExpressRoutes extends BaseRoutes {
     constructor(

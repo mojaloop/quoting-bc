@@ -107,7 +107,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
                 this._logger.error(
                     `Duplicate Quote: ${(e as Error).message}`
                 );
-            });;
+            });
         }
 
         await this.quotes.insertOne(quoteToAdd).catch((e: unknown) => {
@@ -381,7 +381,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
             filter.$and.push({ "transactionType.scenario": transactionType });
         }    
         if(filter.$and.length === 0) {
-            filter = {}
+            filter = {};
         }
 
         try {
