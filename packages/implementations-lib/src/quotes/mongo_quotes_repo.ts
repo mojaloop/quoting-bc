@@ -49,8 +49,11 @@ import {
 import {
     IQuoteRepo,
     IQuote,
+    QuotingSearchResults
 } from "@mojaloop/quoting-bc-domain-lib";
 import { randomUUID } from "crypto";
+
+const MAX_ENTRIES_PER_PAGE = 100;
 
 export class MongoQuotesRepo implements IQuoteRepo {
     private readonly _logger: ILogger;
@@ -100,7 +103,11 @@ export class MongoQuotesRepo implements IQuoteRepo {
     async addQuote(quote: IQuote): Promise<string> {
         const quoteToAdd = { ...quote };
         if (quoteToAdd.quoteId) {
-            await this.checkIfQuoteExists(quote);
+            await this.checkIfQuoteExists(quote).catch((e: unknown) => {
+                this._logger.error(
+                    `Duplicate Quote: ${(e as Error).message}`
+                );
+            });;
         }
 
         await this.quotes.insertOne(quoteToAdd).catch((e: unknown) => {
@@ -248,7 +255,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
             .toArray()
             .catch((e: unknown) => {
                 this._logger.error(
-                    `Unable to get transfers: ${(e as Error).message}`
+                    `Unable to get quotes: ${(e as Error).message}`
                 );
                 throw new UnableToGetQuotesError("Unable to get quotes");
             });
@@ -329,5 +336,120 @@ export class MongoQuotesRepo implements IQuoteRepo {
             transferAmount: quote.transferAmount ?? null,
         };
         return quoteMapped;
+    }
+
+    
+	async searchEntries(
+        userId:string|null,
+        amountType:string|null,
+        transactionType:string|null,
+        quoteId:string|null,
+        transactionId:string|null,
+        pageIndex = 0,
+        pageSize: number = MAX_ENTRIES_PER_PAGE
+    ): Promise<any> {
+        // make sure we don't go over or below the limits
+        pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+        pageIndex = Math.max(pageIndex, 0);
+
+        const searchResults: QuotingSearchResults = {
+            pageSize: pageSize,
+            pageIndex: pageIndex,
+            totalPages: 0,
+            items: []
+        };
+
+        const conditions = [];
+
+        if(userId) conditions.push({match: {"securityContext.userId": userId}});
+        if(amountType) conditions.push({match: {"amountType": amountType}});
+        if(transactionType) conditions.push({match: {"transactionType": transactionType}});
+        if(quoteId) conditions.push({match: {"quoteId": quoteId}});
+        if(transactionId) conditions.push({match: {"transactionId": transactionId}});
+
+        let filter: any = { $and: [] }; // eslint-disable-line @typescript-eslint/no-explicit-any
+        if (quoteId) {
+            filter.$and.push({ quoteId: { $regex: quoteId, $options: "i" } });
+        }
+        if (transactionId) {
+            filter.$and.push({ transactionId: { $regex: transactionId, $options: "i" } });
+        }
+        if (amountType) {
+            filter.$and.push({ amountType });
+        }
+        if (transactionType) {
+            filter.$and.push({ "transactionType.scenario": transactionType });
+        }    
+        if(filter.$and.length === 0) {
+            filter = {}
+        }
+
+        try {
+            const skip = Math.floor(pageIndex * pageSize);
+			const result = await this.quotes.find(
+				filter,
+				{
+					sort:["updatedAt", "desc"], 
+					skip: skip,
+                    limit: 20
+				}
+			).toArray().catch((e: unknown) => {
+                this._logger.error(`Unable to get quotes: ${(e as Error).message}`);
+                throw new UnableToGetQuotesError("Unable to get quotes");
+			});
+
+			searchResults.items = result as unknown as IQuote[];
+
+			const totalEntries = await this.quotes.find(
+				filter
+            ).toArray().catch((e: unknown) => {
+                this._logger.error(`Unable to get quotes page size: ${(e as Error).message}`);
+                throw new UnableToGetQuotesError("Unable to get quotes page size");
+			});
+
+			searchResults.totalPages = Math.ceil(totalEntries.length / pageSize);
+			searchResults.pageSize = Math.max(pageSize, result.length);
+            
+        } catch (err) {
+            this._logger.error(err);
+        }
+
+        return Promise.resolve(searchResults);
+    }
+
+	async getSearchKeywords():Promise<{fieldName:string, distinctTerms:string[]}[]>{
+        const retObj:{fieldName:string, distinctTerms:string[]}[] = [];
+
+        try {
+            const result = await this.quotes
+                .find({})
+                .project({_id: 0})
+                .toArray() as IQuote[];
+
+			const amountType:{fieldName:string, distinctTerms:string[]} = {
+				fieldName: "amountType",
+				distinctTerms: []
+			};
+
+            for (let i=0; i<result.length ; i+=1) { 
+				if(!amountType.distinctTerms.includes(result[i].amountType)) amountType.distinctTerms.push(result[i].amountType);
+			}
+			retObj.push(amountType);
+
+			const transactionType:{fieldName:string, distinctTerms:string[]} = {
+				fieldName: "transactionType",
+				distinctTerms: []
+			};
+
+            for (let i=0; i<result.length ; i+=1) { 
+				if(!transactionType.distinctTerms.includes(result[i].transactionType.scenario)) transactionType.distinctTerms.push(result[i].transactionType.scenario);
+			}
+			retObj.push(transactionType);
+			
+        } catch (err) {
+            this._logger.error(err);
+        }
+
+        return Promise.resolve(retObj);
     }
 }

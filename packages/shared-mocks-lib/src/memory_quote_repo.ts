@@ -36,6 +36,7 @@ import {
   IQuoteRepo,
   IQuote,
 } from "@mojaloop/quoting-bc-domain-lib";
+import { QuotingSearchResults } from "../../domain-lib/dist/server_types";
 
 export class MemoryQuoteRepo implements IQuoteRepo {
   private readonly _logger: ILogger;
@@ -43,6 +44,13 @@ export class MemoryQuoteRepo implements IQuoteRepo {
 
   constructor(logger: ILogger) {
     this._logger = logger;
+  }
+  searchEntries(userId: string | null, amountType: string | null, transactionType: string | null, quoteId: string | null, transactionId: string | null, pageIndex?: number | undefined, pageSize?: number | undefined): Promise<QuotingSearchResults> {
+    throw new Error("Method not implemented.");
+  }
+
+  getSearchKeywords(): Promise<{ fieldName: string; distinctTerms: string[]; }[]> {
+    throw new Error("Method not implemented.");
   }
 
   init(): Promise<void> {

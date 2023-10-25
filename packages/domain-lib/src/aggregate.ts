@@ -656,6 +656,7 @@ export class QuotingAggregate  {
 
 			try{
 				await this.updateBulkQuote(bulkQuoteId,requesterFspId,destinationFspId,quoteStatus, quotes);
+			
 			} catch(err:unknown){
 				const error = (err as Error).message;
 				this._logger.error(`Error updating bulk quote ${bulkQuoteId} in database: ${error}`);
@@ -800,6 +801,7 @@ export class QuotingAggregate  {
 
 		// change quote status to Pending for all
 		quotes.forEach((quote) => {
+			quote.bulkQuoteId = bulkQuote.bulkQuoteId;
 			quote.status = QuoteStatus.PENDING;
 		});
 

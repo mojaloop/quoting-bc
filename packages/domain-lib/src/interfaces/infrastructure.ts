@@ -33,7 +33,7 @@
 "use strict";
 
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuote, IBulkQuote } from "../types";
+import { IQuote, IBulkQuote, QuotingSearchResults } from "../types";
 
 export interface IQuoteRepo {
   init(): Promise<void>;
@@ -54,6 +54,18 @@ export interface IQuoteRepo {
     amountType?: string,
     transactionType?: string
   ): Promise<IQuote[]>;
+
+  searchEntries(
+    userId:string|null,
+    amountType:string|null,
+    transactionType:string|null,
+    quoteId:string|null,
+    transactionId:string|null,
+    pageIndex?:number,
+    pageSize?: number
+  ): Promise<QuotingSearchResults>;
+
+  getSearchKeywords():Promise<{fieldName:string, distinctTerms:string[]}[]>
 }
 
 export interface IBulkQuoteRepo {

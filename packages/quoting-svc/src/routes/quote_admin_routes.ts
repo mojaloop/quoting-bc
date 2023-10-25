@@ -45,6 +45,7 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IBulkQuoteRepo, IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
 import { check } from "express-validator";
 import { BaseRoutes } from "./base/base_routes";
+import { QuotingSearchResults } from '../../../domain-lib/dist/server_types';
 
 export class QuotingAdminExpressRoutes extends BaseRoutes {
     constructor(
@@ -80,6 +81,9 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
             ],
             this.getBulkQuoteById.bind(this)
         );
+
+        this.mainRouter.get("/entries/", this._getSearchEntries.bind(this));
+        this.mainRouter.get("/searchKeywords/", this._getSearchKeywords.bind(this));
     }
 
     private async getAllQuotes(
@@ -199,4 +203,60 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
             });
         }
     }
+
+        
+    private async _getSearchEntries(req: express.Request, res: express.Response){
+        const amountType = req.query.amountType as string || null;
+        const transactionType = req.query.transactionType as string || null;
+        const quoteId = req.query.quoteId as string || null;
+        const transactionId = req.query.transactionId as string || null;
+        const userId = req.query.userId as string || null;
+
+
+        // optional pagination
+        const pageIndexStr = req.query.pageIndex as string || req.query.pageindex as string;
+        const pageIndex = pageIndexStr ? parseInt(pageIndexStr) : undefined;
+
+        const pageSizeStr = req.query.pageSize as string || req.query.pagesize as string;
+        const pageSize = pageSizeStr ? parseInt(pageSizeStr) : undefined;
+
+
+        try{
+            const ret:QuotingSearchResults = await this.quoteRepo.searchEntries(
+                // text,
+                userId,
+                amountType,
+                transactionType,
+                quoteId,
+                transactionId,
+                pageIndex,
+                pageSize
+            );
+            res.send(ret);
+        }   catch (err: any) {
+            // if (this._handleUnauthorizedError(err, res)) return;
+
+            this.logger.error(err);
+            res.status(500).json({
+                status: "error",
+                msg: (err as Error).message,
+            });
+        }
+    }
+    
+    private async _getSearchKeywords(req: express.Request, res: express.Response){
+        try{
+            const ret = await this.quoteRepo.getSearchKeywords();
+            res.send(ret);
+        }   catch (err: any) {
+            // if (this._handleUnauthorizedError(err, res)) return;
+
+            this.logger.error(err);
+            res.status(500).json({
+                status: "error",
+                msg: (err as Error).message,
+            });
+        }
+    }
+
 }

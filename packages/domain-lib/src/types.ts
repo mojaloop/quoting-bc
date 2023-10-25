@@ -149,10 +149,9 @@ export interface IQuoteSchemeRules {
     currencies: string[];
 }
 
-
-
-
-
-
-
-
+export declare type QuotingSearchResults = {
+    pageSize: number;
+    totalPages: number;
+    pageIndex: number;
+    items: IQuote[];
+}
