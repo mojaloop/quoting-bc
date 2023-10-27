@@ -49,18 +49,11 @@ export interface IQuoteRepo {
     id: string
   ): Promise<IQuote[]>;
   searchQuotes(
-    transactionId?: string,
-    quoteId?: string,
-    amountType?: string,
-    transactionType?: string
-  ): Promise<IQuote[]>;
-
-  searchEntries(
-    userId:string|null,
     amountType:string|null,
     transactionType:string|null,
     quoteId:string|null,
     transactionId:string|null,
+    bulkQuoteId:string|null,
     pageIndex?:number,
     pageSize?: number
   ): Promise<QuotingSearchResults>;

@@ -45,13 +45,6 @@ export class MemoryQuoteRepo implements IQuoteRepo {
   constructor(logger: ILogger) {
     this._logger = logger;
   }
-  searchEntries(userId: string | null, amountType: string | null, transactionType: string | null, quoteId: string | null, transactionId: string | null, pageIndex?: number | undefined, pageSize?: number | undefined): Promise<QuotingSearchResults> {
-    throw new Error("Method not implemented.");
-  }
-
-  getSearchKeywords(): Promise<{ fieldName: string; distinctTerms: string[]; }[]> {
-    throw new Error("Method not implemented.");
-  }
 
   init(): Promise<void> {
     return Promise.resolve();
@@ -105,20 +98,11 @@ export class MemoryQuoteRepo implements IQuoteRepo {
     return Promise.resolve(this._quotes);
   }
 
-  searchQuotes(
-    transactionId?: string | undefined,
-    quoteId?: string | undefined,
-    amountType?: string | undefined,
-    transactionType?: string | undefined
-  ): Promise<IQuote[]> {
-    return Promise.resolve(
-      this._quotes.filter(
-        (quote) =>
-          quote.quoteId === quoteId ||
-          quote.transactionId === transactionId ||
-          quote.amountType === amountType ||
-          quote.transactionType.scenario === transactionType
-      )
-    );
+  searchQuotes(amountType: string | null, transactionType: string | null, quoteId: string | null, transactionId: string | null, bulkQuoteId: string | null, pageIndex?: number | undefined, pageSize?: number | undefined): Promise<QuotingSearchResults> {
+    throw new Error("Method not implemented.");
+  }
+  
+  getSearchKeywords(): Promise<{ fieldName: string; distinctTerms: string[]; }[]> {
+    throw new Error("Method not implemented.");
   }
 }

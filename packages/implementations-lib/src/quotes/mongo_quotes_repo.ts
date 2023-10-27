@@ -227,44 +227,6 @@ export class MongoQuotesRepo implements IQuoteRepo {
         return mappedQuotes;
     }
 
-    async searchQuotes(
-        id?: string,
-        quoteId?: string,
-        amountType?: string,
-        transactionType?: string
-    ): Promise<IQuote[]> {
-        const filter: any = { $and: [] }; // eslint-disable-line @typescript-eslint/no-explicit-any
-        if (id) {
-            filter.$and.push({ transactionId: { $regex: id, $options: "i" } });
-        }
-        if (quoteId) {
-            filter.$and.push({ quoteId: { $regex: quoteId, $options: "i" } });
-        }
-        if (amountType) {
-            filter.$and.push({ amountType });
-        }
-        if (transactionType) {
-            filter.$and.push({ "transactionType.scenario": transactionType });
-        }
-
-        const quotes = await this.quotes
-            .find(filter, {
-                sort: ["updatedAt", "desc"],
-                projection: { _id: 0 },
-            })
-            .toArray()
-            .catch((e: unknown) => {
-                this._logger.error(
-                    `Unable to get quotes: ${(e as Error).message}`
-                );
-                throw new UnableToGetQuotesError("Unable to get quotes");
-            });
-
-        const mappedTransfers = quotes.map(this.mapToQuote);
-
-        return mappedTransfers;
-    }
-
     async getQuotesByBulkQuoteId(
         bulkQuoteId: string
     ): Promise<IQuote[]> {
@@ -339,12 +301,12 @@ export class MongoQuotesRepo implements IQuoteRepo {
     }
 
     
-	async searchEntries(
-        userId:string|null,
+	async searchQuotes(
         amountType:string|null,
         transactionType:string|null,
         quoteId:string|null,
         transactionId:string|null,
+        bulkQuoteId:string|null,
         pageIndex = 0,
         pageSize: number = MAX_ENTRIES_PER_PAGE
     ): Promise<any> {
@@ -359,14 +321,6 @@ export class MongoQuotesRepo implements IQuoteRepo {
             items: []
         };
 
-        const conditions = [];
-
-        if(userId) conditions.push({match: {"securityContext.userId": userId}});
-        if(amountType) conditions.push({match: {"amountType": amountType}});
-        if(transactionType) conditions.push({match: {"transactionType": transactionType}});
-        if(quoteId) conditions.push({match: {"quoteId": quoteId}});
-        if(transactionId) conditions.push({match: {"transactionId": transactionId}});
-
         let filter: any = { $and: [] }; // eslint-disable-line @typescript-eslint/no-explicit-any
         if (quoteId) {
             filter.$and.push({ quoteId: { $regex: quoteId, $options: "i" } });
@@ -380,6 +334,9 @@ export class MongoQuotesRepo implements IQuoteRepo {
         if (transactionType) {
             filter.$and.push({ "transactionType.scenario": transactionType });
         }    
+        if(bulkQuoteId){
+            filter.$and.push({bulkQuoteId: bulkQuoteId});
+        }
         if(filter.$and.length === 0) {
             filter = {};
         }
@@ -421,31 +378,33 @@ export class MongoQuotesRepo implements IQuoteRepo {
         const retObj:{fieldName:string, distinctTerms:string[]}[] = [];
 
         try {
-            const result = await this.quotes
-                .find({})
-                .project({_id: 0})
-                .toArray() as IQuote[];
+            const result = this.quotes
+                .aggregate([
+					{$group: { "_id": { amountType: "$amountType", transactionType: "$transactionType" } } }
+				]);
 
 			const amountType:{fieldName:string, distinctTerms:string[]} = {
 				fieldName: "amountType",
 				distinctTerms: []
 			};
 
-            for (let i=0; i<result.length ; i+=1) { 
-				if(!amountType.distinctTerms.includes(result[i].amountType)) amountType.distinctTerms.push(result[i].amountType);
-			}
-			retObj.push(amountType);
-
 			const transactionType:{fieldName:string, distinctTerms:string[]} = {
 				fieldName: "transactionType",
 				distinctTerms: []
 			};
 
-            for (let i=0; i<result.length ; i+=1) { 
-				if(!transactionType.distinctTerms.includes(result[i].transactionType.scenario)) transactionType.distinctTerms.push(result[i].transactionType.scenario);
+			for await (const term of result) {
+
+				if(!amountType.distinctTerms.includes(term._id.amountType)) {
+					amountType.distinctTerms.push(term._id.amountType);
+				}
+				retObj.push(amountType);
+
+				if(!transactionType.distinctTerms.includes(term._id.transactionType.scenario)) {
+					transactionType.distinctTerms.push(term._id.transactionType.scenario);
+				}
+				retObj.push(transactionType);
 			}
-			retObj.push(transactionType);
-			
         } catch (err) {
             this._logger.error(err);
         }
