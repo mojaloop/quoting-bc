@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/quoting-bc-quoting-svc",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "mojaloop quoting service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/quoting-bc/tree/main/modules/quoting-svc",
