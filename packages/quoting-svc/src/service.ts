@@ -39,6 +39,7 @@ import {
 	IParticipantService,
 	IAccountLookupService,
 	IQuoteSchemeRules,
+	QuotingPrivilegesDefinition
 } from "@mojaloop/quoting-bc-domain-lib";
 import {IMessageProducer, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
@@ -61,9 +62,9 @@ import process from "process";
 import {QuotingAdminExpressRoutes} from "./routes/quote_admin_routes";
 import express, {Express} from "express";
 import {
-	AuthenticatedHttpRequester,
+	AuthenticatedHttpRequester, AuthorizationClient, TokenHelper,
 } from "@mojaloop/security-bc-client-lib";
-import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
+import {IAuthenticatedHttpRequester, IAuthorizationClient, ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -88,10 +89,10 @@ const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 // security
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
-// const AUTH_N_TOKEN_ISSUER_NAME = process.env["AUTH_N_TOKEN_ISSUER_NAME"] || "mojaloop.vnext.dev.default_issuer";
-// const AUTH_N_TOKEN_AUDIENCE = process.env["AUTH_N_TOKEN_AUDIENCE"] || "mojaloop.vnext.dev.default_audience";
-// const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_BASEURL}/.well-known/jwks.json`;
-// const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
+const AUTH_N_TOKEN_ISSUER_NAME = process.env["AUTH_N_TOKEN_ISSUER_NAME"] || "mojaloop.vnext.dev.default_issuer";
+const AUTH_N_TOKEN_AUDIENCE = process.env["AUTH_N_TOKEN_AUDIENCE"] || "mojaloop.vnext.dev.default_audience";
+const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_BASEURL}/.well-known/jwks.json`;
+const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
 
 // Other services
 const ACCOUNT_LOOKUP_SVC_URL = process.env["ACCOUNT_LOOKUP_SVC_URL"] || "http://localhost:3030";
@@ -147,6 +148,8 @@ export class Service {
 	static accountLookupService: IAccountLookupService;
 	static aggregate: QuotingAggregate;
     static startupTimer: NodeJS.Timeout;
+    static authorizationClient: IAuthorizationClient;
+    static tokenHelper: ITokenHelper;
 
 	static async start(
 		logger?: ILogger,
@@ -157,7 +160,8 @@ export class Service {
 		authRequester?: IAuthenticatedHttpRequester,
 		participantService?: IParticipantService,
 		accountLookupService?: IAccountLookupService,
-		aggregate?: QuotingAggregate
+		aggregate?: QuotingAggregate, // TODO: remove aggregate from here and tests
+        authorizationClient?: IAuthorizationClient
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -275,6 +279,20 @@ export class Service {
 
 		this.messageConsumer.setCallbackFn(this.aggregate.handleQuotingEvent.bind(this.aggregate));
 
+		// authorization client
+		if (!authorizationClient) {
+			// setup privileges - bootstrap app privs and get priv/role associations
+			authorizationClient = new AuthorizationClient(BC_NAME, APP_NAME, APP_VERSION, AUTH_Z_SVC_BASEURL, logger);
+			authorizationClient.addPrivilegesArray(QuotingPrivilegesDefinition);
+			await (authorizationClient as AuthorizationClient).bootstrap(true);
+			await (authorizationClient as AuthorizationClient).fetch();
+		}
+		this.authorizationClient = authorizationClient;
+
+		// token helper
+		this.tokenHelper = new TokenHelper(AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE);
+		await this.tokenHelper.init();
+		
 		await this.setupExpress();
 
         // remove startup timeout
@@ -289,7 +307,7 @@ export class Service {
 			this.app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
 
 			// Add admin and client http routes
-			const quotingAdminRoutes = new QuotingAdminExpressRoutes(this.quotesRepo, this.bulkQuotesRepo, this.logger);
+			const quotingAdminRoutes = new QuotingAdminExpressRoutes(this.quotesRepo, this.bulkQuotesRepo, this.logger, this.tokenHelper, this.authorizationClient);
 			this.app.use("", quotingAdminRoutes.mainRouter);
 
 			this.app.use((req, res) => {

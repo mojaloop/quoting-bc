@@ -42,17 +42,20 @@
 
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { IBulkQuoteRepo, IQuoteRepo, QuotingSearchResults } from "@mojaloop/quoting-bc-domain-lib";
+import { IBulkQuoteRepo, IQuoteRepo, QuotingSearchResults, QuotingPrivileges } from "@mojaloop/quoting-bc-domain-lib";
 import { check } from "express-validator";
 import { BaseRoutes } from "./base/base_routes";
+import { IAuthorizationClient, ITokenHelper } from "@mojaloop/security-bc-public-types-lib";
 
 export class QuotingAdminExpressRoutes extends BaseRoutes {
     constructor(
         quotesRepo: IQuoteRepo,
         bulkQuoteRepo: IBulkQuoteRepo,
-        logger: ILogger
+        logger: ILogger,
+        tokenHelper: ITokenHelper,
+        authorizationClient: IAuthorizationClient
     ) {
-        super(logger, quotesRepo, bulkQuoteRepo);
+        super(logger, quotesRepo, bulkQuoteRepo, tokenHelper, authorizationClient);
         this.logger.createChild(this.constructor.name);
 
         this.mainRouter.get("/quotes", this.getAllQuotes.bind(this));
@@ -86,6 +89,8 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
 
     private async getAllQuotes(req: express.Request, res: express.Response) {
         try {
+            this._enforcePrivilege(req.securityContext!, QuotingPrivileges.VIEW_ALL_QUOTES);
+
             const amountType = req.query.amountType as string || null;
             const transactionType = req.query.transactionType as string || null;
             const quoteId = req.query.quoteId as string || null;
@@ -115,6 +120,8 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
 
             res.send(fetched);
         } catch (err: unknown) {
+            if (this._handleUnauthorizedError((err as Error), res)) return;
+
             this.logger.error(err);
             res.status(500).json({
                 status: "error",
@@ -123,15 +130,16 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         }
     }
 
-    private async getAllBulkQuotes(
-        _req: express.Request,
-        res: express.Response
-    ) {
+    private async getAllBulkQuotes(req: express.Request, res: express.Response) {
         this.logger.info("Fetching all bulk quotes");
         try {
+            this._enforcePrivilege(req.securityContext!, QuotingPrivileges.VIEW_ALL_QUOTES);
+
             const fetched = await this.bulkQuoteRepo.getBulkQuotes();
             res.send(fetched);
         } catch (err: unknown) {
+            if (this._handleUnauthorizedError((err as Error), res)) return;
+
             this.logger.error(err);
             res.status(500).json({
                 status: "error",
@@ -140,11 +148,8 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         }
     }
 
-    private async getQuoteById(
-        req: express.Request,
-        res: express.Response
-    ) {
-        if (!this.validateRequest(req, res)) {
+    private async getQuoteById(req: express.Request, res: express.Response) {
+        if (!this._validateRequest(req, res)) {
             return;
         }
 
@@ -154,6 +159,8 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         this.logger.info("Fetching quote by id " + id);
 
         try {
+            this._enforcePrivilege(req.securityContext!, QuotingPrivileges.VIEW_ALL_QUOTES);
+
             const fetched = await this.quoteRepo.getQuoteById(id);
             if (!fetched) {
                 res.status(404).json({
@@ -165,6 +172,8 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
             }
             res.send(fetched);
         } catch (err: unknown) {
+            if (this._handleUnauthorizedError((err as Error), res)) return;
+
             this.logger.error(err);
             res.status(500).json({
                 status: "error",
@@ -173,11 +182,8 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         }
     }
 
-    private async getBulkQuoteById(
-        req: express.Request,
-        res: express.Response
-    ) {
-        if (!this.validateRequest(req, res)) {
+    private async getBulkQuoteById(req: express.Request, res: express.Response) {
+        if (!this._validateRequest(req, res)) {
             return;
         }
 
@@ -187,6 +193,8 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         this.logger.info("Fetching bulk quote by id " + id);
 
         try {
+            this._enforcePrivilege(req.securityContext!, QuotingPrivileges.VIEW_ALL_QUOTES);
+
             const fetched = await this.bulkQuoteRepo.getBulkQuoteById(id);
             if (!fetched) {
                 res.status(404).json({
@@ -198,6 +206,8 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
             }
             res.send(fetched);
         } catch (err: unknown) {
+            if (this._handleUnauthorizedError((err as Error), res)) return;
+
             this.logger.error(err);
             res.status(500).json({
                 status: "error",
@@ -208,10 +218,12 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
 
     private async _getSearchKeywords(req: express.Request, res: express.Response){
         try{
+            this._enforcePrivilege(req.securityContext!, QuotingPrivileges.VIEW_ALL_QUOTES);
+
             const ret = await this.quoteRepo.getSearchKeywords();
             res.send(ret);
-        }   catch (err: any) {
-            // if (this._handleUnauthorizedError(err, res)) return;
+        } catch (err: any) {
+            if (this._handleUnauthorizedError((err as Error), res)) return;
 
             this.logger.error(err);
             res.status(500).json({
