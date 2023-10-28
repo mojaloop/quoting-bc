@@ -128,5 +128,6 @@ describe("Quoting Admin Routes - Unit", () => {
 
         // Assert
         expect(response.status).toBe(401);
+        expect(response.text).toBe("Unauthorized");
     });
 });
