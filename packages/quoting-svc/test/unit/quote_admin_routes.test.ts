@@ -118,7 +118,7 @@ describe("Quoting Admin Routes - Unit", () => {
         await Service.stop();
     });
 
-    test("GET - should get a quote by it's id", async () => {
+    test("GET - should return unauthorized error when get a quote by it's id without permission", async () => {
         // Arrange
         const newQuote = mockedQuote1;
         const quoteId = await mockedQuoteRepository.addQuote(newQuote);
@@ -127,7 +127,6 @@ describe("Quoting Admin Routes - Unit", () => {
         const response = await request(server).get(`/quotes/${quoteId}`);
 
         // Assert
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual(newQuote);
+        expect(response.status).toBe(401);
     });
 });
