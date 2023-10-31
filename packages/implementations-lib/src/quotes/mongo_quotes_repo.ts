@@ -335,7 +335,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
             filter.$and.push({ "transactionType.scenario": transactionType });
         }    
         if(bulkQuoteId){
-            filter.$and.push({bulkQuoteId: bulkQuoteId});
+            filter.$and.push({ bulkQuoteId: { $regex: bulkQuoteId, $options: "i" } });
         }
         if(filter.$and.length === 0) {
             filter = {};
