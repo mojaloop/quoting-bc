@@ -131,6 +131,11 @@ const kafkaProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
 };
 
+const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
+    kafkaBrokerList: KAFKA_URL,
+    kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
+};
+
 const SERVICE_START_TIMEOUT_MS = 60_000;
 
 let globalLogger: ILogger;
@@ -281,18 +286,28 @@ export class Service {
 
 		// authorization client
 		if (!authorizationClient) {
-			// setup privileges - bootstrap app privs and get priv/role associations
-			authorizationClient = new AuthorizationClient(BC_NAME, APP_NAME, APP_VERSION, AUTH_Z_SVC_BASEURL, logger);
+            const messageConsumer = new MLKafkaJsonConsumer(
+                kafkaConsumerOptions,
+                logger.createChild("authorizationClientConsumer")
+            );
+
+            // setup privileges - bootstrap app privs and get priv/role associations
+            authorizationClient = new AuthorizationClient(
+                BC_NAME, APP_NAME, APP_VERSION,
+                AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
+                messageConsumer
+            );
 			authorizationClient.addPrivilegesArray(QuotingPrivilegesDefinition);
 			await (authorizationClient as AuthorizationClient).bootstrap(true);
 			await (authorizationClient as AuthorizationClient).fetch();
+			await (authorizationClient as AuthorizationClient).init();
 		}
 		this.authorizationClient = authorizationClient;
 
 		// token helper
 		this.tokenHelper = new TokenHelper(AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE);
 		await this.tokenHelper.init();
-		
+
 		await this.setupExpress();
 
         // remove startup timeout
