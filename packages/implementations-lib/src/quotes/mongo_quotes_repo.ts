@@ -347,25 +347,23 @@ export class MongoQuotesRepo implements IQuoteRepo {
 				filter,
 				{
 					sort:["updatedAt", "desc"], 
+                    projection: {_id: 0},
 					skip: skip,
-                    limit: 20
+                    limit: pageSize
 				}
 			).toArray().catch((e: unknown) => {
                 this._logger.error(`Unable to get quotes: ${(e as Error).message}`);
                 throw new UnableToGetQuotesError("Unable to get quotes");
 			});
 
-			searchResults.items = result as unknown as IQuote[];
+            const countResult = await this.quotes.countDocuments(filter).catch(reason => {
+                this._logger.error("Unable to get quotes count");
+            }) || result.length;
 
-			const totalEntries = await this.quotes.find(
-				filter
-            ).toArray().catch((e: unknown) => {
-                this._logger.error(`Unable to get quotes page size: ${(e as Error).message}`);
-                throw new UnableToGetQuotesError("Unable to get quotes page size");
-			});
+            searchResults.items = result.map(this.mapToQuote);
 
-			searchResults.totalPages = Math.ceil(totalEntries.length / pageSize);
-			searchResults.pageSize = Math.max(pageSize, result.length);
+            searchResults.totalPages = Math.ceil(countResult / pageSize);
+            searchResults.pageSize = Math.max(pageSize, result.length);
             
         } catch (err) {
             this._logger.error(err);
