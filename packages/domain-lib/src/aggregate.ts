@@ -72,6 +72,10 @@ import {
 	QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload,
 	QuoteBCRequesterParticipantNotFoundErrorEvent,
 	QuoteBCRequesterParticipantNotFoundErrorPayload,
+	QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent,
+	QuoteBCRequiredDestinationParticipantIsNotActiveErrorPayload,
+	QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent,
+	QuoteBCRequiredRequesterParticipantIsNotActiveErrorPayload,
 	QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
 	QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload,
 	QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
@@ -999,11 +1003,20 @@ export class QuotingAggregate  {
 			return errorEvent;
 		}
 
-		// TODO enable participant.isActive check once this is implemented over the participants side
-		// if(!participant.isActive) {
-			// 	this._logger.debug(`${participant.id} is not active`);
-			// 	throw new RequiredParticipantIsNotActive();
-		// }
+		if(!participant.isActive) {
+			const errorMessage = `Payee participant fspId ${participant.id} is not active`;
+			this._logger.error(errorMessage);
+			
+			const errorPayload: QuoteBCRequiredDestinationParticipantIsNotActiveErrorPayload = {
+				bulkQuoteId,
+				errorDescription: errorMessage,
+				destinationFspId: participantId,
+				quoteId
+			};
+
+			return new QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent(errorPayload);
+		}
+
 		return null;
 	}
 
@@ -1057,11 +1070,20 @@ export class QuotingAggregate  {
 			return errorEvent;
 		}
 
-		// TODO enable participant.isActive check once this is implemented over the participants side
-		// if(!participant.isActive) {
-			// 	this._logger.debug(`${participant.id} is not active`);
-			// 	throw new RequiredParticipantIsNotActive();
-		// }
+		if(!participant.isActive) {
+			const errorMessage = `Payer participant fspId ${participant.id} is not active`;
+			this._logger.error(errorMessage);
+			
+			const errorPayload: QuoteBCRequiredRequesterParticipantIsNotActiveErrorPayload = {
+				bulkQuoteId,
+				errorDescription: errorMessage,
+				requesterFspId: participantId,
+				quoteId
+			};
+
+			return new QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent(errorPayload);
+
+		}
 		return null;
 	}
 	//#endregion
