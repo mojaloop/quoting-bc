@@ -106,7 +106,7 @@ const DB_NAME_BULK_QUOTES = "quoting";
 const DB_NAME_QUOTES = "quoting";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-quoting-svc";
-const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const HTTP_CLIENT_TIMEOUT_MS = 10_000;
 
@@ -286,21 +286,30 @@ export class Service {
 
 		// authorization client
 		if (!authorizationClient) {
+            // create the instance of IAuthenticatedHttpRequester
+            const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
             const messageConsumer = new MLKafkaJsonConsumer(
-                kafkaConsumerOptions,
-                logger.createChild("authorizationClientConsumer")
+                {
+                    kafkaBrokerList: KAFKA_URL,
+                    kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
+                }, logger.createChild("authorizationClientConsumer")
             );
 
             // setup privileges - bootstrap app privs and get priv/role associations
             authorizationClient = new AuthorizationClient(
                 BC_NAME, APP_NAME, APP_VERSION,
                 AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
+                authRequester,
                 messageConsumer
             );
-			authorizationClient.addPrivilegesArray(QuotingPrivilegesDefinition);
-			await (authorizationClient as AuthorizationClient).bootstrap(true);
-			await (authorizationClient as AuthorizationClient).fetch();
-			await (authorizationClient as AuthorizationClient).init();
+
+            authorizationClient.addPrivilegesArray(QuotingPrivilegesDefinition);
+            await (authorizationClient as AuthorizationClient).bootstrap(true);
+            await (authorizationClient as AuthorizationClient).fetch();
+            // init message consumer to automatically update on role changed events
+            await (authorizationClient as AuthorizationClient).init();
 		}
 		this.authorizationClient = authorizationClient;
 
