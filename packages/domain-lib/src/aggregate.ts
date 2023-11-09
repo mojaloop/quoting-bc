@@ -102,7 +102,7 @@ import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo 
 import { IBulkQuote, IExtensionList, IGeoCode, IMoney, IQuote, IQuoteSchemeRules, QuoteStatus } from "./types";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import { IParticipant } from '@mojaloop/participant-bc-public-types-lib';
+import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 
 "use strict";
 
@@ -958,7 +958,7 @@ export class QuotingAggregate  {
 		let participant: IParticipant | null = null;
 
 		if(!participantId){
-			const errorMessage = `Payee fspId is null or undefined`;
+			const errorMessage = "Payee fspId is null or undefined";
 			this._logger.error(errorMessage);
 			const errorPayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
 				bulkQuoteId,
@@ -1024,7 +1024,7 @@ export class QuotingAggregate  {
 		let participant: IParticipant | null = null;
 
 		if(!participantId){
-			const errorMessage = `Payer fspId is null or undefined`;
+			const errorMessage = "Payer fspId is null or undefined";
 			this._logger.error(errorMessage);
 			const errorPayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
 				bulkQuoteId,
