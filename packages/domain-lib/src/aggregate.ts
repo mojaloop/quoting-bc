@@ -52,6 +52,10 @@ import {
 	QuoteBCBulkQuoteNotFoundErrorPayload,
 	QuoteBCDestinationParticipantNotFoundErrorEvent,
 	QuoteBCDestinationParticipantNotFoundErrorPayload,
+	QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent,
+	QuoteBCRequiredDestinationParticipantIdMismatchErrorPayload,
+	QuoteBCRequiredRequesterParticipantIdMismatchErrorPayload,
+	QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent,
 	QuoteBCInvalidBulkQuoteLengthErrorEvent,
 	QuoteBCInvalidBulkQuoteLengthErrorPayload,
 	QuoteBCInvalidDestinationFspIdErrorEvent,
@@ -72,6 +76,10 @@ import {
 	QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload,
 	QuoteBCRequesterParticipantNotFoundErrorEvent,
 	QuoteBCRequesterParticipantNotFoundErrorPayload,
+	QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent,
+	QuoteBCRequiredDestinationParticipantIsNotApprovedErrorPayload,
+	QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent,
+	QuoteBCRequiredRequesterParticipantIsNotApprovedErrorPayload,
 	QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent,
 	QuoteBCRequiredDestinationParticipantIsNotActiveErrorPayload,
 	QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent,
@@ -993,30 +1001,42 @@ export class QuotingAggregate  {
 		if(participant.id !== participantId){
 			const errorMessage = `Payee participant id mismatch with expected ${participant.id} - ${participantId}`;
 			this._logger.error(errorMessage);
-			const errorPayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
+			const errorPayload: QuoteBCRequiredDestinationParticipantIdMismatchErrorPayload = {
 				bulkQuoteId,
 				errorDescription: errorMessage,
 				destinationFspId: participantId,
 				quoteId
 			};
-			const errorEvent = new QuoteBCInvalidDestinationFspIdErrorEvent(errorPayload);
+			const errorEvent = new QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent(errorPayload);
 			return errorEvent;
 		}
 
-		if(!participant.isActive) {
-			const errorMessage = `Payee participant fspId ${participant.id} is not active`;
+		if(!participant.approved) {
+			const errorMessage = `Payee participant fspId ${participantId} is not approved`;
 			this._logger.error(errorMessage);
-			
-			const errorPayload: QuoteBCRequiredDestinationParticipantIsNotActiveErrorPayload = {
-				bulkQuoteId,
-				errorDescription: errorMessage,
+			const errorPayload: QuoteBCRequiredDestinationParticipantIsNotApprovedErrorPayload = {
 				destinationFspId: participantId,
-				quoteId
+				quoteId,
+				bulkQuoteId,
+				errorDescription: errorMessage
 			};
-
-			return new QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent(errorPayload);
+			const errorEvent = new QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent(errorPayload);
+			return errorEvent;
 		}
 
+		
+		if(!participant.isActive) {
+			const errorMessage = `Payee participant fspId ${participantId} is not active`;
+			this._logger.error(errorMessage);
+			const errorPayload: QuoteBCRequiredDestinationParticipantIsNotActiveErrorPayload = {
+				destinationFspId: participantId,
+				quoteId,
+				bulkQuoteId,
+				errorDescription: errorMessage
+			};
+			const errorEvent = new QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent(errorPayload);
+			return errorEvent;
+		}
 		return null;
 	}
 
@@ -1058,31 +1078,42 @@ export class QuotingAggregate  {
 		}
 
 		if(participant.id !== participantId){
-			const errorMessage = `Payee participant fspId mismatch with expected ${participant.id} - ${participantId}`;
+			const errorMessage = `Payer participant fspId mismatch with expected ${participant.id} - ${participantId}`;
 			this._logger.error(errorMessage);
-			const errorPayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
+			const errorPayload: QuoteBCRequiredRequesterParticipantIdMismatchErrorPayload = {
 				bulkQuoteId,
 				errorDescription: errorMessage,
 				requesterFspId: participantId,
 				quoteId
 			};
-			const errorEvent = new QuoteBCInvalidRequesterFspIdErrorEvent(errorPayload);
+			const errorEvent = new QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent(errorPayload);
+			return errorEvent;
+		}
+
+		if(!participant.approved) {
+			const errorMessage = `Payer participant fspId ${participantId} is not approved`;
+			this._logger.error(errorMessage);
+			const errorPayload: QuoteBCRequiredRequesterParticipantIsNotApprovedErrorPayload = {
+				requesterFspId: participantId,
+				quoteId,
+				bulkQuoteId,
+				errorDescription: errorMessage
+			};
+			const errorEvent = new QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent(errorPayload);
 			return errorEvent;
 		}
 
 		if(!participant.isActive) {
-			const errorMessage = `Payer participant fspId ${participant.id} is not active`;
+			const errorMessage = `Payer participant fspId ${participantId} is not active`;
 			this._logger.error(errorMessage);
-			
 			const errorPayload: QuoteBCRequiredRequesterParticipantIsNotActiveErrorPayload = {
-				bulkQuoteId,
-				errorDescription: errorMessage,
 				requesterFspId: participantId,
-				quoteId
+				quoteId,
+				bulkQuoteId,
+				errorDescription: errorMessage
 			};
-
-			return new QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent(errorPayload);
-
+			const errorEvent = new QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent(errorPayload);
+			return errorEvent;
 		}
 		return null;
 	}

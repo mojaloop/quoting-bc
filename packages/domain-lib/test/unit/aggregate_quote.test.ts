@@ -116,8 +116,8 @@ describe("Domain - Unit Tests for Quote Events", () => {
             .mockResolvedValueOnce("payee");
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: mockedQuote.payer.partyIdInfo.fspId, type: "DFSP", isActive: true} as IParticipant)
-            .mockResolvedValueOnce({ id: mockedQuote.payee.partyIdInfo.fspId, type: "DFSP", isActive: true} as IParticipant);
+            .mockResolvedValueOnce({ id: mockedQuote.payer.partyIdInfo.fspId, type: "DFSP", isActive: true, approved: true } as IParticipant)
+            .mockResolvedValueOnce({ id: mockedQuote.payee.partyIdInfo.fspId, type: "DFSP", isActive: true, approved: true } as IParticipant);
 
         jest.spyOn(messageProducer, "send");
 
@@ -611,8 +611,8 @@ describe("Domain - Unit Tests for Quote Events", () => {
         };
 
         jest.spyOn(participantService,"getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
+            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true, approved: true } as IParticipant)
+            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true, approved: true } as IParticipant);
 
         jest.spyOn(quoteRepo, "getQuoteById")
             .mockResolvedValueOnce(mockedQuote4);
