@@ -136,7 +136,7 @@ const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
     kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
 };
 
-const SERVICE_START_TIMEOUT_MS = 60_000;
+const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 60_000;
 
 let globalLogger: ILogger;
 
