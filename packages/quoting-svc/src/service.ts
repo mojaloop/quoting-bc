@@ -109,6 +109,9 @@ const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-quoting-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const HTTP_CLIENT_TIMEOUT_MS = 10_000;
+const PARTICIPANTS_CACHE_TIMEOUT_MS =
+    (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) ||
+    30 * 1000;
 
 const consumerOptions: MLKafkaJsonConsumerOptions = {
 	kafkaBrokerList: KAFKA_URL,
@@ -250,7 +253,7 @@ export class Service {
 		if (!participantService) {
 			// const participantLogger = logger.createChild("participantLogger");
 			// participantLogger.setLogLevel(LogLevel.INFO);
-			participantService = new ParticipantAdapter(this.logger, PARTICIPANTS_SVC_URL, this.authRequester, HTTP_CLIENT_TIMEOUT_MS);
+			participantService = new ParticipantAdapter(this.logger, PARTICIPANTS_SVC_URL, this.authRequester, PARTICIPANTS_CACHE_TIMEOUT_MS);
 
 		}
 		this.participantService = participantService;
