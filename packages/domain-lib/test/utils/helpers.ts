@@ -32,12 +32,25 @@
 
 "use strict";
 
-import { IMessage, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { QuoteResponseReceivedEvtPayload, QuoteRequestReceivedEvtPayload, BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {
+    IMessage,
+    MessageTypes,
+} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {
+    QuoteResponseReceivedEvtPayload,
+    QuoteRequestReceivedEvtPayload,
+    BulkQuotePendingReceivedEvt,
+    BulkQuotePendingReceivedEvtPayload,
+    BulkQuoteRequestedEvtPayload,
+    GetQuoteQueryRejectedResponseEvtPayload,
+    GetQuoteQueryRejectedEvtPayload,
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote } from "../../dist";
-import { IMoney, IQuote } from '../../src/types';
+import { IMoney, IQuote } from "../../src/types";
 
-export function createQuoteResponseReceivedEvtPayload(mockedQuote: IQuote): QuoteResponseReceivedEvtPayload {
+export function createQuoteResponseReceivedEvtPayload(
+    mockedQuote: IQuote
+): QuoteResponseReceivedEvtPayload {
     return {
         expiration: mockedQuote.expiration as string,
         geoCode: mockedQuote.geoCode,
@@ -52,7 +65,9 @@ export function createQuoteResponseReceivedEvtPayload(mockedQuote: IQuote): Quot
     };
 }
 
-export function createQuoteRequestReceivedEvtPayload(mockedQuote: IQuote): QuoteRequestReceivedEvtPayload {
+export function createQuoteRequestReceivedEvtPayload(
+    mockedQuote: IQuote
+): QuoteRequestReceivedEvtPayload {
     return {
         amount: mockedQuote.amount,
         expiration: mockedQuote.expiration,
@@ -70,27 +85,44 @@ export function createQuoteRequestReceivedEvtPayload(mockedQuote: IQuote): Quote
     };
 }
 
-export function createBulkQuoteRequestedEvtPayload(mockedBulkQuote: IBulkQuote): BulkQuoteRequestedEvtPayload {
+export function createGetQuoteQueryRejectedEvtPayload(
+    mockedQuote: IQuote
+): GetQuoteQueryRejectedEvtPayload {
+    return {
+        quoteId: mockedQuote.quoteId,
+        errorInformation: mockedQuote.errorInformation as any,
+    };
+}
+
+export function createBulkQuoteRequestedEvtPayload(
+    mockedBulkQuote: IBulkQuote
+): BulkQuoteRequestedEvtPayload {
     return {
         bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         payer: mockedBulkQuote.payer,
         geoCode: mockedBulkQuote.geoCode,
         expiration: mockedBulkQuote.expiration,
         individualQuotes: mockedBulkQuote.individualQuotes as any,
-        extensionList: mockedBulkQuote.extensionList
-    }
+        extensionList: mockedBulkQuote.extensionList,
+    };
 }
 
-export function createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote: IBulkQuote): BulkQuotePendingReceivedEvtPayload {
+export function createBulkQuotePendingReceivedEvtPayload(
+    mockedBulkQuote: IBulkQuote
+): BulkQuotePendingReceivedEvtPayload {
     return {
         bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         expiration: mockedBulkQuote.expiration,
         extensionList: mockedBulkQuote.extensionList,
         individualQuoteResults: mockedBulkQuote.individualQuotes as any,
-      }
+    };
 }
 
-export function createMessage(payload: object | null, messageName:string, fspiopOpaqueState:object|null): IMessage {
+export function createMessage(
+    payload: object | null,
+    messageName: string,
+    fspiopOpaqueState: object | null
+): IMessage {
     return {
         fspiopOpaqueState,
         msgId: "fake msg id",
