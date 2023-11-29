@@ -971,11 +971,13 @@ export class QuotingAggregate {
             .getQuotesByBulkQuoteId(bulkQuoteId)
             .catch((error) => {
                 this._logger.error(
-                    `Error getting quotes for bulk quote: ${error.message}`
+                    "Error getting quotes for bulk quote",
+                    error
                 );
                 return null;
             });
 
+        //#TODO : change to individual quote error
         if (!individualQuotes) {
             const errorPayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
                 bulkQuoteId,
@@ -1116,23 +1118,9 @@ export class QuotingAggregate {
             });
 
         quotesThatBelongToBulkQuote.forEach((quote) => {
-            const quoteReceived = quotes.find(
-                (q) => q.quoteId === quote.quoteId
-            );
-            if (quoteReceived) {
-                quote.status = status;
-                quote.requesterFspId = requesterFspId;
-                quote.destinationFspId = destinationFspId;
-                quote.totalTransferAmount = quoteReceived.transferAmount;
-                quote.expiration = quoteReceived.expiration;
-                quote.ilpPacket = quoteReceived.ilpPacket;
-                quote.condition = quoteReceived.condition;
-                quote.payeeReceiveAmount = quoteReceived.payeeReceiveAmount;
-                quote.payeeFspFee = quoteReceived.payeeFspFee;
-                quote.payeeFspCommission = quoteReceived.payeeFspCommission;
-                quote.extensionList = quoteReceived.extensionList;
-                quote.errorInformation = quoteReceived.errorInformation;
-            }
+            quote.status = status;
+            quote.requesterFspId = requesterFspId;
+            quote.destinationFspId = destinationFspId;
         });
 
         bulkQuote.status = status;

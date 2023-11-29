@@ -97,9 +97,11 @@ describe("Domain - Unit Tests for Quote Events", () => {
         jest.clearAllMocks();
     });
 
-    //#region handleQuoteRequestReceivedEvt
+    test("Aggregate should be correctly instantiated", async () => {
+        expect(aggregate).toBeTruthy();
+    });
 
-    test("handleQuoteRequestReceivedEvt - should send fspiop opaque state when publish successfull event", async () => {});
+    //#region handleQuoteRequestReceivedEvt
 
     test("handleQuoteRequestReceivedEvt - should call getAccountLookup if destination fspId is not provided in opaque state and in quote", async () => {
         // Arrange
@@ -640,7 +642,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
     //#endregion
 
     //#region GetQuoteQueryRejectedEvt
-    test("handleGetQuoteQueryRejectedEvt - should publish quote with error information", async () => {
+    test("handleGetQuoteQueryRejectedEvt - should publish quote event with error information", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const payload: GetQuoteQueryRejectedEvtPayload =

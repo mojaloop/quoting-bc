@@ -44,6 +44,8 @@ import {
     BulkQuoteRequestedEvtPayload,
     GetQuoteQueryRejectedResponseEvtPayload,
     GetQuoteQueryRejectedEvtPayload,
+    BulkQuoteQueryReceivedEvt,
+    BulkQuoteQueryReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote } from "../../dist";
 import { IMoney, IQuote } from "../../src/types";
@@ -115,6 +117,14 @@ export function createBulkQuotePendingReceivedEvtPayload(
         expiration: mockedBulkQuote.expiration,
         extensionList: mockedBulkQuote.extensionList,
         individualQuoteResults: mockedBulkQuote.individualQuotes as any,
+    };
+}
+
+export function createBulkQuoteQueryReceivedEvtPayload(
+    mockedBulkQuote: IBulkQuote
+): BulkQuoteQueryReceivedEvtPayload {
+    return {
+        bulkQuoteId: mockedBulkQuote.bulkQuoteId,
     };
 }
 
