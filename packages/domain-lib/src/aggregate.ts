@@ -265,7 +265,11 @@ export class QuotingAggregate  {
 			}
 		}
 
+		const now = Date.now();
+
 		const quote: IQuote = {
+			createdAt: now,
+            updatedAt: now,
 			quoteId: message.payload.quoteId,
 			bulkQuoteId: null,
 			requesterFspId: message.fspiopOpaqueState.requesterFspId,
@@ -385,6 +389,7 @@ export class QuotingAggregate  {
 
 		if(!this._passThroughMode) {
 			const quote: Partial<IQuote> = {
+				updatedAt: Date.now(),
 				quoteId: message.payload.quoteId,
 				condition: message.payload.condition,
 				expiration: message.payload.expiration,

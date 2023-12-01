@@ -108,6 +108,8 @@ export interface IParticipant {
 }
 
 export interface IQuote {
+    createdAt: number;
+	updatedAt: number;
     requesterFspId:string;
     destinationFspId:string;
     quoteId: string;
