@@ -590,7 +590,11 @@ export class QuotingAggregate  {
 			}
 		}
 
+		const now = Date.now();
+
 		const bulkQuote: IBulkQuote = {
+			createdAt: now,
+            updatedAt: now,
 			bulkQuoteId,
 			payer: message.payload.payer,
 			geoCode: message.payload.geoCode,
@@ -815,9 +819,12 @@ export class QuotingAggregate  {
 		});
 
 		const quotes = bulkQuote.individualQuotes;
+		const now = Date.now();
 
 		// change quote status to Pending for all
 		quotes.forEach((quote) => {
+			quote.createdAt = now;
+			quote.updatedAt = now;
 			quote.bulkQuoteId = bulkQuote.bulkQuoteId;
 			quote.status = QuoteStatus.PENDING;
 		});
@@ -840,10 +847,12 @@ export class QuotingAggregate  {
 		}
 
 		const quotesThatBelongToBulkQuote = await this._quotesRepo.getQuotesByBulkQuoteId(bulkQuoteId);
+		const now = Date.now();
 
 		quotesThatBelongToBulkQuote.forEach((quote) => {
 			const quoteReceived = quotes.find((q) => q.quoteId === quote.quoteId);
 			if (quoteReceived) {
+				quote.updatedAt = now;
 				quote.status = status;
 				quote.requesterFspId = requesterFspId;
 				quote.destinationFspId = destinationFspId;
@@ -859,6 +868,8 @@ export class QuotingAggregate  {
 			}
 		});
 
+
+		bulkQuote.updatedAt = now;
 		bulkQuote.status = status;
 
 		await this._quotesRepo.updateQuotes(quotesThatBelongToBulkQuote).catch((err) => {

@@ -516,6 +516,8 @@ export const mockedQuotes : IQuote[] = [
 ];
 
 export const mockedBulkQuote1 : IBulkQuote = {
+	createdAt: now,
+    updatedAt: now,
 	bulkQuoteId: "1",
 	payer: {
 		merchantClassificationCode: "1",
@@ -594,6 +596,8 @@ export const mockedBulkQuote1 : IBulkQuote = {
 } as unknown as IBulkQuote;
 
 export const mockedBulkQuote2 : IBulkQuote = {
+	createdAt: now,
+    updatedAt: now,
 	bulkQuoteId: "2",
 	payer: {
 		merchantClassificationCode: "2",
@@ -632,6 +636,8 @@ export const mockedBulkQuote2 : IBulkQuote = {
 };
 
 export const mockedBulkQuote3 : IBulkQuote = {
+	createdAt: now,
+    updatedAt: now,
 	bulkQuoteId: "3",
 	payer: {
 		merchantClassificationCode: "3",
