@@ -72,7 +72,6 @@ import {
     mockedQuote2,
 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { QuotingAggregate } from "../../../src/aggregate";
-import exp from "constants";
 
 let aggregate: QuotingAggregate;
 
@@ -104,7 +103,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
 
     // #region handleBulkQuoteRequestedEvt
 
-    test("handleBulkQuoteRequestedEvt - should call getAccountLookup if destination fspId not provided", async () => {
+    it("handleBulkQuoteRequestedEvt - should call getAccountLookup if destination fspId not provided", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
         const payload: BulkQuoteRequestedEvtPayload =
@@ -148,7 +147,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         expect(accountLookupServiceSpy).toHaveBeenCalled();
     });
 
-    test("handleBulkQuoteRequestedEvt - should add bulkQuote to bulkQuote repo without passthrough mode", async () => {
+    it("handleBulkQuoteRequestedEvt - should add bulkQuote to bulkQuote repo without passthrough mode", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
         const payload: BulkQuoteRequestedEvtPayload =
@@ -187,19 +186,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
 
         jest.spyOn(messageProducer, "send");
 
-        const aggregateWithPassThrough = new QuotingAggregate(
-            logger,
-            quoteRepo,
-            bulkQuoteRepo,
-            messageProducer,
-            participantService,
-            accountLookupService,
-            false,
-            schemaRules
-        );
-
         // Act
-        await aggregateWithPassThrough.handleQuotingEvent(message);
+        await aggregate.handleQuotingEvent(message);
 
         // Assert
         expect(bulkQuoteRepo.addBulkQuote).toHaveBeenCalled();
@@ -211,7 +199,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         );
     });
 
-    test("handleBulkQuoteRequestedEvt - should not add bulkQuote to bulkQuote repo with passthrough mode", async () => {
+    it("handleBulkQuoteRequestedEvt - should not add bulkQuote to bulkQuote repo with passthrough mode", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
         const payload: BulkQuoteRequestedEvtPayload =
@@ -257,7 +245,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
+            true,
             schemaRules
         );
 
@@ -268,7 +256,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         expect(bulkQuoteRepo.addBulkQuote).toHaveBeenCalledTimes(0);
     });
 
-    test("handleBulkQuoteRequestedEvt - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
+    it("handleBulkQuoteRequestedEvt - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
         const payload: BulkQuoteRequestedEvtPayload =
@@ -339,7 +327,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     //#endregion
 
     //#region handleBulkQuotePendingReceivedEvt
-    test("handleBulkQuotePendingReceivedEvt - should update bulk quote on bulk quote repository", async () => {
+    it("handleBulkQuotePendingReceivedEvt - should update bulk quote on bulk quote repository", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
         const payload: BulkQuotePendingReceivedEvtPayload =
@@ -406,7 +394,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         );
     });
 
-    test("handleBulkQuotePendingReceivedEvt - should update quotes that belong to bulkQuote on quotes repository", async () => {
+    it("handleBulkQuotePendingReceivedEvt - should update quotes that belong to bulkQuote on quotes repository", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
         const payload: BulkQuotePendingReceivedEvtPayload =
@@ -475,7 +463,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         ]);
     });
 
-    test("handleBulkQuotePendingReceivedEvt - should send quote response accepted event", async () => {
+    it("handleBulkQuotePendingReceivedEvt - should send quote response accepted event", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
         const payload: BulkQuotePendingReceivedEvtPayload =
@@ -542,7 +530,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     //#endregion
 
     //#region handleGetBulkQuoteQueryReceived
-    test("handleGetBulkQuoteQueryReceived - should send bulk quote response event if bulk quote exists", async () => {
+    it("handleGetBulkQuoteQueryReceived - should send bulk quote response event if bulk quote exists", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
         const payload = {
@@ -610,7 +598,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     //#endregion
 
     //#region handleGetBulkQuoteQueryRejected
-    test("handleGetBulkQuoteQueryRejected - it should publish bulk quote with error information", async () => {
+    it("handleGetBulkQuoteQueryRejected - it should publish bulk quote with error information", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
         const payload: GetBulkQuoteQueryRejectedEvtPayload = {

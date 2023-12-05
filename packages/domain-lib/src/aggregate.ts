@@ -310,20 +310,23 @@ export class QuotingAggregate {
             this._logger.debug(
                 `Get destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`
             );
-            destinationFspId = await this._accountLookupService
-                .getAccountLookup(payeePartyType, payeePartyId, currency)
-                .catch((error: Error) => {
-                    this._logger.error(
-                        `Error while getting destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`,
-                        error
+            try {
+                destinationFspId =
+                    await this._accountLookupService.getAccountLookup(
+                        payeePartyType,
+                        payeePartyId,
+                        currency
                     );
-                    return null;
-                });
-            this._logger.debug(
-                `Got destinationFspId: ${
-                    destinationFspId ?? null
-                } from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`
-            );
+                this._logger.debug(
+                    `Got destinationFspId: ${destinationFspId} from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`
+                );
+            } catch (error: unknown) {
+                destinationFspId = null;
+                this._logger.error(
+                    `Error while getting destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`,
+                    error
+                );
+            }
         }
 
         const destinationParticipantError =
@@ -380,12 +383,15 @@ export class QuotingAggregate {
         if (!this._passThroughMode) {
             try {
                 await this._quotesRepo.addQuote(quote);
-            } catch (err: unknown) {
-                const error = (err as Error).message;
-                this._logger.error(`Error adding quote to database: ${error}`);
+            } catch (error: unknown) {
+                this._logger.error(
+                    `Error adding quote with id ${quoteId}to database`,
+                    error
+                );
                 const errorPayload: QuoteBCUnableToAddQuoteToDatabaseErrorPayload =
                     {
-                        errorDescription: "Unable to add quote to database",
+                        errorDescription:
+                            "Unable to add quote with to database",
                         quoteId,
                     };
                 const errorEvent =
@@ -1216,9 +1222,10 @@ export class QuotingAggregate {
     private validateMessageOrGetErrorEvent(
         message: IMessage
     ): DomainEventMsg | null {
-        const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
-        const quoteId = message.payload?.quoteId;
-        const bulkQuoteId = message.payload?.bulkQuoteId;
+        const requesterFspId =
+            message.fspiopOpaqueState?.requesterFspId ?? null;
+        const quoteId = message.payload?.quoteId ?? null;
+        const bulkQuoteId = message.payload?.bulkQuoteId ?? null;
 
         if (!message.payload) {
             const errorMessage = "Message payload is null or undefined";
@@ -1281,7 +1288,8 @@ export class QuotingAggregate {
             .catch((err: unknown) => {
                 const error = (err as Error).message;
                 this._logger.error(
-                    `Error getting payee info for id: ${participantId} - ${error}`
+                    `Error getting payee info for id: ${participantId}`,
+                    error
                 );
                 return null;
             });
@@ -1304,7 +1312,7 @@ export class QuotingAggregate {
         }
 
         if (participant.id !== participantId) {
-            const errorMessage = `Payee participant id mismatch with expected ${participant.id} - ${participantId}`;
+            const errorMessage = `Payee participant ${participantId} id mismatch with expected ${participant.id}`;
             this._logger.error(errorMessage);
             const errorPayload: QuoteBCRequiredDestinationParticipantIdMismatchErrorPayload =
                 {
@@ -1380,10 +1388,10 @@ export class QuotingAggregate {
 
         participant = await this._participantService
             .getParticipantInfo(participantId)
-            .catch((err: unknown) => {
-                const error = (err as Error).message;
+            .catch((error: Error) => {
                 this._logger.error(
-                    `Error getting payer info for fspId: ${participantId} - ${error}`
+                    `Error getting payer info for fspId: ${participantId}`,
+                    error
                 );
                 return null;
             });
@@ -1405,7 +1413,7 @@ export class QuotingAggregate {
         }
 
         if (participant.id !== participantId) {
-            const errorMessage = `Payer participant fspId mismatch with expected ${participant.id} - ${participantId}`;
+            const errorMessage = `Payer participant fspId ${participantId} mismatch with the one fetched from participant service ${participant.id}`;
             this._logger.error(errorMessage);
             const errorPayload: QuoteBCRequiredRequesterParticipantIdMismatchErrorPayload =
                 {

@@ -53,52 +53,58 @@ import { IMoney, IQuote } from "../../src/types";
 export function createQuoteResponseReceivedEvtPayload(
     mockedQuote: IQuote
 ): QuoteResponseReceivedEvtPayload {
+    const quote = Object.assign({}, mockedQuote);
     return {
-        expiration: mockedQuote.expiration as string,
-        geoCode: mockedQuote.geoCode,
-        quoteId: mockedQuote.quoteId,
-        extensionList: mockedQuote.extensionList,
-        condition: mockedQuote.condition as string,
-        ilpPacket: mockedQuote.ilpPacket as string,
-        transferAmount: mockedQuote.totalTransferAmount as IMoney,
-        payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
-        payeeFspFee: mockedQuote.payeeFspFee as IMoney,
-        payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
+        expiration: quote.expiration as string,
+        geoCode: quote.geoCode,
+        quoteId: quote.quoteId,
+        extensionList: quote.extensionList,
+        condition: quote.condition as string,
+        ilpPacket: quote.ilpPacket as string,
+        transferAmount: quote.totalTransferAmount as IMoney,
+        payeeFspCommission: quote.payeeFspCommission as IMoney,
+        payeeFspFee: quote.payeeFspFee as IMoney,
+        payeeReceiveAmount: quote.payeeReceiveAmount as IMoney,
     };
 }
 
 export function createQuoteRequestReceivedEvtPayload(
     mockedQuote: IQuote
 ): QuoteRequestReceivedEvtPayload {
+    // create a copy without reference to the original object with JSON parse/stringify
+    const quote = Object.assign({}, mockedQuote);
+
     return {
-        amount: mockedQuote.amount,
-        expiration: mockedQuote.expiration,
-        geoCode: mockedQuote.geoCode,
-        payee: mockedQuote.payee,
-        payer: mockedQuote.payer,
-        quoteId: mockedQuote.quoteId,
-        transactionId: mockedQuote.transactionId,
-        amountType: mockedQuote.amountType,
-        note: mockedQuote.note,
-        extensionList: mockedQuote.extensionList,
-        fees: mockedQuote.feesPayer,
-        transactionType: mockedQuote.transactionType,
-        transactionRequestId: mockedQuote.transactionRequestId,
+        amount: quote.amount,
+        expiration: quote.expiration,
+        geoCode: quote.geoCode,
+        payee: quote.payee,
+        payer: quote.payer,
+        quoteId: quote.quoteId,
+        transactionId: quote.transactionId,
+        amountType: quote.amountType,
+        note: quote.note,
+        extensionList: quote.extensionList,
+        fees: quote.feesPayer,
+        transactionType: quote.transactionType,
+        transactionRequestId: quote.transactionRequestId,
     };
 }
 
 export function createGetQuoteQueryRejectedEvtPayload(
     mockedQuote: IQuote
 ): GetQuoteQueryRejectedEvtPayload {
+    const quote = Object.assign({}, mockedQuote);
     return {
-        quoteId: mockedQuote.quoteId,
-        errorInformation: mockedQuote.errorInformation as any,
+        quoteId: quote.quoteId,
+        errorInformation: quote.errorInformation as any,
     };
 }
 
 export function createBulkQuoteRequestedEvtPayload(
-    mockedBulkQuote: IBulkQuote
+    bulkQuote: IBulkQuote
 ): BulkQuoteRequestedEvtPayload {
+    const mockedBulkQuote = Object.assign({}, bulkQuote);
     return {
         bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         payer: mockedBulkQuote.payer,
@@ -110,8 +116,9 @@ export function createBulkQuoteRequestedEvtPayload(
 }
 
 export function createBulkQuotePendingReceivedEvtPayload(
-    mockedBulkQuote: IBulkQuote
+    bulkQuote: IBulkQuote
 ): BulkQuotePendingReceivedEvtPayload {
+    const mockedBulkQuote = Object.assign({}, bulkQuote);
     return {
         bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         expiration: mockedBulkQuote.expiration,
@@ -123,8 +130,9 @@ export function createBulkQuotePendingReceivedEvtPayload(
 export function createBulkQuoteQueryReceivedEvtPayload(
     mockedBulkQuote: IBulkQuote
 ): BulkQuoteQueryReceivedEvtPayload {
+    const bulkQuote = Object.assign({}, mockedBulkQuote);
     return {
-        bulkQuoteId: mockedBulkQuote.bulkQuoteId,
+        bulkQuoteId: bulkQuote.bulkQuoteId,
     };
 }
 

@@ -49,7 +49,7 @@ import {
     QuoteResponseReceivedEvt,
     QuoteResponseReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IMoney, IQuote, QuoteStatus } from "../../../src/types";
+import { IMoney, QuoteStatus } from "../../../src/types";
 import {
     createGetQuoteQueryRejectedEvtPayload,
     createMessage,
@@ -67,11 +67,9 @@ import {
 } from "../../utils/mocked_variables";
 import {
     mockedQuote1,
-    mockedQuote2,
     mockedQuote4,
 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { QuotingAggregate } from "../../../src/aggregate";
-import { mock } from "node:test";
 
 let aggregate: QuotingAggregate;
 
@@ -97,18 +95,26 @@ describe("Domain - Unit Tests for Quote Events", () => {
         jest.clearAllMocks();
     });
 
-    test("Aggregate should be correctly instantiated", async () => {
+    it("Aggregate should be correctly instantiated", async () => {
         expect(aggregate).toBeTruthy();
     });
 
     //#region handleQuoteRequestReceivedEvt
 
-    test("handleQuoteRequestReceivedEvt - should call getAccountLookup if destination fspId is not provided in opaque state and in quote", async () => {
+    it("handleQuoteRequestReceivedEvt - should call getAccountLookup if destination fspId is not provided in opaque state and in quote", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const payload: QuoteRequestReceivedEvtPayload =
-            createQuoteRequestReceivedEvtPayload(mockedQuote);
-        payload.payee.partyIdInfo.fspId = null;
+            createQuoteRequestReceivedEvtPayload({
+                ...mockedQuote,
+                payee: {
+                    ...mockedQuote.payee,
+                    partyIdInfo: {
+                        ...mockedQuote.payee.partyIdInfo,
+                        fspId: null,
+                    },
+                },
+            });
 
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const fspiopOpaqueState = {
@@ -148,7 +154,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         expect(accountLookupServiceSpy).toHaveBeenCalled();
     });
 
-    test("handleQuoteRequestReceivedEvt - should add destination payee fspid to quote if not provided on quote", async () => {
+    it("handleQuoteRequestReceivedEvt - should add destination payee fspid to quote if not provided on quote", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const payload: QuoteRequestReceivedEvtPayload =
@@ -223,7 +229,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should add quote to quote repo without passthrough mode", async () => {
+    it("handleQuoteRequestReceivedEvt - should add quote to quote repo without passthrough mode", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const payload: QuoteRequestReceivedEvtPayload =
@@ -286,7 +292,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should add quote to quote repo with passthrough mode", async () => {
+    it("handleQuoteRequestReceivedEvt - should add quote to quote repo with passthrough mode", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const payload: QuoteRequestReceivedEvtPayload =
@@ -332,7 +338,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         expect(quoteRepo.addQuote).toHaveBeenCalledTimes(0);
     });
 
-    test("handleQuoteRequestReceivedEvt - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
+    it("handleQuoteRequestReceivedEvt - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const payload: QuoteRequestReceivedEvtPayload =
@@ -403,7 +409,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
     //#region handleQuoteResponseReceivedEvt
 
-    test("handleQuoteResponseReceivedEvt - should update quote on quote repository without passthrough", async () => {
+    it("handleQuoteResponseReceivedEvt - should update quote on quote repository without passthrough", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
@@ -465,7 +471,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         );
     });
 
-    test("handleQuoteResponseReceivedEvt - should not update quote on quote repository with passthrough", async () => {
+    it("handleQuoteResponseReceivedEvt - should not update quote on quote repository with passthrough", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
@@ -508,7 +514,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         expect(repositorySpy).toHaveBeenCalledTimes(0);
     });
 
-    test("handleQuoteResponseReceivedEvt - should send quote response accepted event", async () => {
+    it("handleQuoteResponseReceivedEvt - should send quote response accepted event", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
@@ -572,7 +578,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
     //#region handleQuoteQueryReceivedEvt
 
-    test("handleQuoteQueryReceivedEvt - should respond with a successful event for the asked quote", async () => {
+    it("handleQuoteQueryReceivedEvt - should respond with a successful event for the asked quote", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const mockedQuoteResponse = mockedQuote4;
@@ -642,7 +648,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
     //#endregion
 
     //#region GetQuoteQueryRejectedEvt
-    test("handleGetQuoteQueryRejectedEvt - should publish quote event with error information", async () => {
+    it("handleGetQuoteQueryRejectedEvt - should publish quote event with error information", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const payload: GetQuoteQueryRejectedEvtPayload =
