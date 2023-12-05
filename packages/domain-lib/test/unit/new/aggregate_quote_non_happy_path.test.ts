@@ -1,3 +1,35 @@
+/**
+ License
+ --------------
+ Copyright © 2021 Mojaloop Foundation
+
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License.
+
+ You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+ Contributors
+ --------------
+ This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+ Names of the original copyright holders (individuals or organizations)
+ should be listed with a '' in the first column. People who have
+ contributed from an organization can be listed under the organization
+ that actually holds the copyright for their contributions (see the
+ Gates Foundation organization for an example). Those individuals should have
+ their names indented and be marked with a '-'. Email address can be added
+ optionally within square brackets <email>.
+
+ * Gates Foundation
+ - Name Surname <name.surname@gatesfoundation.com>
+
+ * Arg Software
+ - José Antunes <jose.antunes@arg.software>
+ - Rui Rocha <rui.rocha@arg.software>
+
+ --------------
+**/
+
 import { mockedQuote1 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import {
     logger,
@@ -11,10 +43,15 @@ import {
 import { QuotingAggregate } from "./../../../src/aggregate";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
+    createBulkQuoteQueryReceivedEvtPayload,
     createMessage,
+    createQuoteQueryReceivedEvtPayload,
+    createQuoteQueryRejectedEvtPayload,
     createQuoteRequestReceivedEvtPayload,
+    createQuoteResponseReceivedEvtPayload,
 } from "../../utils/helpers";
 import {
+    GetQuoteQueryRejectedEvt,
     QuoteBCDestinationParticipantNotFoundErrorEvent,
     QuoteBCDestinationParticipantNotFoundErrorPayload,
     QuoteBCInvalidDestinationFspIdErrorEvent,
@@ -27,8 +64,12 @@ import {
     QuoteBCInvalidRequesterFspIdErrorPayload,
     QuoteBCQuoteExpiredErrorEvent,
     QuoteBCQuoteExpiredErrorPayload,
+    QuoteBCQuoteNotFoundErrorEvent,
+    QuoteBCQuoteNotFoundErrorPayload,
     QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
     QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload,
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload,
     QuoteBCRequesterParticipantNotFoundErrorEvent,
     QuoteBCRequesterParticipantNotFoundErrorPayload,
     QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent,
@@ -45,10 +86,14 @@ import {
     QuoteBCRequiredRequesterParticipantIsNotApprovedErrorPayload,
     QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
     QuoteBCUnableToAddQuoteToDatabaseErrorPayload,
+    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
+    QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload,
+    QuoteQueryReceivedEvt,
     QuoteRequestReceivedEvt,
+    QuoteResponseReceivedEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuoteSchemeRules } from "../../../src/types";
+import { IQuoteSchemeRules, QuoteStatus } from "../../../src/types";
 
 let aggregate: QuotingAggregate;
 
@@ -966,283 +1011,701 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
     });
 
     //#endregion
+
+    //#region handleQuoteResponseReceivedEvent
+    test("handleQuoteResponseReceivedEvent - should send error event if quote is rejected due to violation of schema rules and store quote with rejected status on database if passthrough mode is disabled", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload = createQuoteResponseReceivedEvtPayload(mockedQuote);
+        const invalidSchema: IQuoteSchemeRules = {
+            currencies: ["ZAR"],
+        };
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteResponseReceivedEvt.name,
+            {
+                requesterFspId,
+                destinationFspId,
+            }
+        );
+
+        const responsePayload: QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload =
+            {
+                errorDescription: `Quote request scheme validation failed for quoteId: ${mockedQuote.quoteId}`,
+                quoteId: mockedQuote.quoteId,
+            };
+
+        const aggregateWithDifferentSchemaAndPassthroughModeDisabled =
+            new QuotingAggregate(
+                logger,
+                quoteRepo,
+                bulkQuoteRepo,
+                messageProducer,
+                participantService,
+                accountLookupService,
+                false,
+                invalidSchema
+            );
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(quoteRepo, "updateQuote").mockResolvedValueOnce();
+
+        // Act
+
+        await aggregateWithDifferentSchemaAndPassthroughModeDisabled.handleQuotingEvent(
+            message
+        );
+
+        // Assert
+        expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: QuoteStatus.REJECTED,
+            })
+        );
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent.name,
+            })
+        );
+    });
+
+    test("handleQuoteResponseReceivedEvent - should send error event if quote is rejected due invalid requester and store quote with rejected status on database if passthrough mode is disabled", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload = createQuoteResponseReceivedEvtPayload({
+            ...mockedQuote,
+            payer: {
+                ...mockedQuote.payer,
+                partyIdInfo: {
+                    ...mockedQuote.payer.partyIdInfo,
+                    fspId: null as any,
+                },
+            },
+        });
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteResponseReceivedEvt.name,
+            {
+                requesterFspId: null as any,
+                destinationFspId,
+            }
+        );
+
+        const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
+            errorDescription: "Payer fspId is null or undefined",
+            bulkQuoteId: null,
+            requesterFspId: null as any,
+            quoteId: mockedQuote.quoteId,
+        };
+
+        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+            logger,
+            quoteRepo,
+            bulkQuoteRepo,
+            messageProducer,
+            participantService,
+            accountLookupService,
+            false,
+            schemaRules
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(quoteRepo, "updateQuote").mockResolvedValueOnce();
+
+        // Act
+
+        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+
+        // Assert
+        expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: QuoteStatus.REJECTED,
+            })
+        );
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
+            })
+        );
+    });
+
+    test("handleQuoteResponseReceivedEvent - should send error event if quote is rejected due invalid destination and store quote with rejected status on database if passthrough mode is disabled", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const payload = createQuoteResponseReceivedEvtPayload({
+            ...mockedQuote,
+            payee: {
+                ...mockedQuote.payee,
+                partyIdInfo: {
+                    ...mockedQuote.payee.partyIdInfo,
+                    fspId: null as any,
+                },
+            },
+        });
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteResponseReceivedEvt.name,
+            {
+                requesterFspId,
+                destinationFspId: null as any,
+            }
+        );
+
+        const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
+            errorDescription: "Payee fspId is null or undefined",
+            bulkQuoteId: null,
+            destinationFspId: null as any,
+            quoteId: mockedQuote.quoteId,
+        };
+
+        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+            logger,
+            quoteRepo,
+            bulkQuoteRepo,
+            messageProducer,
+            participantService,
+            accountLookupService,
+            false,
+            schemaRules
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(quoteRepo, "updateQuote").mockResolvedValueOnce();
+
+        jest.spyOn(
+            participantService,
+            "getParticipantInfo"
+        ).mockResolvedValueOnce({
+            id: requesterFspId,
+            type: "DFSP",
+            isActive: true,
+            approved: true,
+        } as IParticipant);
+
+        // Act
+
+        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+
+        // Assert
+        expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: QuoteStatus.REJECTED,
+            })
+        );
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
+            })
+        );
+    });
+
+    test("handleQuoteResponseReceivedEvent - should send error event if quote is rejected due to expiration and store quote with expired status on database if passthrough mode is disabled", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const surpassedExpiration = new Date(Date.now() - 1000).toDateString();
+        const payload = createQuoteResponseReceivedEvtPayload({
+            ...mockedQuote,
+            expiration: surpassedExpiration,
+        });
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteResponseReceivedEvt.name,
+            {
+                requesterFspId,
+                destinationFspId,
+            }
+        );
+
+        const responsePayload: QuoteBCQuoteExpiredErrorPayload = {
+            errorDescription: `Quote with id ${mockedQuote.quoteId} has expired at ${surpassedExpiration}`,
+            quoteId: mockedQuote.quoteId,
+            expirationDate: surpassedExpiration,
+        };
+
+        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+            logger,
+            quoteRepo,
+            bulkQuoteRepo,
+            messageProducer,
+            participantService,
+            accountLookupService,
+            false,
+            schemaRules
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(quoteRepo, "updateQuote").mockResolvedValueOnce();
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        // Act
+
+        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+
+        // Assert
+        expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: QuoteStatus.EXPIRED,
+            })
+        );
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCQuoteExpiredErrorEvent.name,
+            })
+        );
+    });
+
+    test("handleQuoteResponseReceivedEvent - should send error event if cant update the quote status", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload = createQuoteResponseReceivedEvtPayload(mockedQuote);
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteResponseReceivedEvt.name,
+            {
+                requesterFspId,
+                destinationFspId,
+            }
+        );
+
+        const responsePayload: QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload =
+            {
+                errorDescription: "Unable to update quote in database",
+                quoteId: mockedQuote.quoteId,
+            };
+
+        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+            logger,
+            quoteRepo,
+            bulkQuoteRepo,
+            messageProducer,
+            participantService,
+            accountLookupService,
+            false,
+            schemaRules
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(quoteRepo, "updateQuote").mockRejectedValueOnce(new Error());
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        // Act
+
+        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name,
+            })
+        );
+    });
+
+    //#endregion
+
+    //#region handleQuoteQueryReceivedEvent
+    test("handleQuoteQueryReceivedEvent - should send error event if quote is rejected due to invalid requester fsp", async () => {
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = null;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteQueryReceivedEvt.name,
+            {
+                requesterFspId,
+                destinationFspId,
+            }
+        );
+
+        const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
+            bulkQuoteId: null,
+            errorDescription: "Payer fspId is null or undefined",
+            requesterFspId: null as any,
+            quoteId: mockedQuote.quoteId,
+        };
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(null);
+
+        // Act
+
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
+            })
+        );
+    });
+
+    test("handleQuoteQueryReceivedEvent - should send error event if quote is rejected due to invalid destination fsp", async () => {
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = null;
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteQueryReceivedEvt.name,
+            {
+                requesterFspId,
+                destinationFspId,
+            }
+        );
+
+        const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
+            bulkQuoteId: null,
+            errorDescription: "Payee fspId is null or undefined",
+            destinationFspId: null as any,
+            quoteId: mockedQuote.quoteId,
+        };
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(null);
+
+        jest.spyOn(
+            participantService,
+            "getParticipantInfo"
+        ).mockResolvedValueOnce({
+            id: requesterFspId,
+            type: "DFSP",
+            isActive: true,
+            approved: true,
+        } as IParticipant);
+
+        // Act
+
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
+            })
+        );
+    });
+
+    test("handleQuoteQueryReceivedEvent - should send error event if quote is not found on database with passthrough mode enabled", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteQueryReceivedEvt.name,
+            {
+                requesterFspId: mockedQuote.payer.partyIdInfo.fspId,
+                destinationFspId: mockedQuote.payee.partyIdInfo.fspId,
+            }
+        );
+
+        const responsePayload: QuoteBCQuoteNotFoundErrorPayload = {
+            errorDescription: `Quote with id ${mockedQuote.quoteId} not found`,
+            quoteId: mockedQuote.quoteId,
+        };
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(null);
+
+        // Act
+
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCQuoteNotFoundErrorEvent.name,
+            })
+        );
+    });
+
+    test("handleQuoteQueryReceivedEvent - should send error event if quote is not found on database and passthrough mode is disabled", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteQueryReceivedEvt.name,
+            {
+                requesterFspId: mockedQuote.payer.partyIdInfo.fspId,
+                destinationFspId: mockedQuote.payee.partyIdInfo.fspId,
+            }
+        );
+
+        const responsePayload: QuoteBCQuoteNotFoundErrorPayload = {
+            errorDescription: `Quote with id ${mockedQuote.quoteId} not found`,
+            quoteId: mockedQuote.quoteId,
+        };
+
+        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+            logger,
+            quoteRepo,
+            bulkQuoteRepo,
+            messageProducer,
+            participantService,
+            accountLookupService,
+            false,
+            schemaRules
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(null);
+
+        // Act
+
+        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCQuoteNotFoundErrorEvent.name,
+            })
+        );
+    });
+
+    test("handleQuoteQueryReceivedEvent - should send error event if fetching a quote throws error and passthrough mode is disabled", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteQueryReceivedEvt.name,
+            {
+                requesterFspId: mockedQuote.payer.partyIdInfo.fspId,
+                destinationFspId: mockedQuote.payee.partyIdInfo.fspId,
+            }
+        );
+
+        const responsePayload: QuoteBCQuoteNotFoundErrorPayload = {
+            errorDescription: `Quote with id ${mockedQuote.quoteId} not found`,
+            quoteId: mockedQuote.quoteId,
+        };
+
+        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+            logger,
+            quoteRepo,
+            bulkQuoteRepo,
+            messageProducer,
+            participantService,
+            accountLookupService,
+            false,
+            schemaRules
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockRejectedValueOnce(
+            new Error()
+        );
+
+        // Act
+
+        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCQuoteNotFoundErrorEvent.name,
+            })
+        );
+    });
+
+    //#endregion
+
+    //#region handleGetQuoteQueryRejectedEvent
+    test("handleGetQuoteQueryRejectedEvent - should send error event if quote is rejected due to invalid requester fsp", async () => {
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = null;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload = createQuoteQueryRejectedEvtPayload(mockedQuote);
+
+        const message: IMessage = createMessage(
+            payload,
+            GetQuoteQueryRejectedEvt.name,
+            {
+                requesterFspId,
+                destinationFspId,
+            }
+        );
+
+        const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
+            bulkQuoteId: null,
+            errorDescription: "Payer fspId is null or undefined",
+            requesterFspId: null as any,
+            quoteId: mockedQuote.quoteId,
+        };
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
+            })
+        );
+    });
+
+    test("handleGetQuoteQueryRejectedEvent - should send error event if quote is rejected due to invalid destination fsp", async () => {
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = null;
+        const payload = createQuoteQueryRejectedEvtPayload(mockedQuote);
+
+        const message: IMessage = createMessage(
+            payload,
+            GetQuoteQueryRejectedEvt.name,
+            {
+                requesterFspId,
+                destinationFspId,
+            }
+        );
+
+        const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
+            bulkQuoteId: null,
+            errorDescription: "Payee fspId is null or undefined",
+            destinationFspId: null as any,
+            quoteId: mockedQuote.quoteId,
+        };
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(
+            participantService,
+            "getParticipantInfo"
+        ).mockResolvedValueOnce({
+            id: requesterFspId,
+            type: "DFSP",
+            isActive: true,
+            approved: true,
+        } as IParticipant);
+
+        // Act
+
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
+            })
+        );
+    });
+
+    //#endregion
 });
-
-//#region handleQuoteResponseReceivedEvt
-// test("handleQuoteResponseReceivedEvt - should send error event if requesterFspId not valid", async () => {
-//     // Arrange
-//     const mockedQuote = mockedQuote1;
-//     const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-
-//     const message: IMessage = createMessage(payload, QuoteResponseReceivedEvt.name, null);
-
-//     const errorMsg = InvalidRequesterFspIdError.name;
-
-//     const errorPayload: QuoteErrorEvtPayload = {
-// 		errorMsg,
-// 		requesterFspId:null,
-//         destinationFspId: null,
-//         quoteId: payload.quoteId,
-//         sourceEvent : QuoteResponseReceivedEvt.name,
-// 	};
-
-//     jest.spyOn(messageProducer, "send");
-
-//     // Act
-//     await aggregate.handleQuotingEvent(message);
-
-//     // Assert
-//     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-//         "payload": errorPayload,
-//     }));
-
-// });
-
-// test("handleQuoteResponseReceivedEvt - should send error event if destinationFspId not valid", async () => {
-//     // Arrange
-//     const mockedQuote = mockedQuote1;
-
-//     const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-
-//     const fspiopOpaqueState = {
-//         requesterFspId: "payer",
-//     };
-//     const message: IMessage = createMessage(payload, QuoteResponseReceivedEvt.name,fspiopOpaqueState);
-
-//     const errorMsg = InvalidDestinationFspIdError.name;
-
-//     const errorPayload: QuoteErrorEvtPayload = {
-// 		errorMsg,
-// 		requesterFspId:"payer",
-//         destinationFspId: null,
-//         quoteId: payload.quoteId,
-//         sourceEvent : QuoteResponseReceivedEvt.name,
-// 	};
-
-//     jest.spyOn(messageProducer, "send");
-
-//     // Act
-//     await aggregate.handleQuotingEvent(message);
-
-//     // Assert
-//     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-//         "payload": errorPayload,
-//     }));
-
-// });
-
-// test("handleQuoteResponseReceivedEvt - should send error event if couldnt validate requester participant", async () => {
-//     // Arrange
-//     const mockedQuote = mockedQuote1;
-//     const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-
-//     const fspiopOpaqueState = {
-//         requesterFspId: "payer",
-//         destinationFspId: "payee",
-//     };
-//     const message: IMessage = createMessage(payload, QuoteResponseReceivedEvt.name,fspiopOpaqueState);
-
-//     const errorMsg = NoSuchParticipantError.name;
-
-//     const errorPayload: QuoteErrorEvtPayload = {
-//         errorMsg,
-//         requesterFspId:"payer",
-//         destinationFspId: "payee",
-//         quoteId: payload.quoteId,
-//         sourceEvent : QuoteResponseReceivedEvt.name,
-//     };
-
-//     jest.spyOn(participantService,"getParticipantInfo")
-//         .mockResolvedValue(null);
-
-//     jest.spyOn(messageProducer, "send");
-
-//     // Act
-//     await aggregate.handleQuotingEvent(message);
-
-//     // Assert
-//     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-//         "payload": errorPayload,
-//     }));
-
-// });
-
-// test("handleQuoteResponseReceivedEvt - should send error event if couldnt find quote on database", async () => {
-//     // Arrange
-//     const mockedQuote = mockedQuote1;
-//     const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-
-//     const fspiopOpaqueState = {
-//         requesterFspId: "payer",
-//         destinationFspId: "payee",
-//     }
-//     const message: IMessage = createMessage(payload,QuoteResponseReceivedEvt.name, fspiopOpaqueState);
-
-//     const errorMsg = NoSuchQuoteError.name;
-
-//     const errorPayload: QuoteErrorEvtPayload = {
-//         errorMsg,
-//         requesterFspId:"payer",
-//         destinationFspId: "payee",
-//         quoteId: payload.quoteId,
-//         sourceEvent : QuoteResponseReceivedEvt.name,
-//     };
-
-//     jest.spyOn(participantService,"getParticipantInfo")
-//         .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
-//         .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
-
-//     jest.spyOn(quoteRepo, "getQuoteById")
-//         .mockResolvedValueOnce(null);
-
-//     jest.spyOn(messageProducer, "send");
-
-//     // Act
-//     await aggregate.handleQuotingEvent(message);
-
-//     // Assert
-//     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-//         "payload": errorPayload,
-//     }));
-
-// });
-
-// test("handleQuoteQueryReceivedEvt - should send error event if requesterFspId not valid", async () => {
-//     // Arrange
-//     const payload: QuoteQueryReceivedEvtPayload = {
-//         quoteId: "quoteId",
-//     };
-
-//     const message: IMessage = createMessage(payload,QuoteQueryReceivedEvt.name, {});
-
-//     const errorMsg = InvalidRequesterFspIdError.name;
-
-//     const errorPayload: QuoteErrorEvtPayload = {
-//         destinationFspId: null,
-//         errorMsg,
-//         quoteId: "quoteId",
-//         requesterFspId: null,
-//         sourceEvent: QuoteQueryReceivedEvt.name,
-//     };
-
-//     jest.spyOn(messageProducer, "send");
-
-//     // Act
-//     await aggregate.handleQuotingEvent(message);
-
-//     // Assert
-//     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-//         "payload": errorPayload,
-//     }));
-// });
-
-// test("handleQuoteQueryReceivedEvt - should send error event if destinationFspId not valid", async () => {
-//     // Arrange
-//     const payload: QuoteQueryReceivedEvtPayload = {
-//         quoteId: "quoteId",
-//     };
-
-//     const fspiopOpaqueState = {
-//         requesterFspId: "payer",
-//     };
-
-//     const message: IMessage = createMessage(payload,QuoteQueryReceivedEvt.name, fspiopOpaqueState);
-
-//     const errorMsg = InvalidDestinationFspIdError.name;
-
-//     const errorPayload: QuoteErrorEvtPayload = {
-//         destinationFspId: null,
-//         errorMsg,
-//         quoteId: "quoteId",
-//         requesterFspId: "payer",
-//         sourceEvent: QuoteQueryReceivedEvt.name,
-//     };
-
-//     jest.spyOn(messageProducer, "send");
-
-//     // Act
-//     await aggregate.handleQuotingEvent(message);
-
-//     // Assert
-//     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-//         "payload": errorPayload,
-//     }));
-// });
-
-// test("handleQuoteQueryReceivedEvt - should send error event if participant for requesterFspId not valid", async () => {
-//     // Arrange
-//     const payload: QuoteQueryReceivedEvtPayload = {
-//         quoteId: "quoteId",
-//     };
-
-//     const fspiopOpaqueState = {
-//         requesterFspId: "payer",
-//         destinationFspId: "payee",
-//     };
-
-//     const message: IMessage = createMessage(payload,QuoteQueryReceivedEvt.name, fspiopOpaqueState);
-
-//     const errorMsg = NoSuchParticipantError.name;
-
-//     const errorPayload: QuoteErrorEvtPayload = {
-//         destinationFspId: "payee",
-//         errorMsg,
-//         quoteId: "quoteId",
-//         requesterFspId: "payer",
-//         sourceEvent: QuoteQueryReceivedEvt.name,
-//     };
-
-//     jest.spyOn(participantService,"getParticipantInfo")
-//         .mockResolvedValueOnce(null);
-
-//     jest.spyOn(messageProducer, "send");
-
-//     // Act
-//     await aggregate.handleQuotingEvent(message);
-
-//     // Assert
-//     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-//         "payload": errorPayload,
-//     }));
-// });
-
-// test("handleQuoteQueryReceivedEvt - should send error event if couldnt find the quote asked", async () => {
-//     // Arrange
-//     const payload: QuoteQueryReceivedEvtPayload = {
-//         quoteId: "quoteId",
-//     };
-
-//     const fspiopOpaqueState = {
-//         requesterFspId: "payer",
-//         destinationFspId: "payee",
-//     };
-
-//     const message: IMessage = createMessage(payload,QuoteQueryReceivedEvt.name, fspiopOpaqueState);
-
-//     const errorMsg = NoSuchQuoteError.name;
-
-//     const errorPayload: QuoteErrorEvtPayload = {
-//         destinationFspId: "payee",
-//         errorMsg,
-//         quoteId: "quoteId",
-//         requesterFspId: "payer",
-//         sourceEvent: QuoteQueryReceivedEvt.name,
-//     };
-
-//     jest.spyOn(participantService,"getParticipantInfo")
-//         .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
-//         .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
-
-//     jest.spyOn(quoteRepo, "getQuoteById")
-//         .mockResolvedValueOnce(null);
-
-//     jest.spyOn(messageProducer, "send");
-
-//     // Act
-//     await aggregate.handleQuotingEvent(message);
-
-//     // Assert
-//     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-//         "payload": errorPayload,
-//     }));
-// });

@@ -203,7 +203,7 @@ export class QuotingAggregate {
                     );
                     break;
                 case GetQuoteQueryRejectedEvt.name:
-                    eventToPublish = await this.handleGetQuoteQueryRejected(
+                    eventToPublish = await this.handleGetQuoteQueryRejectedEvent(
                         message as GetQuoteQueryRejectedEvt
                     );
                     break;
@@ -438,8 +438,10 @@ export class QuotingAggregate {
             `Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`
         );
 
-        const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
-        const destinationFspId = message.fspiopOpaqueState?.destinationFspId;
+        const requesterFspId =
+            message.fspiopOpaqueState?.requesterFspId ?? null;
+        const destinationFspId =
+            message.fspiopOpaqueState?.destinationFspId ?? null;
         const expirationDate = message.payload.expiration ?? null;
         let quoteErrorEvent: DomainEventMsg | null = null;
         let quoteStatus: QuoteStatus = QuoteStatus.ACCEPTED;
@@ -455,6 +457,10 @@ export class QuotingAggregate {
                 new QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent(
                     errorPayload
                 );
+            this._logger.error(
+                `Quote ${quoteId} rejected due to scheme validation error`
+            );
+            quoteStatus = QuoteStatus.REJECTED;
         }
 
         if (quoteErrorEvent === null) {
@@ -467,6 +473,9 @@ export class QuotingAggregate {
             if (requesterParticipantError) {
                 quoteErrorEvent = requesterParticipantError;
                 quoteStatus = QuoteStatus.REJECTED;
+                this._logger.error(
+                    `Quote ${quoteId} rejected due to requester participant error`
+                );
             }
         }
 
@@ -562,8 +571,10 @@ export class QuotingAggregate {
             `Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`
         );
 
-        const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
-        const destinationFspId = message.fspiopOpaqueState?.destinationFspId;
+        const requesterFspId =
+            message.fspiopOpaqueState?.requesterFspId ?? null;
+        const destinationFspId =
+            message.fspiopOpaqueState?.destinationFspId ?? null;
 
         const requesterParticipantError =
             await this.validateRequesterParticipantInfoOrGetErrorEvent(
@@ -588,14 +599,14 @@ export class QuotingAggregate {
         const quote = await this._quotesRepo
             .getQuoteById(quoteId)
             .catch((error) => {
-                this._logger.error(`Error getting quote: ${error.message}`);
+                this._logger.error(`Error getting quote: {quoteId}`, error);
                 return null;
             });
 
         if (!quote) {
             const errorPayload: QuoteBCQuoteNotFoundErrorPayload = {
                 quoteId,
-                errorDescription: `Quote ${quoteId} not found`,
+                errorDescription: `Quote with id ${quoteId} not found`,
             };
             const errorEvent = new QuoteBCQuoteNotFoundErrorEvent(errorPayload);
             return errorEvent;
@@ -620,8 +631,8 @@ export class QuotingAggregate {
     }
     //#endregion
 
-    //#region GetQuoteQueryRejectedEvt
-    private async handleGetQuoteQueryRejected(
+    //#region handleGetQuoteQueryRejectedEvt
+    private async handleGetQuoteQueryRejectedEvent(
         message: GetQuoteQueryRejectedEvt
     ): Promise<DomainEventMsg> {
         this._logger.debug(

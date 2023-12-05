@@ -46,6 +46,7 @@ import {
     GetQuoteQueryRejectedEvtPayload,
     BulkQuoteQueryReceivedEvt,
     BulkQuoteQueryReceivedEvtPayload,
+    QuoteQueryReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote } from "../../dist";
 import { IMoney, IQuote } from "../../src/types";
@@ -91,7 +92,16 @@ export function createQuoteRequestReceivedEvtPayload(
     };
 }
 
-export function createGetQuoteQueryRejectedEvtPayload(
+export function createQuoteQueryReceivedEvtPayload(
+    mockedQuote: IQuote
+): QuoteQueryReceivedEvtPayload {
+    const quote = Object.assign({}, mockedQuote);
+    return {
+        quoteId: quote.quoteId,
+    };
+}
+
+export function createQuoteQueryRejectedEvtPayload(
     mockedQuote: IQuote
 ): GetQuoteQueryRejectedEvtPayload {
     const quote = Object.assign({}, mockedQuote);
