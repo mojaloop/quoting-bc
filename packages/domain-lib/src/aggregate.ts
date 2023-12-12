@@ -108,6 +108,7 @@ import {
     BulkQuoteNotFoundError,
     UnableToAddBatchQuoteError,
     UnableToAddBulkQuoteError,
+    UnableToGetBatchQuotesError,
     UnableToUpdateBatchQuotesError,
     UnableToUpdateBulkQuoteError,
 } from "./errors";
@@ -203,9 +204,10 @@ export class QuotingAggregate {
                     );
                     break;
                 case GetQuoteQueryRejectedEvt.name:
-                    eventToPublish = await this.handleGetQuoteQueryRejectedEvent(
-                        message as GetQuoteQueryRejectedEvt
-                    );
+                    eventToPublish =
+                        await this.handleGetQuoteQueryRejectedEvent(
+                            message as GetQuoteQueryRejectedEvt
+                        );
                     break;
                 case BulkQuoteRequestedEvt.name:
                     eventToPublish = await this.handleBulkQuoteRequestedEvent(
@@ -219,14 +221,16 @@ export class QuotingAggregate {
                         );
                     break;
                 case BulkQuoteQueryReceivedEvt.name:
-                    eventToPublish = await this.handleGetBulkQuoteQueryReceived(
-                        message as BulkQuoteQueryReceivedEvt
-                    );
+                    eventToPublish =
+                        await this.handleGetBulkQuoteQueryReceivedEvent(
+                            message as BulkQuoteQueryReceivedEvt
+                        );
                     break;
                 case GetBulkQuoteQueryRejectedEvt.name:
-                    eventToPublish = await this.handleGetBulkQuoteQueryRejected(
-                        message as GetBulkQuoteQueryRejectedEvt
-                    );
+                    eventToPublish =
+                        await this.handleGetBulkQuoteQueryRejectedEvent(
+                            message as GetBulkQuoteQueryRejectedEvt
+                        );
                     break;
                 default: {
                     const errorMessage = `Message type has invalid format or value ${message.msgName}`;
@@ -341,9 +345,8 @@ export class QuotingAggregate {
 
         if (expirationDate) {
             const expirationDateValidationError =
-                this.validateExpirationDateOrGetErrorEvent(
+                this.validateQuoteExpirationDateOrGetErrorEvent(
                     quoteId,
-                    null,
                     expirationDate
                 );
             if (expirationDateValidationError) {
@@ -494,9 +497,8 @@ export class QuotingAggregate {
 
         if (quoteErrorEvent !== null) {
             const expirationDateError =
-                this.validateExpirationDateOrGetErrorEvent(
+                this.validateQuoteExpirationDateOrGetErrorEvent(
                     quoteId,
-                    null,
                     expirationDate
                 );
             if (expirationDateError) {
@@ -691,10 +693,11 @@ export class QuotingAggregate {
         this._logger.debug(
             `Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`
         );
-        const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
+        const requesterFspId =
+            message.fspiopOpaqueState?.requesterFspId ?? null;
         const expirationDate = message.payload.expiration ?? null;
-        const individualQuotesInsideBulkQuote = message.payload
-            .individualQuotes as unknown as IQuote[];
+        const individualQuotesInsideBulkQuote =
+            (message.payload.individualQuotes as unknown as IQuote[]) ?? [];
 
         if (individualQuotesInsideBulkQuote.length <= 0) {
             const errorPayload: QuoteBCInvalidBulkQuoteLengthErrorPayload = {
@@ -710,8 +713,8 @@ export class QuotingAggregate {
         const requesterParticipantError =
             await this.validateRequesterParticipantInfoOrGetErrorEvent(
                 requesterFspId,
-                bulkQuoteId,
-                null
+                null,
+                bulkQuoteId
             );
         if (requesterParticipantError) {
             return requesterParticipantError;
@@ -721,8 +724,10 @@ export class QuotingAggregate {
 
         if (!destinationFspId) {
             for await (const quote of individualQuotesInsideBulkQuote) {
-                const payeePartyId = quote.payee?.partyIdInfo?.partyIdentifier;
-                const payeePartyType = quote.payee?.partyIdInfo?.partyIdType;
+                const payeePartyId =
+                    quote.payee?.partyIdInfo?.partyIdentifier ?? null;
+                const payeePartyType =
+                    quote.payee?.partyIdInfo?.partyIdType ?? null;
 
                 if (
                     !quote.payee.partyIdInfo.fspId &&
@@ -731,7 +736,7 @@ export class QuotingAggregate {
                 ) {
                     const currency = quote.amount?.currency ?? null;
                     this._logger.debug(
-                        `Getting destinationFspId for payeePartyId: ${payeePartyId}, and payeePartyType: ${payeePartyType}, and currency :${currency} from account lookup service`
+                        `Getting destinationFspId for payeePartyId: ${payeePartyId}, and payeePartyType: ${payeePartyType}, and currency :${currency} from account lookup service for bulkQuote: ${bulkQuoteId} `
                     );
                     destinationFspId = await this._accountLookupService
                         .getAccountLookup(
@@ -741,23 +746,23 @@ export class QuotingAggregate {
                         )
                         .catch((error) => {
                             this._logger.error(
-                                `Error getting destinationFspId from account lookup service: ${error.message}`
+                                `Error getting destinationFspId from account lookup service for bulkQuote: ${bulkQuoteId}`,
+                                error
                             );
                             return null;
                         });
+                }
 
+                if (destinationFspId) {
                     this._logger.debug(
                         `Got destinationFspId from account lookup service: ${
                             destinationFspId ?? null
                         }`
                     );
-
-                    if (destinationFspId) {
-                        this._logger.debug(
-                            `Got destinationFspId from account lookup service: ${destinationFspId}`
-                        );
-                        break;
-                    }
+                    this._logger.debug(
+                        `Got destinationFspId from account lookup service: ${destinationFspId}`
+                    );
+                    break;
                 }
             }
         }
@@ -774,8 +779,7 @@ export class QuotingAggregate {
 
         if (expirationDate) {
             const expirationDateError =
-                this.validateExpirationDateOrGetErrorEvent(
-                    null,
+                this.validateBulkQuoteExpirationDateOrGetErrorEvent(
                     bulkQuoteId,
                     expirationDate
                 );
@@ -798,14 +802,12 @@ export class QuotingAggregate {
         if (!this._passThroughMode) {
             try {
                 await this.addBulkQuote(bulkQuote);
-            } catch (err: unknown) {
-                const error = (err as Error).message;
-                this._logger.error(
-                    `Error adding bulk quote ${bulkQuoteId} to database: ${error}`
-                );
+            } catch (error: unknown) {
+                const errorMessage = `Error adding bulk quote ${bulkQuoteId} to database`;
+                this._logger.error(errorMessage, error);
                 const errorPayload: QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload =
                     {
-                        errorDescription: `Error adding bulk quote ${bulkQuoteId} to database`,
+                        errorDescription: errorMessage,
                         bulkQuoteId,
                     };
                 const errorEvent =
@@ -841,9 +843,12 @@ export class QuotingAggregate {
         this._logger.debug(
             `Got BulkQuotePendingReceivedEvt msg for bulkQuoteId:${bulkQuoteId} and bulkQuotes: ${message.payload.individualQuoteResults}`
         );
-        const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
-        const destinationFspId = message.fspiopOpaqueState?.destinationFspId;
-        const expirationDate = message.payload.expiration;
+        const requesterFspId =
+            message.fspiopOpaqueState?.requesterFspId ?? null;
+        const destinationFspId =
+            message.fspiopOpaqueState?.destinationFspId ?? null;
+        const expirationDate = message.payload.expiration ?? null;
+
         let bulkQuoteErrorEvent: DomainEventMsg | null = null;
         let quoteStatus: QuoteStatus = QuoteStatus.ACCEPTED;
 
@@ -873,8 +878,7 @@ export class QuotingAggregate {
 
         if (bulkQuoteErrorEvent === null && expirationDate) {
             const expirationDateError =
-                this.validateExpirationDateOrGetErrorEvent(
-                    null,
+                this.validateBulkQuoteExpirationDateOrGetErrorEvent(
                     bulkQuoteId,
                     expirationDate
                 );
@@ -884,7 +888,8 @@ export class QuotingAggregate {
             }
         }
 
-        const quotes = message.payload.individualQuoteResults as IQuote[];
+        const quotes =
+            (message.payload.individualQuoteResults as IQuote[]) ?? [];
 
         if (!this._passThroughMode) {
             try {
@@ -895,15 +900,12 @@ export class QuotingAggregate {
                     quoteStatus,
                     quotes
                 );
-            } catch (err: unknown) {
-                const error = (err as Error).message;
-                this._logger.error(
-                    `Error updating bulk quote ${bulkQuoteId} in database: ${error}`
-                );
+            } catch (error: unknown) {
+                const errorMessage = `Error updating bulk quote ${bulkQuoteId} in database`;
+                this._logger.error(errorMessage, error);
                 const errorPayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
                     {
-                        errorDescription:
-                            "Error updating bulk quote in database",
+                        errorDescription: errorMessage,
                         bulkQuoteId,
                     };
                 const errorEvent =
@@ -915,7 +917,7 @@ export class QuotingAggregate {
         }
 
         //If there was any error during prior validation, return the error event
-        if (bulkQuoteErrorEvent !== null) {
+        if (bulkQuoteErrorEvent) {
             return bulkQuoteErrorEvent;
         }
 
@@ -933,7 +935,7 @@ export class QuotingAggregate {
     //#endregion
 
     //#region handleGetBulkQuoteQueryReceived
-    private async handleGetBulkQuoteQueryReceived(
+    private async handleGetBulkQuoteQueryReceivedEvent(
         message: BulkQuoteQueryReceivedEvt
     ): Promise<DomainEventMsg> {
         const bulkQuoteId = message.payload.bulkQuoteId;
@@ -1022,7 +1024,7 @@ export class QuotingAggregate {
 
     //#region handleGetBulkQuoteQueryRejected
 
-    private async handleGetBulkQuoteQueryRejected(
+    private async handleGetBulkQuoteQueryRejectedEvent(
         message: GetBulkQuoteQueryRejectedEvt
     ): Promise<DomainEventMsg> {
         this._logger.debug(
@@ -1106,7 +1108,7 @@ export class QuotingAggregate {
         requesterFspId: string,
         destinationFspId: string,
         status: QuoteStatus,
-        quotes: IQuote[]
+        quotesReceived: IQuote[]
     ): Promise<void> {
         const bulkQuote = await this._bulkQuotesRepo
             .getBulkQuoteById(bulkQuoteId)
@@ -1124,20 +1126,44 @@ export class QuotingAggregate {
             throw new BulkQuoteNotFoundError(errorMessage);
         }
 
-        const quotesThatBelongToBulkQuote = await this._quotesRepo
-            .getQuotesByBulkQuoteId(bulkQuoteId)
-            .catch((error) => {
-                this._logger.error(
-                    `Error getting quotes for bulk quote:${bulkQuoteId}`,
-                    error
-                );
-                return [];
-            });
+        const quotesThatBelongToBulkQuote =
+            (await this._quotesRepo
+                .getQuotesByBulkQuoteId(bulkQuoteId)
+                .catch((error) => {
+                    this._logger.error(
+                        `Error getting quotes for bulk quote:${bulkQuoteId}`,
+                        error
+                    );
+                    throw new UnableToGetBatchQuotesError(
+                        "Unable to get quotes for bulk quote"
+                    );
+                })) ?? [];
 
         quotesThatBelongToBulkQuote.forEach((quote) => {
-            quote.status = status;
-            quote.requesterFspId = requesterFspId;
-            quote.destinationFspId = destinationFspId;
+            const quoteFromBulkQuoteReceivedInRequest = quotesReceived.find(
+                (q) => q.quoteId === quote.quoteId
+            );
+            if (quoteFromBulkQuoteReceivedInRequest) {
+                quote.status = status;
+                quote.requesterFspId = requesterFspId;
+                quote.destinationFspId = destinationFspId;
+                quote.totalTransferAmount =
+                    quoteFromBulkQuoteReceivedInRequest.transferAmount;
+                quote.expiration =
+                    quoteFromBulkQuoteReceivedInRequest.expiration;
+                quote.ilpPacket = quoteFromBulkQuoteReceivedInRequest.ilpPacket;
+                quote.condition = quoteFromBulkQuoteReceivedInRequest.condition;
+                quote.payeeReceiveAmount =
+                    quoteFromBulkQuoteReceivedInRequest.payeeReceiveAmount;
+                quote.payeeFspFee =
+                    quoteFromBulkQuoteReceivedInRequest.payeeFspFee;
+                quote.payeeFspCommission =
+                    quoteFromBulkQuoteReceivedInRequest.payeeFspCommission;
+                quote.extensionList =
+                    quoteFromBulkQuoteReceivedInRequest.extensionList;
+                quote.errorInformation =
+                    quoteFromBulkQuoteReceivedInRequest.errorInformation;
+            }
         });
 
         bulkQuote.status = status;
@@ -1149,7 +1175,7 @@ export class QuotingAggregate {
                 );
             }
         } catch (err) {
-            const errorMessage = `Error updating multiple quotes for bulkQuoteId: ${bulkQuoteId}.`;
+            const errorMessage = `Error updating quotes for bulkQuoteId: ${bulkQuoteId}.`;
             this._logger.error(errorMessage, err);
             throw new UnableToUpdateBatchQuotesError(errorMessage);
         }
@@ -1188,43 +1214,83 @@ export class QuotingAggregate {
         return true;
     }
 
-    private validateExpirationDateOrGetErrorEvent(
-        quoteId: string | null,
-        bulkQuoteId: string | null,
+    private validateBulkQuoteExpirationDateOrGetErrorEvent(
+        bulkQuoteId: string,
         expirationDate: string
     ): DomainEventMsg | null {
-        const serverDateUtc = new Date().toISOString();
-        const serverDate = new Date(serverDateUtc);
-        const quoteDate = new Date(expirationDate);
-
-        const differenceDate = quoteDate.getTime() - serverDate.getTime();
+        let differenceDate = 0;
+        try {
+            const serverDateUtc = new Date().toISOString();
+            const serverDate = new Date(serverDateUtc);
+            const bulkQuoteDate = new Date(expirationDate);
+            differenceDate = bulkQuoteDate.getTime() - serverDate.getTime();
+        } catch (error) {
+            this._logger.error(
+                `Error parsing date for bulkQuoteId: ${bulkQuoteId}`,
+                error
+            );
+            const errorPayload: QuoteBCBulkQuoteExpiredErrorPayload = {
+                errorDescription: `Error parsing date for bulkQuoteId: ${bulkQuoteId}`,
+                bulkQuoteId,
+                expirationDate,
+            };
+            const errorEvent = new QuoteBCBulkQuoteExpiredErrorEvent(
+                errorPayload
+            );
+            return errorEvent;
+        }
 
         if (differenceDate < 0) {
-            if (bulkQuoteId) {
-                const errorMessage = `BulkQuote with id ${bulkQuoteId} has expired`;
-                this._logger.error(errorMessage);
-                const errorPayload: QuoteBCBulkQuoteExpiredErrorPayload = {
-                    errorDescription: errorMessage,
-                    bulkQuoteId,
-                    expirationDate,
-                };
-                const errorEvent = new QuoteBCBulkQuoteExpiredErrorEvent(
-                    errorPayload
-                );
-                return errorEvent;
-            } else {
-                const errorMessage = `Quote with id ${quoteId} has expired at ${expirationDate}`;
-                this._logger.error(errorMessage);
-                const errorPayload: QuoteBCQuoteExpiredErrorPayload = {
-                    errorDescription: errorMessage,
-                    quoteId: quoteId as string,
-                    expirationDate,
-                };
-                const errorEvent = new QuoteBCQuoteExpiredErrorEvent(
-                    errorPayload
-                );
-                return errorEvent;
-            }
+            const errorMessage = `BulkQuote with id ${bulkQuoteId} has expired on ${expirationDate}`;
+            this._logger.error(errorMessage);
+            const errorPayload: QuoteBCBulkQuoteExpiredErrorPayload = {
+                errorDescription: errorMessage,
+                bulkQuoteId,
+                expirationDate,
+            };
+            const errorEvent = new QuoteBCBulkQuoteExpiredErrorEvent(
+                errorPayload
+            );
+            return errorEvent;
+        }
+
+        return null;
+    }
+
+    private validateQuoteExpirationDateOrGetErrorEvent(
+        quoteId: string,
+        expirationDate: string
+    ): DomainEventMsg | null {
+        let differenceDate = 0;
+        try {
+            const serverDateUtc = new Date().toISOString();
+            const serverDate = new Date(serverDateUtc);
+            const quoteDate = new Date(expirationDate);
+            differenceDate = quoteDate.getTime() - serverDate.getTime();
+        } catch (error) {
+            this._logger.error(
+                `Error parsing date for quoteId: ${quoteId}`,
+                error
+            );
+            const errorPayload: QuoteBCQuoteExpiredErrorPayload = {
+                errorDescription: `Error parsing date for quoteId: ${quoteId}`,
+                quoteId,
+                expirationDate,
+            };
+            const errorEvent = new QuoteBCQuoteExpiredErrorEvent(errorPayload);
+            return errorEvent;
+        }
+
+        if (differenceDate < 0) {
+            const errorMessage = `Quote with id ${quoteId} has expired at ${expirationDate}`;
+            this._logger.error(errorMessage);
+            const errorPayload: QuoteBCQuoteExpiredErrorPayload = {
+                errorDescription: errorMessage,
+                quoteId: quoteId as string,
+                expirationDate,
+            };
+            const errorEvent = new QuoteBCQuoteExpiredErrorEvent(errorPayload);
+            return errorEvent;
         }
 
         return null;

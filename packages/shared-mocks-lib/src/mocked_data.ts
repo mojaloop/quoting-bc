@@ -526,6 +526,7 @@ export const mockedBulkQuote1: IBulkQuote = {
             dateOfBirth: "1980-01-01",
         },
         partyIdInfo: {
+            fspId: "fspId1",
             partyIdType: "partyType1",
             partyIdentifier: "111",
             partySubIdOrType: "partySubIdOrType1",

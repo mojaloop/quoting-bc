@@ -39,17 +39,16 @@ import {
     participantService,
     accountLookupService,
     schemaRules,
-} from "../../utils/mocked_variables";
-import { QuotingAggregate } from "./../../../src/aggregate";
+} from "../utils/mocked_variables";
+import { QuotingAggregate } from "./../../src/aggregate";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
-    createBulkQuoteQueryReceivedEvtPayload,
     createMessage,
     createQuoteQueryReceivedEvtPayload,
     createQuoteQueryRejectedEvtPayload,
     createQuoteRequestReceivedEvtPayload,
     createQuoteResponseReceivedEvtPayload,
-} from "../../utils/helpers";
+} from "../utils/helpers";
 import {
     GetQuoteQueryRejectedEvt,
     QuoteBCDestinationParticipantNotFoundErrorEvent,
@@ -93,7 +92,7 @@ import {
     QuoteResponseReceivedEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuoteSchemeRules, QuoteStatus } from "../../../src/types";
+import { IQuoteSchemeRules, QuoteStatus } from "../../src/types";
 
 let aggregate: QuotingAggregate;
 
@@ -192,7 +191,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
     });
 
     //#region handleQuoteRequestReceivedEvt
-    test("handleQuoteRequestReceivedEvt - should send error event if requesterFspId is null or undefined", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if requesterFspId is null or undefined", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const payload = createQuoteRequestReceivedEvtPayload({
@@ -235,7 +234,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if requesterFspId is not found on participant service due to an error", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if requesterFspId is not found on participant service due to an error", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -276,7 +275,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if requesterFspId is not found on participant service", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if requesterFspId is not found on participant service", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -317,7 +316,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if requesterFspId mismatches the one found on participant service", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if requesterFspId mismatches the one found on participant service", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -365,7 +364,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if requesterFspId is not active", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if requesterFspId is not active", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -412,7 +411,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if requesterFspId is not approved", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if requesterFspId is not approved", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -459,7 +458,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if schema validation is incorrect", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if schema validation is incorrect", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -518,7 +517,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if destination fspId not provided and when trying to fetch it an error occurs", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if destination fspId not provided and when trying to fetch it an error occurs", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -578,7 +577,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if destination fspId not provided and when trying to fetch it returns null from service", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if destination fspId not provided and when trying to fetch it returns null from service", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -638,7 +637,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if destination fspId not found on participant service due to an error", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if destination fspId not found on participant service due to an error", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -685,7 +684,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if destination fspId not found on participant service", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if destination fspId not found on participant service", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -732,7 +731,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if destination fspId mismatches the one fetched on participant service", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if destination fspId mismatches the one fetched on participant service", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -786,7 +785,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if destination fspId is not approved", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if destination fspId is not approved", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -839,7 +838,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if destination fspId is not active", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if destination fspId is not active", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -892,7 +891,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if quote is expired", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if quote is expired", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -946,7 +945,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleQuoteRequestReceivedEvt - should send error event if couldnt store quote on passthrough mode", async () => {
+    test("handleQuoteRequestReceivedEvent - should send error event if couldnt store quote on passthrough mode", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
@@ -1012,7 +1011,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
     //#endregion
 
-    //#region handleQuoteResponseReceivedEvent
+    //#region handleQuoteResponseReceivedEvt
     test("handleQuoteResponseReceivedEvent - should send error event if quote is rejected due to violation of schema rules and store quote with rejected status on database if passthrough mode is disabled", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
@@ -1351,7 +1350,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
     //#endregion
 
-    //#region handleQuoteQueryReceivedEvent
+    //#region handleQuoteQueryReceivedEvt
     test("handleQuoteQueryReceivedEvent - should send error event if quote is rejected due to invalid requester fsp", async () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = null;
@@ -1622,7 +1621,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
     //#endregion
 
-    //#region handleGetQuoteQueryRejectedEvent
+    //#region handleGetQuoteQueryRejectedEvt
     test("handleGetQuoteQueryRejectedEvent - should send error event if quote is rejected due to invalid requester fsp", async () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = null;
