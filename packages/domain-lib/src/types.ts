@@ -108,6 +108,8 @@ export interface IParticipant {
 }
 
 export interface IQuote {
+    createdAt: number;
+	updatedAt: number;
     requesterFspId:string;
     destinationFspId:string;
     quoteId: string;
@@ -135,6 +137,8 @@ export interface IQuote {
     transferAmount : IMoney | null;
 }
 export interface IBulkQuote {
+    createdAt: number;
+	updatedAt: number;
     bulkQuoteId: string;
     payer: IParty;
     geoCode: IGeoCode | null;

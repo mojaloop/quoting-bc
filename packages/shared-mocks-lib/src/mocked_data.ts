@@ -38,7 +38,11 @@ import {
     QuoteStatus,
 } from "@mojaloop/quoting-bc-domain-lib";
 
+const now = Date.now();
+
 export const mockedQuote1: IQuote = {
+    createdAt: now,
+    updatedAt: now,
     requesterFspId: "1",
     destinationFspId: "10",
     quoteId: "1",
@@ -155,6 +159,8 @@ export const mockedQuote1: IQuote = {
 };
 
 export const mockedQuote2: IQuote = {
+    createdAt: now,
+    updatedAt: now,
     requesterFspId: "2",
     destinationFspId: "11",
     quoteId: "2",
@@ -271,6 +277,8 @@ export const mockedQuote2: IQuote = {
 };
 
 export const mockedQuote3: IQuote = {
+    createdAt: now,
+    updatedAt: now,
     requesterFspId: "3",
     destinationFspId: "12",
     quoteId: "3",
@@ -387,6 +395,8 @@ export const mockedQuote3: IQuote = {
 };
 
 export const mockedQuote4: IQuote = {
+    createdAt: now,
+    updatedAt: now,
     requesterFspId: "4",
     destinationFspId: "13",
     quoteId: "4",
@@ -513,6 +523,8 @@ export const mockedQuotes: IQuote[] = [
 ];
 
 export const mockedBulkQuote1: IBulkQuote = {
+    createdAt: now,
+    updatedAt: now,
     bulkQuoteId: "1",
     payer: {
         merchantClassificationCode: "1",
@@ -592,6 +604,8 @@ export const mockedBulkQuote1: IBulkQuote = {
 } as unknown as IBulkQuote;
 
 export const mockedBulkQuote2: IBulkQuote = {
+    createdAt: now,
+    updatedAt: now,
     bulkQuoteId: "2",
     payer: {
         merchantClassificationCode: "2",
@@ -630,6 +644,8 @@ export const mockedBulkQuote2: IBulkQuote = {
 };
 
 export const mockedBulkQuote3: IBulkQuote = {
+    createdAt: now,
+    updatedAt: now,
     bulkQuoteId: "3",
     payer: {
         merchantClassificationCode: "3",

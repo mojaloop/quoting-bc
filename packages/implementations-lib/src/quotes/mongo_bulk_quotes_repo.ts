@@ -216,6 +216,8 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 
     private mapToBulkQuote(bulkQuote: WithId<Document>): IBulkQuote {
         const quoteMapped: IBulkQuote = {
+            createdAt: bulkQuote.createdAt ?? null,
+			updatedAt: bulkQuote.updatedAt ?? null,
             bulkQuoteId: bulkQuote.bulkQuoteId ?? null,
             payer: bulkQuote.payer ?? null,
             geoCode: bulkQuote.geoCode ?? null,

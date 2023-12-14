@@ -271,6 +271,8 @@ export class MongoQuotesRepo implements IQuoteRepo {
 
     private mapToQuote(quote: WithId<Document>): IQuote {
         const quoteMapped: IQuote = {
+            createdAt: quote.createdAt ?? null,
+			updatedAt: quote.updatedAt ?? null,
             quoteId: quote.quoteId ?? null,
             bulkQuoteId: quote.bulkQuoteId ?? null,
             transactionId: quote.transactionId ?? null,

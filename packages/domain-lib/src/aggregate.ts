@@ -354,7 +354,11 @@ export class QuotingAggregate {
             }
         }
 
+        const now = Date.now();
+
         const quote: IQuote = {
+            createdAt: now,
+            updatedAt: now,
             quoteId: message.payload.quoteId,
             bulkQuoteId: null,
             requesterFspId: message.fspiopOpaqueState.requesterFspId,
@@ -495,7 +499,7 @@ export class QuotingAggregate {
             }
         }
 
-        if (quoteErrorEvent !== null) {
+        if (quoteErrorEvent === null) {
             const expirationDateError =
                 this.validateQuoteExpirationDateOrGetErrorEvent(
                     quoteId,
@@ -788,15 +792,19 @@ export class QuotingAggregate {
             }
         }
 
+        const now = Date.now();
+
         const bulkQuote: IBulkQuote = {
-            bulkQuoteId,
+            createdAt: now,
+            updatedAt: now,
+            bulkQuoteId: bulkQuoteId,
             payer: message.payload.payer,
             geoCode: message.payload.geoCode,
             expiration: message.payload.expiration,
             individualQuotes: individualQuotesInsideBulkQuote as IQuote[],
             extensionList: message.payload.extensionList,
             quotesNotProcessedIds: [],
-            status: QuoteStatus.PENDING,
+            status: QuoteStatus.PENDING
         };
 
         if (!this._passThroughMode) {
@@ -1087,9 +1095,12 @@ export class QuotingAggregate {
         }
 
         const quotes = bulkQuote.individualQuotes;
-
+        const now = Date.now();
+        
         // change quote status to Pending for all
         quotes.forEach((quote) => {
+            quote.createdAt = now;
+            quote.updatedAt = now;
             quote.bulkQuoteId = bulkQuote.bulkQuoteId;
             quote.status = QuoteStatus.PENDING;
         });
@@ -1139,11 +1150,14 @@ export class QuotingAggregate {
                     );
                 })) ?? [];
 
+        const now = Date.now();
+
         quotesThatBelongToBulkQuote.forEach((quote) => {
             const quoteFromBulkQuoteReceivedInRequest = quotesReceived.find(
                 (q) => q.quoteId === quote.quoteId
             );
             if (quoteFromBulkQuoteReceivedInRequest) {
+                quote.updatedAt = now;
                 quote.status = status;
                 quote.requesterFspId = requesterFspId;
                 quote.destinationFspId = destinationFspId;
@@ -1166,6 +1180,7 @@ export class QuotingAggregate {
             }
         });
 
+        bulkQuote.updatedAt = now;
         bulkQuote.status = status;
 
         try {
