@@ -34,20 +34,57 @@
 
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { QuoteQueryReceivedEvt, QuoteQueryReceivedEvtPayload, QuoteQueryResponseEvtPayload, QuoteRequestAcceptedEvtPayload, QuoteRequestReceivedEvt, QuoteRequestReceivedEvtPayload, QuoteResponseAcceptedEvtPayload, QuoteResponseReceivedEvt, QuoteResponseReceivedEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
-import {IMoney, IQuote, QuoteStatus} from '../../src/types';
-import { createMessage, createQuoteRequestReceivedEvtPayload, createQuoteResponseReceivedEvtPayload } from "../utils/helpers";
-import { quoteRepo, messageProducer, participantService, accountLookupService, logger, bulkQuoteRepo, schemaRules } from "../utils/mocked_variables";
-import { mockedQuote1, mockedQuote2, mockedQuote4 } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import {
+    GetQuoteQueryRejectedEvt,
+    GetQuoteQueryRejectedEvtPayload,
+    QuoteQueryReceivedEvt,
+    QuoteQueryReceivedEvtPayload,
+    QuoteQueryResponseEvtPayload,
+    QuoteRequestAcceptedEvt,
+    QuoteRequestAcceptedEvtPayload,
+    QuoteRequestReceivedEvt,
+    QuoteRequestReceivedEvtPayload,
+    QuoteResponseAccepted,
+    QuoteResponseAcceptedEvtPayload,
+    QuoteResponseReceivedEvt,
+    QuoteResponseReceivedEvtPayload,
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { IMoney, QuoteStatus } from "../../src/types";
+import {
+    createMessage,
+    createQuoteQueryRejectedEvtPayload,
+    createQuoteRequestReceivedEvtPayload,
+    createQuoteResponseReceivedEvtPayload,
+} from "../utils/helpers";
+import {
+    quoteRepo,
+    messageProducer,
+    participantService,
+    accountLookupService,
+    logger,
+    bulkQuoteRepo,
+    schemaRules,
+} from "../utils/mocked_variables";
+import {
+    mockedQuote1,
+    mockedQuote4,
+} from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { QuotingAggregate } from "../../src/aggregate";
-
 
 let aggregate: QuotingAggregate;
 
 describe("Domain - Unit Tests for Quote Events", () => {
-
     beforeAll(async () => {
-        aggregate = new QuotingAggregate(logger,quoteRepo,bulkQuoteRepo,messageProducer,participantService,accountLookupService, false, schemaRules);
+        aggregate = new QuotingAggregate(
+            logger,
+            quoteRepo,
+            bulkQuoteRepo,
+            messageProducer,
+            participantService,
+            accountLookupService,
+            true,
+            schemaRules
+        );
     });
 
     afterEach(async () => {
@@ -58,66 +95,55 @@ describe("Domain - Unit Tests for Quote Events", () => {
         jest.clearAllMocks();
     });
 
+    it("Aggregate should be correctly instantiated", async () => {
+        expect(aggregate).toBeTruthy();
+    });
+
     //#region handleQuoteRequestReceivedEvt
 
-    // test("handleQuoteRequestReceivedEvt - should publish error message if participant is invalid", async () => {
-    //     const mockedQuote = mockedQuote1;
-    //     const payload: QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
-
-    //     const requesterFspId = "payer";
-    //     const destinationFspId = "payee";
-    //     const fspiopOpaqueState = {
-    //         requesterFspId,
-    //         destinationFspId,
-    //     };
-
-    //     const message: IMessage = createMessage(payload, QuoteRequestReceivedEvt.name,fspiopOpaqueState);
-
-    //     const errorMsg = InvalidParticipantIdError.name;
-
-    //     const errorPayload: QuoteErrorEvtPayload = {
-	// 		errorMsg,
-	// 		destinationFspId,
-    //         requesterFspId,
-    //         quoteId: payload.quoteId,
-    //         sourceEvent : QuoteRequestReceivedEvt.name,
-	// 	};
-
-    //     jest.spyOn(participantService, "getParticipantInfo")
-    //         .mockResolvedValueOnce({ id: "not matching", type: "DFSP", isActive: false} as IParticipant);
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "payload": errorPayload,
-    //     }));
-
-    // });
-
-    test("handleQuoteRequestReceivedEvt - should call getAccountLookup if fspId not provided", async () => {
+    test("handleQuoteRequestReceivedEvent - should call getAccountLookup if destination fspId is not provided in opaque state and in quote", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
+        const payload: QuoteRequestReceivedEvtPayload =
+            createQuoteRequestReceivedEvtPayload({
+                ...mockedQuote,
+                payee: {
+                    ...mockedQuote.payee,
+                    partyIdInfo: {
+                        ...mockedQuote.payee.partyIdInfo,
+                        fspId: null,
+                    },
+                },
+            });
 
-        payload.payee.partyIdInfo.fspId = null;
-
-        const requesterFspId = "payer";
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const fspiopOpaqueState = {
             requesterFspId,
         };
 
-        const message: IMessage = createMessage(payload, QuoteRequestReceivedEvt.name,fspiopOpaqueState);
+        const message: IMessage = createMessage(
+            payload,
+            QuoteRequestReceivedEvt.name,
+            fspiopOpaqueState
+        );
 
-        const accountLookupServiceSpy = jest.spyOn(accountLookupService, "getAccountLookup")
-            .mockResolvedValueOnce("payee");
+        const accountLookupServiceSpy = jest
+            .spyOn(accountLookupService, "getAccountLookup")
+            .mockResolvedValueOnce(mockedQuote.payee.partyIdInfo.fspId);
 
         jest.spyOn(participantService, "getParticipantInfo")
-            .mockResolvedValueOnce({ id: mockedQuote.payer.partyIdInfo.fspId, type: "DFSP", isActive: true, approved: true } as IParticipant)
-            .mockResolvedValueOnce({ id: mockedQuote.payee.partyIdInfo.fspId, type: "DFSP", isActive: true, approved: true } as IParticipant);
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: mockedQuote.payee.partyIdInfo.fspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
 
         jest.spyOn(messageProducer, "send");
 
@@ -126,496 +152,68 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
         // Assert
         expect(accountLookupServiceSpy).toHaveBeenCalled();
-
     });
 
-    // test("handleQuoteRequestReceivedEvt - should add quote to quote repo", async () => {
-    //     // Arrange
-    //     const mockedQuote = mockedQuote1;
-    //     const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
-
-    //     payload.payee.partyIdInfo.fspId = null;
-
-    //     const requesterFspId = "payer";
-    //     const destinationFspId = "payee";
-    //     const fspiopOpaqueState = {
-    //         requesterFspId,
-    //         destinationFspId,
-    //     };
-
-    //     const message: IMessage = createMessage(payload, QuoteRequestReceivedEvt.name,fspiopOpaqueState);
-
-    //     jest.spyOn(participantService, "getParticipantInfo")
-    //         .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
-    //         .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
-
-    //     jest.spyOn(quoteRepo, "addQuote")
-    //         .mockResolvedValueOnce(mockedQuote.quoteId);
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(quoteRepo.addQuote).toHaveBeenCalled();
-    //     expect(quoteRepo.addQuote).toHaveBeenCalledWith(expect.objectContaining({
-    //         quoteId: mockedQuote.quoteId,
-    //         status: QuoteStatus.PENDING,
-    //     }));
-
-    // });
-
-    // test("handleQuoteRequestReceivedEvt - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
-    //     // Arrange
-    //     const mockedQuote = mockedQuote1;
-    //     const payload:QuoteRequestReceivedEvtPayload = createQuoteRequestReceivedEvtPayload(mockedQuote);
-
-    //     const requesterFspId = "payer";
-    //     const destinationFspId = "payee";
-    //     const fspiopOpaqueState = {
-    //         requesterFspId,
-    //         destinationFspId,
-    //     };
-
-    //     const message: IMessage = createMessage(payload, QuoteRequestReceivedEvt.name,fspiopOpaqueState);
-
-    //     const responsePayload : QuoteRequestAcceptedEvtPayload= {
-    //         quoteId: mockedQuote.quoteId,
-	// 		transactionId: mockedQuote.transactionId,
-	// 		transactionRequestId: mockedQuote.transactionRequestId,
-	// 		payee: mockedQuote.payee,
-	// 		payer: mockedQuote.payer,
-	// 		amountType: mockedQuote.amountType,
-	// 		amount: mockedQuote.amount,
-	// 		fees:mockedQuote.feesPayer ,
-	// 		transactionType: mockedQuote.transactionType,
-	// 		geoCode: mockedQuote.geoCode,
-	// 		note: mockedQuote.note,
-	// 		expiration: mockedQuote.expiration,
-	// 		extensionList: mockedQuote.extensionList
-    //     };
-
-    //     jest.spyOn(quoteRepo, "addQuote")
-    //         .mockResolvedValueOnce("inserted quote id");
-
-    //     jest.spyOn(participantService, "getParticipantInfo")
-    //         .mockResolvedValueOnce({ id: requesterFspId, type: "DFSP", isActive: true} as IParticipant)
-    //         .mockResolvedValueOnce({ id: destinationFspId, type: "DFSP", isActive: true} as IParticipant);
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "payload": responsePayload,
-    //     }));
-
-    // });
-
-    //#endregion
-
-
-    //#region handleQuoteResponseReceivedEvt
-
-    // test("handleQuoteResponseReceivedEvt - should send error event if requesterFspId not valid", async () => {
-    //     // Arrange
-    //     const mockedQuote = mockedQuote1;
-    //     const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-
-    //     const message: IMessage = createMessage(payload, QuoteResponseReceivedEvt.name, null);
-
-    //     const errorMsg = InvalidRequesterFspIdError.name;
-
-    //     const errorPayload: QuoteErrorEvtPayload = {
-	// 		errorMsg,
-	// 		requesterFspId:null,
-    //         destinationFspId: null,
-    //         quoteId: payload.quoteId,
-    //         sourceEvent : QuoteResponseReceivedEvt.name,
-	// 	};
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "payload": errorPayload,
-    //     }));
-
-    // });
-
-    // test("handleQuoteResponseReceivedEvt - should send error event if destinationFspId not valid", async () => {
-    //     // Arrange
-    //     const mockedQuote = mockedQuote1;
-
-    //     const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-
-    //     const fspiopOpaqueState = {
-    //         requesterFspId: "payer",
-    //     };
-    //     const message: IMessage = createMessage(payload, QuoteResponseReceivedEvt.name,fspiopOpaqueState);
-
-    //     const errorMsg = InvalidDestinationFspIdError.name;
-
-    //     const errorPayload: QuoteErrorEvtPayload = {
-	// 		errorMsg,
-	// 		requesterFspId:"payer",
-    //         destinationFspId: null,
-    //         quoteId: payload.quoteId,
-    //         sourceEvent : QuoteResponseReceivedEvt.name,
-	// 	};
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "payload": errorPayload,
-    //     }));
-
-    // });
-
-    // test("handleQuoteResponseReceivedEvt - should send error event if couldnt validate requester participant", async () => {
-    //     // Arrange
-    //     const mockedQuote = mockedQuote1;
-    //     const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-
-    //     const fspiopOpaqueState = {
-    //         requesterFspId: "payer",
-    //         destinationFspId: "payee",
-    //     };
-    //     const message: IMessage = createMessage(payload, QuoteResponseReceivedEvt.name,fspiopOpaqueState);
-
-    //     const errorMsg = NoSuchParticipantError.name;
-
-    //     const errorPayload: QuoteErrorEvtPayload = {
-    //         errorMsg,
-    //         requesterFspId:"payer",
-    //         destinationFspId: "payee",
-    //         quoteId: payload.quoteId,
-    //         sourceEvent : QuoteResponseReceivedEvt.name,
-    //     };
-
-    //     jest.spyOn(participantService,"getParticipantInfo")
-    //         .mockResolvedValue(null);
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "payload": errorPayload,
-    //     }));
-
-    // });
-
-    // test("handleQuoteResponseReceivedEvt - should send error event if couldnt find quote on database", async () => {
-    //     // Arrange
-    //     const mockedQuote = mockedQuote1;
-    //     const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-
-    //     const fspiopOpaqueState = {
-    //         requesterFspId: "payer",
-    //         destinationFspId: "payee",
-    //     }
-    //     const message: IMessage = createMessage(payload,QuoteResponseReceivedEvt.name, fspiopOpaqueState);
-
-    //     const errorMsg = NoSuchQuoteError.name;
-
-    //     const errorPayload: QuoteErrorEvtPayload = {
-    //         errorMsg,
-    //         requesterFspId:"payer",
-    //         destinationFspId: "payee",
-    //         quoteId: payload.quoteId,
-    //         sourceEvent : QuoteResponseReceivedEvt.name,
-    //     };
-
-    //     jest.spyOn(participantService,"getParticipantInfo")
-    //         .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
-    //         .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
-
-    //     jest.spyOn(quoteRepo, "getQuoteById")
-    //         .mockResolvedValueOnce(null);
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "payload": errorPayload,
-    //     }));
-
-    // });
-
-    // test("handleQuoteResponseReceivedEvt - should update quote on quote repository", async () => {
-    //     // Arrange
-    //     const mockedQuote = mockedQuote1;
-    //     const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-
-    //     const fspiopOpaqueState = {
-    //         requesterFspId: "payer",
-    //         destinationFspId: "payee",
-    //     }
-    //     const message: IMessage = createMessage(payload,QuoteResponseReceivedEvt.name, fspiopOpaqueState);
-
-    //     const repositorySpy = jest.spyOn(quoteRepo, "updateQuote");
-
-    //     jest.spyOn(participantService,"getParticipantInfo")
-    //         .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
-    //         .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
-
-    //     jest.spyOn(quoteRepo, "getQuoteById")
-    //         .mockResolvedValueOnce(mockedQuote2);
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(repositorySpy).toHaveBeenCalledWith(expect.objectContaining({
-    //         "expiration": mockedQuote2.expiration,
-    //         "geoCode": mockedQuote2.geoCode,
-    //         "quoteId": mockedQuote.quoteId,
-    //         "status": QuoteStatus.ACCEPTED
-    //     }));
-    // });
-
-    // test("handleQuoteResponseReceivedEvt - should send quote response accepted event", async () => {
-    //     // Arrange
-    //     const mockedQuote = mockedQuote1;
-    //     const payload:QuoteResponseReceivedEvtPayload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-
-    //     const fspiopOpaqueState = {
-    //         requesterFspId: "payer",
-    //         destinationFspId: "payee",
-    //     }
-
-    //     const message: IMessage = createMessage(payload,QuoteResponseReceivedEvt.name, fspiopOpaqueState);
-
-    //     const quoteResponsePayload: QuoteResponseAcceptedEvtPayload = {
-    //         expiration: mockedQuote.expiration as string ,
-    //         geoCode: mockedQuote.geoCode,
-    //         quoteId: mockedQuote.quoteId,
-    //         extensionList: mockedQuote.extensionList,
-    //         condition: mockedQuote.condition as string,
-    //         ilpPacket: mockedQuote.ilpPacket as string,
-    //         transferAmount: mockedQuote.totalTransferAmount as IMoney,
-    //         payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
-    //         payeeFspFee: mockedQuote.payeeFspFee as IMoney,
-    //         payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
-    //     };
-
-    //     jest.spyOn(participantService,"getParticipantInfo")
-    //         .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
-    //         .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
-
-    //     jest.spyOn(quoteRepo, "getQuoteById")
-    //         .mockResolvedValueOnce({} as unknown as IQuote);
-
-    //     jest.spyOn(quoteRepo, "updateQuote")
-    //         .mockResolvedValue();
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "fspiopOpaqueState": fspiopOpaqueState,
-    //         "payload": quoteResponsePayload,
-    //     }));
-
-    // });
-    //#endregion
-
-    //#region handleQuoteQueryReceivedEvt
-
-    // test("handleQuoteQueryReceivedEvt - should send error event if requesterFspId not valid", async () => {
-    //     // Arrange
-    //     const payload: QuoteQueryReceivedEvtPayload = {
-    //         quoteId: "quoteId",
-    //     };
-
-    //     const message: IMessage = createMessage(payload,QuoteQueryReceivedEvt.name, {});
-
-    //     const errorMsg = InvalidRequesterFspIdError.name;
-
-    //     const errorPayload: QuoteErrorEvtPayload = {
-    //         destinationFspId: null,
-    //         errorMsg,
-    //         quoteId: "quoteId",
-    //         requesterFspId: null,
-    //         sourceEvent: QuoteQueryReceivedEvt.name,
-    //     };
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "payload": errorPayload,
-    //     }));
-    // });
-
-    // test("handleQuoteQueryReceivedEvt - should send error event if destinationFspId not valid", async () => {
-    //     // Arrange
-    //     const payload: QuoteQueryReceivedEvtPayload = {
-    //         quoteId: "quoteId",
-    //     };
-
-    //     const fspiopOpaqueState = {
-    //         requesterFspId: "payer",
-    //     };
-
-    //     const message: IMessage = createMessage(payload,QuoteQueryReceivedEvt.name, fspiopOpaqueState);
-
-    //     const errorMsg = InvalidDestinationFspIdError.name;
-
-    //     const errorPayload: QuoteErrorEvtPayload = {
-    //         destinationFspId: null,
-    //         errorMsg,
-    //         quoteId: "quoteId",
-    //         requesterFspId: "payer",
-    //         sourceEvent: QuoteQueryReceivedEvt.name,
-    //     };
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "payload": errorPayload,
-    //     }));
-    // });
-
-    // test("handleQuoteQueryReceivedEvt - should send error event if participant for requesterFspId not valid", async () => {
-    //     // Arrange
-    //     const payload: QuoteQueryReceivedEvtPayload = {
-    //         quoteId: "quoteId",
-    //     };
-
-    //     const fspiopOpaqueState = {
-    //         requesterFspId: "payer",
-    //         destinationFspId: "payee",
-    //     };
-
-    //     const message: IMessage = createMessage(payload,QuoteQueryReceivedEvt.name, fspiopOpaqueState);
-
-    //     const errorMsg = NoSuchParticipantError.name;
-
-    //     const errorPayload: QuoteErrorEvtPayload = {
-    //         destinationFspId: "payee",
-    //         errorMsg,
-    //         quoteId: "quoteId",
-    //         requesterFspId: "payer",
-    //         sourceEvent: QuoteQueryReceivedEvt.name,
-    //     };
-
-    //     jest.spyOn(participantService,"getParticipantInfo")
-    //         .mockResolvedValueOnce(null);
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "payload": errorPayload,
-    //     }));
-    // });
-
-    // test("handleQuoteQueryReceivedEvt - should send error event if couldnt find the quote asked", async () => {
-    //     // Arrange
-    //     const payload: QuoteQueryReceivedEvtPayload = {
-    //         quoteId: "quoteId",
-    //     };
-
-    //     const fspiopOpaqueState = {
-    //         requesterFspId: "payer",
-    //         destinationFspId: "payee",
-    //     };
-
-    //     const message: IMessage = createMessage(payload,QuoteQueryReceivedEvt.name, fspiopOpaqueState);
-
-    //     const errorMsg = NoSuchQuoteError.name;
-
-    //     const errorPayload: QuoteErrorEvtPayload = {
-    //         destinationFspId: "payee",
-    //         errorMsg,
-    //         quoteId: "quoteId",
-    //         requesterFspId: "payer",
-    //         sourceEvent: QuoteQueryReceivedEvt.name,
-    //     };
-
-    //     jest.spyOn(participantService,"getParticipantInfo")
-    //         .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true} as IParticipant)
-    //         .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true} as IParticipant);
-
-    //     jest.spyOn(quoteRepo, "getQuoteById")
-    //         .mockResolvedValueOnce(null);
-
-    //     jest.spyOn(messageProducer, "send");
-
-    //     // Act
-    //     await aggregate.handleQuotingEvent(message);
-
-    //     // Assert
-    //     expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-    //         "payload": errorPayload,
-    //     }));
-    // });
-
-    test("handleQuoteQueryReceivedEvt - should respond with a successful event for the asked quote", async () => {
+    test("handleQuoteRequestReceivedEvent - should add destination payee fspid to quote if not provided on quote", async () => {
         // Arrange
-        const payload: QuoteQueryReceivedEvtPayload = {
-            quoteId: mockedQuote4.quoteId,
-        };
+        const mockedQuote = mockedQuote1;
+        const payload: QuoteRequestReceivedEvtPayload =
+            createQuoteRequestReceivedEvtPayload({
+                ...mockedQuote,
+                payee: {
+                    ...mockedQuote.payee,
+                    partyIdInfo: {
+                        ...mockedQuote.payee.partyIdInfo,
+                        fspId: null,
+                    },
+                },
+            });
 
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const fspiopOpaqueState = {
-            requesterFspId: "payer",
-            destinationFspId: "payee",
+            requesterFspId,
         };
 
-        const message: IMessage = createMessage(payload,QuoteQueryReceivedEvt.name, fspiopOpaqueState);
+        const message: IMessage = createMessage(
+            payload,
+            QuoteRequestReceivedEvt.name,
+            fspiopOpaqueState
+        );
 
-        const payloadResponse: QuoteQueryResponseEvtPayload = {
-            quoteId: mockedQuote4.quoteId,
-            condition: mockedQuote4.condition as string,
-            expiration: mockedQuote4.expiration as string,
-            transferAmount: mockedQuote4.totalTransferAmount as IMoney,
-            extensionList: mockedQuote4.extensionList,
-            geoCode: mockedQuote4.geoCode,
-            ilpPacket: mockedQuote4.ilpPacket as string,
-            payeeFspCommission: mockedQuote4.payeeFspCommission,
-            payeeFspFee: mockedQuote4.payeeFspFee,
-            payeeReceiveAmount: mockedQuote4.payeeReceiveAmount
+        const responsePayload: QuoteRequestAcceptedEvtPayload = {
+            quoteId: mockedQuote.quoteId,
+            transactionId: mockedQuote.transactionId,
+            transactionRequestId: mockedQuote.transactionRequestId,
+            payee: mockedQuote.payee,
+            payer: mockedQuote.payer,
+            amountType: mockedQuote.amountType,
+            amount: mockedQuote.amount,
+            fees: mockedQuote.feesPayer,
+            transactionType: mockedQuote.transactionType,
+            geoCode: mockedQuote.geoCode,
+            note: mockedQuote.note,
+            expiration: mockedQuote.expiration,
+            extensionList: mockedQuote.extensionList,
         };
 
-        jest.spyOn(participantService,"getParticipantInfo")
-            .mockResolvedValueOnce({ id: "payer", type: "DFSP", isActive: true, approved: true } as IParticipant)
-            .mockResolvedValueOnce({ id: "payee", type: "DFSP", isActive: true, approved: true } as IParticipant);
+        jest.spyOn(
+            accountLookupService,
+            "getAccountLookup"
+        ).mockResolvedValueOnce(mockedQuote.payee.partyIdInfo.fspId);
 
-        jest.spyOn(quoteRepo, "getQuoteById")
-            .mockResolvedValueOnce(mockedQuote4);
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: mockedQuote.payer.partyIdInfo.fspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: mockedQuote.payee.partyIdInfo.fspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
 
         jest.spyOn(messageProducer, "send");
 
@@ -623,16 +221,485 @@ describe("Domain - Unit Tests for Quote Events", () => {
         await aggregate.handleQuotingEvent(message);
 
         // Assert
-        expect(messageProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-            "fspiopOpaqueState": fspiopOpaqueState,
-            "payload": payloadResponse,
-        }));
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteRequestAcceptedEvt.name,
+            })
+        );
+    });
 
+    test("handleQuoteRequestReceivedEvent - should add quote to quote repo without passthrough mode", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const payload: QuoteRequestReceivedEvtPayload =
+            createQuoteRequestReceivedEvtPayload(mockedQuote);
+
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const fspiopOpaqueState = {
+            requesterFspId,
+            destinationFspId,
+        };
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteRequestReceivedEvt.name,
+            fspiopOpaqueState
+        );
+
+        const aggregateWithPassThrough = new QuotingAggregate(
+            logger,
+            quoteRepo,
+            bulkQuoteRepo,
+            messageProducer,
+            participantService,
+            accountLookupService,
+            false,
+            schemaRules
+        );
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(quoteRepo, "addQuote").mockResolvedValueOnce(
+            mockedQuote.quoteId
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+        await aggregateWithPassThrough.handleQuotingEvent(message);
+
+        // Assert
+        expect(quoteRepo.addQuote).toHaveBeenCalled();
+        expect(quoteRepo.addQuote).toHaveBeenCalledWith(
+            expect.objectContaining({
+                quoteId: mockedQuote.quoteId,
+                status: QuoteStatus.PENDING,
+            })
+        );
+    });
+
+    test("handleQuoteRequestReceivedEvent - should add quote to quote repo with passthrough mode", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const payload: QuoteRequestReceivedEvtPayload =
+            createQuoteRequestReceivedEvtPayload(mockedQuote);
+
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const fspiopOpaqueState = {
+            requesterFspId,
+            destinationFspId,
+        };
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteRequestReceivedEvt.name,
+            fspiopOpaqueState
+        );
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(quoteRepo, "addQuote").mockResolvedValueOnce(
+            mockedQuote.quoteId
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(quoteRepo.addQuote).toHaveBeenCalledTimes(0);
+    });
+
+    test("handleQuoteRequestReceivedEvent - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const payload: QuoteRequestReceivedEvtPayload =
+            createQuoteRequestReceivedEvtPayload(mockedQuote);
+
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const fspiopOpaqueState = {
+            requesterFspId,
+            destinationFspId,
+        };
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteRequestReceivedEvt.name,
+            fspiopOpaqueState
+        );
+
+        const responsePayload: QuoteRequestAcceptedEvtPayload = {
+            quoteId: mockedQuote.quoteId,
+            transactionId: mockedQuote.transactionId,
+            transactionRequestId: mockedQuote.transactionRequestId,
+            payee: mockedQuote.payee,
+            payer: mockedQuote.payer,
+            amountType: mockedQuote.amountType,
+            amount: mockedQuote.amount,
+            fees: mockedQuote.feesPayer,
+            transactionType: mockedQuote.transactionType,
+            geoCode: mockedQuote.geoCode,
+            note: mockedQuote.note,
+            expiration: mockedQuote.expiration,
+            extensionList: mockedQuote.extensionList,
+        };
+
+        jest.spyOn(quoteRepo, "addQuote").mockResolvedValueOnce(
+            mockedQuote.quoteId
+        );
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteRequestAcceptedEvt.name,
+            })
+        );
     });
 
     //#endregion
 
+    //#region handleQuoteResponseReceivedEvt
+
+    test("handleQuoteResponseReceivedEvent - should update quote on quote repository without passthrough", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload: QuoteResponseReceivedEvtPayload =
+            createQuoteResponseReceivedEvtPayload(mockedQuote);
+
+        const fspiopOpaqueState = {
+            requesterFspId,
+            destinationFspId,
+        };
+        const message: IMessage = createMessage(
+            payload,
+            QuoteResponseReceivedEvt.name,
+            fspiopOpaqueState
+        );
+
+        const aggregateWithPassThrough = new QuotingAggregate(
+            logger,
+            quoteRepo,
+            bulkQuoteRepo,
+            messageProducer,
+            participantService,
+            accountLookupService,
+            false,
+            schemaRules
+        );
+
+        const repositorySpy = jest.spyOn(quoteRepo, "updateQuote");
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+        await aggregateWithPassThrough.handleQuotingEvent(message);
+
+        // Assert
+        expect(repositorySpy).toHaveBeenCalled();
+        expect(repositorySpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                expiration: mockedQuote.expiration,
+                geoCode: mockedQuote.geoCode,
+                quoteId: mockedQuote.quoteId,
+                status: QuoteStatus.ACCEPTED,
+            })
+        );
+    });
+
+    test("handleQuoteResponseReceivedEvent - should not update quote on quote repository with passthrough", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload: QuoteResponseReceivedEvtPayload =
+            createQuoteResponseReceivedEvtPayload(mockedQuote);
+
+        const fspiopOpaqueState = {
+            requesterFspId,
+            destinationFspId,
+        };
+        const message: IMessage = createMessage(
+            payload,
+            QuoteResponseReceivedEvt.name,
+            fspiopOpaqueState
+        );
+
+        const repositorySpy = jest.spyOn(quoteRepo, "updateQuote");
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(repositorySpy).toHaveBeenCalledTimes(0);
+    });
+
+    test("handleQuoteResponseReceivedEvent - should send quote response accepted event", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload: QuoteResponseReceivedEvtPayload =
+            createQuoteResponseReceivedEvtPayload(mockedQuote);
+
+        const fspiopOpaqueState = {
+            requesterFspId,
+            destinationFspId,
+        };
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteResponseReceivedEvt.name,
+            fspiopOpaqueState
+        );
+
+        const quoteResponsePayload: QuoteResponseAcceptedEvtPayload = {
+            expiration: mockedQuote.expiration as string,
+            geoCode: mockedQuote.geoCode,
+            quoteId: mockedQuote.quoteId,
+            extensionList: mockedQuote.extensionList,
+            condition: mockedQuote.condition as string,
+            ilpPacket: mockedQuote.ilpPacket as string,
+            transferAmount: mockedQuote.totalTransferAmount as IMoney,
+            payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
+            payeeFspFee: mockedQuote.payeeFspFee as IMoney,
+            payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
+        };
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fspiopOpaqueState: fspiopOpaqueState,
+                payload: quoteResponsePayload,
+                msgName: QuoteResponseAccepted.name,
+            })
+        );
+    });
+    //#endregion
+
+    //#region handleQuoteQueryReceivedEvt
+
+    test("handleQuoteQueryReceivedEvent - should respond with a successful event for the asked quote", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const mockedQuoteResponse = mockedQuote4;
+        const payload: QuoteQueryReceivedEvtPayload = {
+            quoteId: mockedQuote.quoteId,
+        };
+
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+
+        const fspiopOpaqueState = {
+            requesterFspId,
+            destinationFspId,
+        };
+
+        const message: IMessage = createMessage(
+            payload,
+            QuoteQueryReceivedEvt.name,
+            fspiopOpaqueState
+        );
+
+        const payloadResponse: QuoteQueryResponseEvtPayload = {
+            quoteId: mockedQuoteResponse.quoteId,
+            condition: mockedQuoteResponse.condition as string,
+            expiration: mockedQuoteResponse.expiration as string,
+            transferAmount: mockedQuoteResponse.totalTransferAmount as IMoney,
+            extensionList: mockedQuoteResponse.extensionList,
+            geoCode: mockedQuoteResponse.geoCode,
+            ilpPacket: mockedQuoteResponse.ilpPacket as string,
+            payeeFspCommission: mockedQuoteResponse.payeeFspCommission,
+            payeeFspFee: mockedQuoteResponse.payeeFspFee,
+            payeeReceiveAmount: mockedQuoteResponse.payeeReceiveAmount,
+        };
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
+            mockedQuoteResponse
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fspiopOpaqueState: fspiopOpaqueState,
+                payload: payloadResponse,
+            })
+        );
+    });
+
+    //#endregion
+
+    //#region GetQuoteQueryRejectedEvt
+    test("handleGetQuoteQueryRejectedEvent - should publish quote event with error information", async () => {
+        // Arrange
+        const mockedQuote = mockedQuote1;
+        const payload: GetQuoteQueryRejectedEvtPayload =
+            createQuoteQueryRejectedEvtPayload(mockedQuote);
+
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+
+        const fspiopOpaqueState = {
+            requesterFspId,
+            destinationFspId,
+        };
+
+        const message: IMessage = createMessage(
+            payload,
+            GetQuoteQueryRejectedEvt.name,
+            fspiopOpaqueState
+        );
+
+        const payloadResponse: GetQuoteQueryRejectedEvtPayload = {
+            quoteId: mockedQuote.quoteId,
+            errorInformation: mockedQuote.errorInformation as any,
+        };
+
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+        await aggregate.handleQuotingEvent(message);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fspiopOpaqueState: fspiopOpaqueState,
+                payload: payloadResponse,
+            })
+        );
+    });
+
+    //#endregion
 });
-
-
-

@@ -100,25 +100,22 @@ export class MongoQuotesRepo implements IQuoteRepo {
         }
     }
 
-    async addQuote(quote: IQuote): Promise<string> {
-        const quoteToAdd = { ...quote };
-        if (quoteToAdd.quoteId) {
-            await this.checkIfQuoteExists(quote).catch((e: unknown) => {
-                this._logger.error(
-                    `Duplicate Quote: ${(e as Error).message}`
-                );
-            });
-        }
+	async addQuote(quote: IQuote): Promise<string> {
+		const quoteToAdd = { ...quote };
+		if (quoteToAdd.quoteId) {
+			await this.checkIfQuoteExists(quote);
+		}
 
-        await this.quotes.insertOne(quoteToAdd).catch((e: unknown) => {
+		await this.quotes.insertOne(quoteToAdd).catch((e: unknown) => {
             this._logger.error(
                 `Unable to insert quote: ${(e as Error).message}`
             );
             throw new UnableToAddQuoteError("Unable to insert quote");
-        });
 
-        return quoteToAdd.quoteId;
-    }
+		});
+
+		return quoteToAdd.quoteId;
+	}
 
     async addQuotes(quotes: IQuote[]): Promise<void> {
         const quotesToAdd = quotes.map((quote) => {

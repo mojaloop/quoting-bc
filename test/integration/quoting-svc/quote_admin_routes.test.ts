@@ -31,8 +31,17 @@ let mongoClient: MongoClient;
 let quote: Collection;
 let bulkQuote: Collection;
 
+// Authentication
+const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
+
+const USERNAME = "user";
+const PASSWORD = "superPass";
+
+let accessToken: string;
+
 const server = process.env["QUOTING_ADM_URL"] || "http://localhost:3033";
 
+jest.setTimeout(60000);
 
 describe("Quote Admin Routes - Integration", () => {
     beforeAll(async () => {
@@ -52,6 +61,16 @@ describe("Quote Admin Routes - Integration", () => {
         await bulkQuote.deleteMany({});
 
         await Service.start();
+
+        // Get the access token
+        const response = await request(AUTH_N_SVC_BASEURL).post("/token").send({
+            client_id: "security-bc-ui",
+            grant_type: "password",
+            username: USERNAME,
+            password: PASSWORD,
+        });
+
+        accessToken = response?.body?.access_token;
     });
 
     afterEach(async () => {
@@ -76,7 +95,9 @@ describe("Quote Admin Routes - Integration", () => {
         const quoteId = await mongoQuotesRepo.addQuote(mockedQuote1);
 
         // Act
-        const response = await request(server).get(`/quotes/${quoteId}`);
+        const response = await request(server)
+            .get(`/quotes/${quoteId}`)
+            .set(`Authorization`, `Bearer ${accessToken}`);;
 
         // Assert
         expect(response.status).toBe(200);
@@ -88,7 +109,9 @@ describe("Quote Admin Routes - Integration", () => {
         const quoteId = "invalid-quote-id";
 
         // Act
-        const response = await request(server).get(`/quotes/${quoteId}`);
+        const response = await request(server)
+            .get(`/quotes/${quoteId}`)
+            .set(`Authorization`, `Bearer ${accessToken}`);
 
         // Assert
         expect(response.status).toBe(404);
@@ -101,14 +124,16 @@ describe("Quote Admin Routes - Integration", () => {
         await mongoQuotesRepo.addQuote(mockedQuote3);
 
         // Act
-        const response = await request(server).get("/quotes");
+        const response = await request(server)
+            .get("/quotes")
+            .set(`Authorization`, `Bearer ${accessToken}`);
 
         // Assert
         expect(response.status).toBe(200);
-        expect(response.body.length).toBe(3);
-        expect(response.body[0]).toEqual(mockedQuote1);
-        expect(response.body[1]).toEqual(mockedQuote2);
-        expect(response.body[2]).toEqual(mockedQuote3);
+        expect(response.body.items.length).toBe(3);
+        expect(response.body.items[0]).toEqual(mockedQuote1);
+        expect(response.body.items[1]).toEqual(mockedQuote2);
+        expect(response.body.items[2]).toEqual(mockedQuote3);
     });
 
     test("GET - should get a list of filtered quotes", async () => {
@@ -117,12 +142,13 @@ describe("Quote Admin Routes - Integration", () => {
 
         // Act
         const response = await request(server)
-            .get(`/quotes?transactionId=${mockedQuote1.transactionId}&quoteId=${mockedQuote1.quoteId}&amountType=${mockedQuote1.amountType}&transactionType=${mockedQuote1.transactionType.scenario}`);
+            .get(`/quotes?transactionId=${mockedQuote1.transactionId}&quoteId=${mockedQuote1.quoteId}&amountType=${mockedQuote1.amountType}&transactionType=${mockedQuote1.transactionType.scenario}`)
+            .set(`Authorization`, `Bearer ${accessToken}`);
 
         // Assert
         expect(response.status).toBe(200);
-        expect(response.body.length).toBe(1);
-        expect(response.body[0]).toEqual(mockedQuote1);
+        expect(response.body.items.length).toBe(1);
+        expect(response.body.items[0]).toEqual(mockedQuote1);
     });
 
     test("GET - should get a bulk quote by its id", async () => {
@@ -130,7 +156,9 @@ describe("Quote Admin Routes - Integration", () => {
         const bulkQuoteId = await mongoBulkQuotesRepo.addBulkQuote(mockedBulkQuote1);
 
         // Act
-        const response = await request(server).get(`/bulk-quotes/${bulkQuoteId}`);
+        const response = await request(server)
+            .get(`/bulk-quotes/${bulkQuoteId}`)
+            .set(`Authorization`, `Bearer ${accessToken}`);
 
         // Assert
         expect(response.status).toBe(200);
@@ -142,7 +170,10 @@ describe("Quote Admin Routes - Integration", () => {
         const bulkQuoteId = "invalid-bulk-quote-id";
 
         // Act
-        const response = await request(server).get(`/bulk-quotes/${bulkQuoteId}`);
+        const response = await request(server)
+            .get(`/bulk-quotes/${bulkQuoteId}`)
+            .set(`Authorization`, `Bearer ${accessToken}`);
+
 
         // Assert
         expect(response.status).toBe(404);
@@ -153,7 +184,9 @@ describe("Quote Admin Routes - Integration", () => {
         await mongoBulkQuotesRepo.addBulkQuote(mockedBulkQuote1);
 
         // Act
-        const response = await request(server).get("/bulk-quotes");
+        const response = await request(server)
+            .get("/bulk-quotes")
+            .set(`Authorization`, `Bearer ${accessToken}`);
 
         // Assert
         expect(response.status).toBe(200);

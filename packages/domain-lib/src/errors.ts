@@ -62,3 +62,9 @@ export class UnableToAddBulkQuoteError extends Error {
         super(message);
     }
 }
+
+export class UnableToGetBatchQuotesError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}

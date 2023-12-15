@@ -32,65 +32,125 @@
 
 "use strict";
 
-import { IMessage, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { QuoteResponseReceivedEvtPayload, QuoteRequestReceivedEvtPayload, BulkQuotePendingReceivedEvt, BulkQuotePendingReceivedEvtPayload, BulkQuoteRequestedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {
+    IMessage,
+    MessageTypes,
+} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {
+    QuoteResponseReceivedEvtPayload,
+    QuoteRequestReceivedEvtPayload,
+    BulkQuotePendingReceivedEvt,
+    BulkQuotePendingReceivedEvtPayload,
+    BulkQuoteRequestedEvtPayload,
+    GetQuoteQueryRejectedResponseEvtPayload,
+    GetQuoteQueryRejectedEvtPayload,
+    BulkQuoteQueryReceivedEvt,
+    BulkQuoteQueryReceivedEvtPayload,
+    QuoteQueryReceivedEvtPayload,
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote } from "../../dist";
-import { IMoney, IQuote } from '../../src/types';
+import { IMoney, IQuote } from "../../src/types";
 
-export function createQuoteResponseReceivedEvtPayload(mockedQuote: IQuote): QuoteResponseReceivedEvtPayload {
+export function createQuoteResponseReceivedEvtPayload(
+    mockedQuote: IQuote
+): QuoteResponseReceivedEvtPayload {
+    const quote = Object.assign({}, mockedQuote);
     return {
-        expiration: mockedQuote.expiration as string,
-        geoCode: mockedQuote.geoCode,
-        quoteId: mockedQuote.quoteId,
-        extensionList: mockedQuote.extensionList,
-        condition: mockedQuote.condition as string,
-        ilpPacket: mockedQuote.ilpPacket as string,
-        transferAmount: mockedQuote.totalTransferAmount as IMoney,
-        payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
-        payeeFspFee: mockedQuote.payeeFspFee as IMoney,
-        payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
+        expiration: quote.expiration as string,
+        geoCode: quote.geoCode,
+        quoteId: quote.quoteId,
+        extensionList: quote.extensionList,
+        condition: quote.condition as string,
+        ilpPacket: quote.ilpPacket as string,
+        transferAmount: quote.totalTransferAmount as IMoney,
+        payeeFspCommission: quote.payeeFspCommission as IMoney,
+        payeeFspFee: quote.payeeFspFee as IMoney,
+        payeeReceiveAmount: quote.payeeReceiveAmount as IMoney,
     };
 }
 
-export function createQuoteRequestReceivedEvtPayload(mockedQuote: IQuote): QuoteRequestReceivedEvtPayload {
+export function createQuoteRequestReceivedEvtPayload(
+    mockedQuote: IQuote
+): QuoteRequestReceivedEvtPayload {
+    // create a copy without reference to the original object with JSON parse/stringify
+    const quote = Object.assign({}, mockedQuote);
+
     return {
-        amount: mockedQuote.amount,
-        expiration: mockedQuote.expiration,
-        geoCode: mockedQuote.geoCode,
-        payee: mockedQuote.payee,
-        payer: mockedQuote.payer,
-        quoteId: mockedQuote.quoteId,
-        transactionId: mockedQuote.transactionId,
-        amountType: mockedQuote.amountType,
-        note: mockedQuote.note,
-        extensionList: mockedQuote.extensionList,
-        fees: mockedQuote.feesPayer,
-        transactionType: mockedQuote.transactionType,
-        transactionRequestId: mockedQuote.transactionRequestId,
+        amount: quote.amount,
+        expiration: quote.expiration,
+        geoCode: quote.geoCode,
+        payee: quote.payee,
+        payer: quote.payer,
+        quoteId: quote.quoteId,
+        transactionId: quote.transactionId,
+        amountType: quote.amountType,
+        note: quote.note,
+        extensionList: quote.extensionList,
+        fees: quote.feesPayer,
+        transactionType: quote.transactionType,
+        transactionRequestId: quote.transactionRequestId,
     };
 }
 
-export function createBulkQuoteRequestedEvtPayload(mockedBulkQuote: IBulkQuote): BulkQuoteRequestedEvtPayload {
+export function createQuoteQueryReceivedEvtPayload(
+    mockedQuote: IQuote
+): QuoteQueryReceivedEvtPayload {
+    const quote = Object.assign({}, mockedQuote);
+    return {
+        quoteId: quote.quoteId,
+    };
+}
+
+export function createQuoteQueryRejectedEvtPayload(
+    mockedQuote: IQuote
+): GetQuoteQueryRejectedEvtPayload {
+    const quote = Object.assign({}, mockedQuote);
+    return {
+        quoteId: quote.quoteId,
+        errorInformation: quote.errorInformation as any,
+    };
+}
+
+export function createBulkQuoteRequestedEvtPayload(
+    bulkQuote: IBulkQuote
+): BulkQuoteRequestedEvtPayload {
+    const mockedBulkQuote = Object.assign({}, bulkQuote);
     return {
         bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         payer: mockedBulkQuote.payer,
         geoCode: mockedBulkQuote.geoCode,
         expiration: mockedBulkQuote.expiration,
         individualQuotes: mockedBulkQuote.individualQuotes as any,
-        extensionList: mockedBulkQuote.extensionList
-    }
+        extensionList: mockedBulkQuote.extensionList,
+    };
 }
 
-export function createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote: IBulkQuote): BulkQuotePendingReceivedEvtPayload {
+export function createBulkQuotePendingReceivedEvtPayload(
+    bulkQuote: IBulkQuote
+): BulkQuotePendingReceivedEvtPayload {
+    const mockedBulkQuote = Object.assign({}, bulkQuote);
     return {
         bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         expiration: mockedBulkQuote.expiration,
         extensionList: mockedBulkQuote.extensionList,
         individualQuoteResults: mockedBulkQuote.individualQuotes as any,
-      }
+    };
 }
 
-export function createMessage(payload: object | null, messageName:string, fspiopOpaqueState:object|null): IMessage {
+export function createBulkQuoteQueryReceivedEvtPayload(
+    mockedBulkQuote: IBulkQuote
+): BulkQuoteQueryReceivedEvtPayload {
+    const bulkQuote = Object.assign({}, mockedBulkQuote);
+    return {
+        bulkQuoteId: bulkQuote.bulkQuoteId,
+    };
+}
+
+export function createMessage(
+    payload: object | null,
+    messageName: string,
+    fspiopOpaqueState: object | null
+): IMessage {
     return {
         fspiopOpaqueState,
         msgId: "fake msg id",
