@@ -347,14 +347,21 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
         await mongoQuotesRepo.addQuotes([quote1, quote2, quote3]);
 
         // Act
-        const result = await mongoQuotesRepo.searchQuotes(quote1.transactionId, quote1.quoteId,
-            quote1.amountType, quote1.transactionType.scenario);
+        const result = await mongoQuotesRepo.searchQuotes(quote1.amountType, quote1.transactionType.scenario, quote1.quoteId,
+            quote1.transactionId, null);
 
         // Assert
         expect(result).toBeDefined();
-        expect(result).toHaveLength(1);
-        expect(result).toEqual([quote1]);
-    });
+        expect(result.items).toHaveLength(1);
+        expect(result).toBeDefined();
+        expect(result.items).toHaveLength(1);
+        expect(result).toEqual({
+                "items": [quote1], 
+                "pageIndex": 0, 
+                "pageSize": 100,
+                "totalPages": 1
+            });    
+        });
  });
 
  const deepCopy = (obj: Object) => JSON.parse(JSON.stringify(obj));
