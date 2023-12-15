@@ -65,6 +65,7 @@ import {
 	AuthenticatedHttpRequester, AuthorizationClient, TokenHelper,
 } from "@mojaloop/security-bc-client-lib";
 import {IAuthenticatedHttpRequester, IAuthorizationClient, ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
+import crypto from "crypto";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -140,6 +141,9 @@ const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
 };
 
 const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 60_000;
+
+const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
+const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
 let globalLogger: ILogger;
 
@@ -317,7 +321,13 @@ export class Service {
 		this.authorizationClient = authorizationClient;
 
 		// token helper
-		this.tokenHelper = new TokenHelper(AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE);
+		this.tokenHelper = new TokenHelper(
+            AUTH_N_SVC_JWKS_URL,
+            logger,
+            AUTH_N_TOKEN_ISSUER_NAME,
+            AUTH_N_TOKEN_AUDIENCE,
+            new MLKafkaJsonConsumer({kafkaBrokerList: KAFKA_URL, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID}, logger) // for jwt list - no groupId
+        );
 		await this.tokenHelper.init();
 
 		await this.setupExpress();
