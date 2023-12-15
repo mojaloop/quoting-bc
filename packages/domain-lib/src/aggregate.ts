@@ -605,7 +605,7 @@ export class QuotingAggregate {
         const quote = await this._quotesRepo
             .getQuoteById(quoteId)
             .catch((error) => {
-                this._logger.error(`Error getting quote: {quoteId}`, error);
+                this._logger.error("Error getting quote: {quoteId}", error);
                 return null;
             });
 
