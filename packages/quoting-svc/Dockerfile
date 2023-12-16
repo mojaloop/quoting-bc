@@ -1,4 +1,4 @@
-FROM node:18.13.0-alpine AS builder
+FROM node:20.10.0-alpine3.18 AS builder
 
 # Create the project directory inside the container.
 WORKDIR /app
@@ -8,7 +8,7 @@ RUN apk add --no-cache -t build-dependencies git make gcc g++ python3 \
 
 
 RUN cd $(npm root -g)/npm
-RUN npm config set unsafe-perm true
+#RUN npm config set unsafe-perm true
 RUN npm install -g node-gyp
 
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
@@ -38,7 +38,7 @@ COPY packages/quoting-svc ./packages/quoting-svc
 RUN npm run build
 
 
-FROM node:18.13-alpine
+FROM node:20.10.0-alpine3.18
 WORKDIR /app
 RUN mkdir /app/data
 
