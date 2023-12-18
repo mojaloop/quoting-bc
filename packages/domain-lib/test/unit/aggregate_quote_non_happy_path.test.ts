@@ -1104,7 +1104,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             quoteId: mockedQuote.quoteId,
         };
 
-        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+        const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
             bulkQuoteRepo,
@@ -1121,7 +1121,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
 
         // Assert
         expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
@@ -1168,7 +1168,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             quoteId: mockedQuote.quoteId,
         };
 
-        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+        const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
             bulkQuoteRepo,
@@ -1195,7 +1195,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
 
         // Assert
         expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
@@ -1237,7 +1237,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             expirationDate: surpassedExpiration,
         };
 
-        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+        const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
             bulkQuoteRepo,
@@ -1268,7 +1268,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
 
         // Assert
         expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
@@ -1306,7 +1306,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                 quoteId: mockedQuote.quoteId,
             };
 
-        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+        const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
             bulkQuoteRepo,
@@ -1337,7 +1337,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
@@ -1512,7 +1512,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             quoteId: mockedQuote.quoteId,
         };
 
-        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+        const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
             bulkQuoteRepo,
@@ -1543,7 +1543,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
@@ -1575,7 +1575,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             quoteId: mockedQuote.quoteId,
         };
 
-        const aggregatePassthroughModeDisabled = new QuotingAggregate(
+        const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
             bulkQuoteRepo,
@@ -1608,7 +1608,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregatePassthroughModeDisabled.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(

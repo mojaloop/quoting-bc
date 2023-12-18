@@ -804,7 +804,7 @@ export class QuotingAggregate {
             individualQuotes: individualQuotesInsideBulkQuote as IQuote[],
             extensionList: message.payload.extensionList,
             quotesNotProcessedIds: [],
-            status: QuoteStatus.PENDING
+            status: QuoteStatus.PENDING,
         };
 
         if (!this._passThroughMode) {
@@ -951,8 +951,10 @@ export class QuotingAggregate {
             `Got GetBulkQuoteQueryReceived msg for bulkQuoteId: ${bulkQuoteId}`
         );
 
-        const requesterFspId = message.fspiopOpaqueState?.requesterFspId;
-        const destinationFspId = message.fspiopOpaqueState?.destinationFspId;
+        const requesterFspId =
+            message.fspiopOpaqueState?.requesterFspId ?? null;
+        const destinationFspId =
+            message.fspiopOpaqueState?.destinationFspId ?? null;
 
         const requesterParticipantError =
             await this.validateRequesterParticipantInfoOrGetErrorEvent(
@@ -974,14 +976,18 @@ export class QuotingAggregate {
             return destinationParticipantError;
         }
 
-        const bulkQuote = await this._bulkQuotesRepo
-            .getBulkQuoteById(bulkQuoteId)
-            .catch((error) => {
-                this._logger.error(
-                    `Error getting bulk quote: ${error.message}`
-                );
-                return null;
-            });
+        let bulkQuote = null;
+
+        if (!this._passThroughMode) {
+            bulkQuote = await this._bulkQuotesRepo
+                .getBulkQuoteById(bulkQuoteId)
+                .catch((error) => {
+                    this._logger.error(
+                        `Error getting bulk quote for bulkQuoteId: ${bulkQuoteId}`,
+                        error
+                    );
+                });
+        }
 
         if (!bulkQuote) {
             const errorPayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
@@ -994,21 +1000,25 @@ export class QuotingAggregate {
             return errorEvent;
         }
 
-        const individualQuotes = await this._quotesRepo
-            .getQuotesByBulkQuoteId(bulkQuoteId)
-            .catch((error) => {
-                this._logger.error(
-                    "Error getting quotes for bulk quote",
-                    error
-                );
-                return null;
-            });
+        let individualQuotes: IQuote[] | null = null;
+
+        if (!this._passThroughMode) {
+            individualQuotes = await this._quotesRepo
+                .getQuotesByBulkQuoteId(bulkQuoteId)
+                .catch((error) => {
+                    this._logger.error(
+                        `Error getting quotes for Bulk Quote bulkQuoteId: {bulkQuoteId}`,
+                        error
+                    );
+                    return null;
+                });
+        }
 
         //#TODO : change to individual quote error
-        if (!individualQuotes) {
+        if (!individualQuotes || individualQuotes.length <= 0) {
             const errorPayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
                 bulkQuoteId,
-                errorDescription: `Bulk Quote ${bulkQuoteId} not found`,
+                errorDescription: `Individual quotes for Bulk Quote ${bulkQuoteId} not found`,
             };
             const errorEvent = new QuoteBCBulkQuoteNotFoundErrorEvent(
                 errorPayload
@@ -1096,7 +1106,7 @@ export class QuotingAggregate {
 
         const quotes = bulkQuote.individualQuotes;
         const now = Date.now();
-        
+
         // change quote status to Pending for all
         quotes.forEach((quote) => {
             quote.createdAt = now;
