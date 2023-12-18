@@ -1007,7 +1007,7 @@ export class QuotingAggregate {
                 .getQuotesByBulkQuoteId(bulkQuoteId)
                 .catch((error) => {
                     this._logger.error(
-                        `Error getting quotes for Bulk Quote bulkQuoteId: {bulkQuoteId}`,
+                        `Error getting quotes for Bulk Quote bulkQuoteId: ${bulkQuoteId}`,
                         error
                     );
                     return null;
