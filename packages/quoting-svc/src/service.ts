@@ -66,6 +66,8 @@ import {
 } from "@mojaloop/security-bc-client-lib";
 import {IAuthenticatedHttpRequester, IAuthorizationClient, ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 import crypto from "crypto";
+import {IConfigurationClient , Currency} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import { DefaultConfigProvider, ConfigurationClient, IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -121,8 +123,8 @@ const consumerOptions: MLKafkaJsonConsumerOptions = {
 
 // Application variables
 const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"]=== "true" )? true : false;
-const SCHEME_RULES: IQuoteSchemeRules = {
-	currencies: ["USD", "EUR", "GBP"],
+let SCHEME_RULES: IQuoteSchemeRules = {
+	currencies: [],
 };
 
 const producerOptions: MLKafkaJsonProducerOptions = {
@@ -145,6 +147,9 @@ const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && pars
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
 const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
+const CONFIG_BASE_URL = process.env["CONFIG_BASE_URL"] || "http://localhost:3100";
+const CONFIGSET_VERSION = process.env["CONFIGSET_VERSION"] || "0.0.1";
+
 let globalLogger: ILogger;
 
 export class Service {
@@ -162,6 +167,8 @@ export class Service {
     static startupTimer: NodeJS.Timeout;
     static authorizationClient: IAuthorizationClient;
     static tokenHelper: ITokenHelper;
+	static configClient : IConfigurationClient; 
+    static  _currencyList: Currency[];
 
 	static async start(
 		logger?: ILogger,
@@ -173,7 +180,8 @@ export class Service {
 		participantService?: IParticipantService,
 		accountLookupService?: IAccountLookupService,
 		aggregate?: QuotingAggregate, // TODO: remove aggregate from here and tests
-        authorizationClient?: IAuthorizationClient
+        authorizationClient?: IAuthorizationClient,
+		configProvider?: IConfigProvider,
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -194,6 +202,30 @@ export class Service {
 		}
 		globalLogger = this.logger = logger.createChild("Service");
 
+		if (!configProvider) {
+			// use default url from PLATFORM_CONFIG_CENTRAL_URL env var
+			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+			const messageConsumer = new MLKafkaJsonConsumer({
+				kafkaBrokerList: KAFKA_URL,
+				kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
+			}, logger.createChild("configClient.consumer"));
+			configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer, CONFIG_BASE_URL);
+
+		}
+
+		this.configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, configProvider);
+			await this.configClient.init();
+			await this.configClient.bootstrap(true);
+			await this.configClient.fetch();
+
+		// Configs:
+		this._currencyList = this.configClient.globalConfigs.getCurrencies();
+		const currencyCodes: string[] = this._currencyList.map(currency => currency.code);
+		SCHEME_RULES = {
+			currencies : currencyCodes
+		};
 		/*
 		// start auditClient
 		if (!auditClient) {
