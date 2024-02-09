@@ -123,9 +123,6 @@ const consumerOptions: MLKafkaJsonConsumerOptions = {
 
 // Application variables
 const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"]=== "true" )? true : false;
-let SCHEME_RULES: IQuoteSchemeRules = {
-	currencies: [],
-};
 
 const producerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL,
@@ -222,9 +219,8 @@ export class Service {
 
 		// Configs:
 		this._currencyList = this.configClient.globalConfigs.getCurrencies();
-		const currencyCodes: string[] = this._currencyList.map(currency => currency.code);
-		SCHEME_RULES = {
-			currencies : currencyCodes
+		const SCHEME_RULES = {
+			currencies : this._currencyList.map(currency => currency.code)
 		};
 		/*
 		// start auditClient
