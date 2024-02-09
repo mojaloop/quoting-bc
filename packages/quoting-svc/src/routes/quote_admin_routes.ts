@@ -154,7 +154,6 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         }
 
         const id = req.params["id"] ?? null;
-        this.logger.info(`Fetching Oracle [${id}].`);
 
         this.logger.info("Fetching quote by id " + id);
 
@@ -188,7 +187,6 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
         }
 
         const id = req.params["id"] ?? null;
-        this.logger.info(`Fetching Oracle [${id}].`);
 
         this.logger.info("Fetching bulk quote by id " + id);
 
