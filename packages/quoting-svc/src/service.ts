@@ -38,7 +38,6 @@ import {
 	IBulkQuoteRepo,
 	IParticipantService,
 	IAccountLookupService,
-	IQuoteSchemeRules,
 	QuotingPrivilegesDefinition
 } from "@mojaloop/quoting-bc-domain-lib";
 import {IMessageProducer, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -83,7 +82,7 @@ const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEB
 
 // infra & dbs
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
-const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
+const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
 
 // const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
@@ -165,7 +164,6 @@ export class Service {
     static authorizationClient: IAuthorizationClient;
     static tokenHelper: ITokenHelper;
 	static configClient : IConfigurationClient; 
-    static  _currencyList: Currency[];
 
 	static async start(
 		logger?: ILogger,
@@ -218,9 +216,9 @@ export class Service {
 			await this.configClient.fetch();
 
 		// Configs:
-		this._currencyList = this.configClient.globalConfigs.getCurrencies();
+		const currencyList = this.configClient.globalConfigs.getCurrencies();
 		const SCHEME_RULES = {
-			currencies : this._currencyList.map(currency => currency.code)
+			currencies : currencyList.map(currency => currency.code)
 		};
 		/*
 		// start auditClient
