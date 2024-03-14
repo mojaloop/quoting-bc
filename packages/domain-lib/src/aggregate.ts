@@ -170,7 +170,7 @@ export class QuotingAggregate {
 
     //#region Event Handlers
     async handleQuotingEvent(message: IMessage): Promise<void> {
-        this._logger.debug(`Got message in Quoting handler - msg: ${message}`);
+        this._logger.debug(`Got message in Quoting handler - msg: ${JSON.stringify(message)}`);
         const requesterFspId =
             message.fspiopOpaqueState?.requesterFspId ?? null;
         const quoteId = message.payload?.quoteId ?? null;
