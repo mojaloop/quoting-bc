@@ -48,7 +48,8 @@ export interface IPartyComplexName {
 
 export interface IPartyPersonalInfo {
     complexName: IPartyComplexName | null;
-    dateOfBirth: string | null
+    dateOfBirth: string | null;
+    kycInformation: string | null;
 }
 
 export interface IPartyIdInfo {
@@ -63,6 +64,7 @@ export interface IParty {
     merchantClassificationCode: string | null;
     name: string | null;
     personalInfo: IPartyPersonalInfo | null;
+    supportedCurrencies: string[] | null;
 }
 
 export interface IMoney {
@@ -82,6 +84,11 @@ export interface ITransactionType {
     initiatorType: string
     refundInfo: IRefund | null,
     balanceOfPayments: string | null
+}
+
+export interface ICurrencyConversion {
+    sourceAmount: IMoney;
+    targetAmount: IMoney;
 }
 
 export type IAmountType = "SEND" | "RECEIVE";
@@ -122,6 +129,8 @@ export interface IQuote {
     transactionType: ITransactionType;
     feesPayer: IMoney | null;
     transactionRequestId: string | null;
+    converter: string | null;
+    currencyConversion: ICurrencyConversion | null;
     geoCode: IGeoCode | null;
     note: string | null;
     expiration: string | null;
