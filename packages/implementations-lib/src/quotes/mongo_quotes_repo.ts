@@ -279,6 +279,8 @@ export class MongoQuotesRepo implements IQuoteRepo {
             amount: quote.amount ?? null,
             transactionType: quote.transactionType ?? null,
             feesPayer: quote.feesPayer ?? null,
+            converter: quote.converter ?? null,
+            currencyConversion: quote.currencyConversion ?? null,
             transactionRequestId: quote.transactionRequestId ?? null,
             geoCode: quote.geoCode ?? null,
             note: quote.note ?? null,
