@@ -123,18 +123,19 @@ import {
     IParticipantService,
     IQuoteRepo,
 } from "./interfaces/infrastructure";
-import {
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
+import {     
     IBulkQuote,
     IExtensionList,
     IGeoCode,
     IMoney,
     IQuote,
     IQuoteSchemeRules,
-    QuoteStatus,
-} from "./types";
-
-import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
+    QuoteState,
+    QuotingErrorCodeNames 
+} from "@mojaloop/quoting-bc-public-types-lib";
+import { BulkQuote, Quote } from "./entities";
 
 ("use strict");
 
@@ -235,10 +236,11 @@ export class QuotingAggregate {
                 default: {
                     const errorMessage = `Message type has invalid format or value ${message.msgName}`;
                     this._logger.error(errorMessage);
+                    const errorCode = QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN;
                     const errorPayload: QuoteBCUnknownErrorPayload = {
                         quoteId,
                         bulkQuoteId,
-                        errorDescription: errorMessage,
+                        errorCode: errorCode,
                         requesterFspId,
                     };
                     eventToPublish = new QuoteBCUnknownErrorEvent(errorPayload);
@@ -247,10 +249,11 @@ export class QuotingAggregate {
         } catch (error: unknown) {
             const errorMessage = `Error while handling message ${message.msgName}`;
             this._logger.error(errorMessage + `- ${error}`);
+            const errorCode = QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN;
             const errorPayload: QuoteBCUnknownErrorPayload = {
                 quoteId,
                 bulkQuoteId,
-                errorDescription: errorMessage,
+                errorCode: errorCode,
                 requesterFspId,
             };
             eventToPublish = new QuoteBCUnknownErrorEvent(errorPayload);
@@ -296,7 +299,7 @@ export class QuotingAggregate {
             const errorPayload: QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload =
                 {
                     quoteId,
-                    errorDescription: `Quote request scheme validation failed for quoteId: ${quoteId}`,
+                    errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST,
                 };
             const errorEvent =
                 new QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent(
@@ -356,7 +359,7 @@ export class QuotingAggregate {
 
         const now = Date.now();
 
-        const quote: IQuote = {
+        const quote: Quote = {
             createdAt: now,
             updatedAt: now,
             quoteId: message.payload.quoteId,
@@ -379,7 +382,7 @@ export class QuotingAggregate {
             payeeReceiveAmount: null,
             payeeFspFee: null,
             payeeFspCommission: null,
-            status: QuoteStatus.PENDING,
+            status: QuoteState.PENDING,
             condition: null,
             totalTransferAmount: null,
             ilpPacket: null,
@@ -397,8 +400,7 @@ export class QuotingAggregate {
                 );
                 const errorPayload: QuoteBCUnableToAddQuoteToDatabaseErrorPayload =
                     {
-                        errorDescription:
-                            "Unable to add quote with to database",
+                        errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_QUOTE,
                         quoteId,
                     };
                 const errorEvent =
@@ -428,6 +430,8 @@ export class QuotingAggregate {
             note: message.payload.note,
             expiration: message.payload.expiration,
             extensionList: message.payload.extensionList,
+            converter: message.payload.converter,
+            currencyConversion: message.payload.currencyConversion
         };
 
         const event = new QuoteRequestAcceptedEvt(payload);
@@ -451,13 +455,13 @@ export class QuotingAggregate {
             message.fspiopOpaqueState?.destinationFspId ?? null;
         const expirationDate = message.payload.expiration ?? null;
         let quoteErrorEvent: DomainEventMsg | null = null;
-        let quoteStatus: QuoteStatus = QuoteStatus.ACCEPTED;
+        let quoteStatus: QuoteState = QuoteState.ACCEPTED;
 
         const isSchemaValid = this.validateScheme(message);
         if (!isSchemaValid) {
             const errorPayload: QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload =
                 {
-                    errorDescription: `Quote request scheme validation failed for quoteId: ${quoteId}`,
+                    errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST,
                     quoteId,
                 };
             quoteErrorEvent =
@@ -467,7 +471,7 @@ export class QuotingAggregate {
             this._logger.error(
                 `Quote ${quoteId} rejected due to scheme validation error`
             );
-            quoteStatus = QuoteStatus.REJECTED;
+            quoteStatus = QuoteState.REJECTED;
         }
 
         if (quoteErrorEvent === null) {
@@ -479,7 +483,7 @@ export class QuotingAggregate {
                 );
             if (requesterParticipantError) {
                 quoteErrorEvent = requesterParticipantError;
-                quoteStatus = QuoteStatus.REJECTED;
+                quoteStatus = QuoteState.REJECTED;
                 this._logger.error(
                     `Quote ${quoteId} rejected due to requester participant error`
                 );
@@ -495,7 +499,7 @@ export class QuotingAggregate {
                 );
             if (destinationParticipantError) {
                 quoteErrorEvent = destinationParticipantError;
-                quoteStatus = QuoteStatus.REJECTED;
+                quoteStatus = QuoteState.REJECTED;
             }
         }
 
@@ -507,12 +511,12 @@ export class QuotingAggregate {
                 );
             if (expirationDateError) {
                 quoteErrorEvent = expirationDateError;
-                quoteStatus = QuoteStatus.EXPIRED;
+                quoteStatus = QuoteState.EXPIRED;
             }
         }
 
         if (!this._passThroughMode) {
-            const quote: Partial<IQuote> = {
+            const quote: Partial<Quote> = {
                 quoteId: message.payload.quoteId,
                 condition: message.payload.condition,
                 expiration: message.payload.expiration,
@@ -533,7 +537,7 @@ export class QuotingAggregate {
                 this._logger.error(`Error updating quote: ${error}`);
                 const errorPayload: QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload =
                     {
-                        errorDescription: "Unable to update quote in database",
+                        errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_QUOTE,
                         quoteId,
                     };
                 const errorEvent =
@@ -612,7 +616,7 @@ export class QuotingAggregate {
         if (!quote) {
             const errorPayload: QuoteBCQuoteNotFoundErrorPayload = {
                 quoteId,
-                errorDescription: `Quote with id ${quoteId} not found`,
+                errorCode: QuotingErrorCodeNames.QUOTE_NOT_FOUND,
             };
             const errorEvent = new QuoteBCQuoteNotFoundErrorEvent(errorPayload);
             return errorEvent;
@@ -705,7 +709,7 @@ export class QuotingAggregate {
 
         if (individualQuotesInsideBulkQuote.length <= 0) {
             const errorPayload: QuoteBCInvalidBulkQuoteLengthErrorPayload = {
-                errorDescription: `BulkQuote ${bulkQuoteId} has no individual quotes`,
+                errorCode: QuotingErrorCodeNames.INVALID_BULK_QUOTE_LENGTH,
                 bulkQuoteId,
             };
             const errorEvent = new QuoteBCInvalidBulkQuoteLengthErrorEvent(
@@ -794,7 +798,7 @@ export class QuotingAggregate {
 
         const now = Date.now();
 
-        const bulkQuote: IBulkQuote = {
+        const bulkQuote: BulkQuote = {
             createdAt: now,
             updatedAt: now,
             bulkQuoteId: bulkQuoteId,
@@ -804,7 +808,7 @@ export class QuotingAggregate {
             individualQuotes: individualQuotesInsideBulkQuote as IQuote[],
             extensionList: message.payload.extensionList,
             quotesNotProcessedIds: [],
-            status: QuoteStatus.PENDING,
+            status: QuoteState.PENDING,
         };
 
         if (!this._passThroughMode) {
@@ -815,7 +819,7 @@ export class QuotingAggregate {
                 this._logger.error(errorMessage, error);
                 const errorPayload: QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload =
                     {
-                        errorDescription: errorMessage,
+                        errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE,
                         bulkQuoteId,
                     };
                 const errorEvent =
@@ -858,7 +862,7 @@ export class QuotingAggregate {
         const expirationDate = message.payload.expiration ?? null;
 
         let bulkQuoteErrorEvent: DomainEventMsg | null = null;
-        let quoteStatus: QuoteStatus = QuoteStatus.ACCEPTED;
+        let quoteStatus: QuoteState = QuoteState.ACCEPTED;
 
         const requesterParticipantError =
             await this.validateRequesterParticipantInfoOrGetErrorEvent(
@@ -868,7 +872,7 @@ export class QuotingAggregate {
             );
         if (requesterParticipantError) {
             bulkQuoteErrorEvent = requesterParticipantError;
-            quoteStatus = QuoteStatus.REJECTED;
+            quoteStatus = QuoteState.REJECTED;
         }
 
         if (bulkQuoteErrorEvent === null) {
@@ -880,7 +884,7 @@ export class QuotingAggregate {
                 );
             if (destinationParticipantError) {
                 bulkQuoteErrorEvent = destinationParticipantError;
-                quoteStatus = QuoteStatus.REJECTED;
+                quoteStatus = QuoteState.REJECTED;
             }
         }
 
@@ -892,7 +896,7 @@ export class QuotingAggregate {
                 );
             if (expirationDateError) {
                 bulkQuoteErrorEvent = expirationDateError;
-                quoteStatus = QuoteStatus.EXPIRED;
+                quoteStatus = QuoteState.EXPIRED;
             }
         }
 
@@ -913,7 +917,7 @@ export class QuotingAggregate {
                 this._logger.error(errorMessage, error);
                 const errorPayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
                     {
-                        errorDescription: errorMessage,
+                        errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
                         bulkQuoteId,
                     };
                 const errorEvent =
@@ -992,7 +996,7 @@ export class QuotingAggregate {
         if (!bulkQuote) {
             const errorPayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
                 bulkQuoteId,
-                errorDescription: `Bulk Quote ${bulkQuoteId} not found`,
+                errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND,
             };
             const errorEvent = new QuoteBCBulkQuoteNotFoundErrorEvent(
                 errorPayload
@@ -1018,7 +1022,7 @@ export class QuotingAggregate {
         if (!individualQuotes || individualQuotes.length <= 0) {
             const errorPayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
                 bulkQuoteId,
-                errorDescription: `Individual quotes for Bulk Quote ${bulkQuoteId} not found`,
+                errorCode: QuotingErrorCodeNames.INDIVIDUAL_QUOTES_NOT_FOUND,
             };
             const errorEvent = new QuoteBCBulkQuoteNotFoundErrorEvent(
                 errorPayload
@@ -1112,7 +1116,7 @@ export class QuotingAggregate {
             quote.createdAt = now;
             quote.updatedAt = now;
             quote.bulkQuoteId = bulkQuote.bulkQuoteId;
-            quote.status = QuoteStatus.PENDING;
+            quote.status = QuoteState.PENDING;
         });
 
         try {
@@ -1128,7 +1132,7 @@ export class QuotingAggregate {
         bulkQuoteId: string,
         requesterFspId: string,
         destinationFspId: string,
-        status: QuoteStatus,
+        status: QuoteState,
         quotesReceived: IQuote[]
     ): Promise<void> {
         const bulkQuote = await this._bulkQuotesRepo
@@ -1255,7 +1259,7 @@ export class QuotingAggregate {
                 error
             );
             const errorPayload: QuoteBCBulkQuoteExpiredErrorPayload = {
-                errorDescription: `Error parsing date for bulkQuoteId: ${bulkQuoteId}`,
+                errorCode: QuotingErrorCodeNames.BULK_QUOTE_EXPIRED,
                 bulkQuoteId,
                 expirationDate,
             };
@@ -1269,7 +1273,7 @@ export class QuotingAggregate {
             const errorMessage = `BulkQuote with id ${bulkQuoteId} has expired on ${expirationDate}`;
             this._logger.error(errorMessage);
             const errorPayload: QuoteBCBulkQuoteExpiredErrorPayload = {
-                errorDescription: errorMessage,
+                errorCode: QuotingErrorCodeNames.BULK_QUOTE_EXPIRED,
                 bulkQuoteId,
                 expirationDate,
             };
@@ -1298,7 +1302,7 @@ export class QuotingAggregate {
                 error
             );
             const errorPayload: QuoteBCQuoteExpiredErrorPayload = {
-                errorDescription: `Error parsing date for quoteId: ${quoteId}`,
+                errorCode: QuotingErrorCodeNames.QUOTE_EXPIRED,
                 quoteId,
                 expirationDate,
             };
@@ -1310,7 +1314,7 @@ export class QuotingAggregate {
             const errorMessage = `Quote with id ${quoteId} has expired at ${expirationDate}`;
             this._logger.error(errorMessage);
             const errorPayload: QuoteBCQuoteExpiredErrorPayload = {
-                errorDescription: errorMessage,
+                errorCode: QuotingErrorCodeNames.QUOTE_EXPIRED,
                 quoteId: quoteId as string,
                 expirationDate,
             };
@@ -1335,7 +1339,7 @@ export class QuotingAggregate {
             const errorPayload: QuoteBCInvalidMessagePayloadErrorPayload = {
                 quoteId,
                 bulkQuoteId,
-                errorDescription: errorMessage,
+                errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD,
                 requesterFspId,
             };
 
@@ -1351,7 +1355,7 @@ export class QuotingAggregate {
             const errorPayload: QuoteBCInvalidMessageTypeErrorPayload = {
                 bulkQuoteId,
                 quoteId,
-                errorDescription: errorMessage,
+                errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_TYPE,
                 requesterFspId,
             };
             const errorEvent = new QuoteBCInvalidMessageTypeErrorEvent(
@@ -1375,7 +1379,7 @@ export class QuotingAggregate {
             this._logger.error(errorMessage);
             const errorPayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
                 bulkQuoteId,
-                errorDescription: errorMessage,
+                errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
                 destinationFspId: participantId,
                 quoteId,
             };
@@ -1403,7 +1407,7 @@ export class QuotingAggregate {
                 {
                     quoteId,
                     bulkQuoteId,
-                    errorDescription: errorMessage,
+                    errorCode: QuotingErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND,
                     destinationFspId: participantId,
                 };
             const errorEvent =
@@ -1419,7 +1423,7 @@ export class QuotingAggregate {
             const errorPayload: QuoteBCRequiredDestinationParticipantIdMismatchErrorPayload =
                 {
                     bulkQuoteId,
-                    errorDescription: errorMessage,
+                    errorCode: QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH,
                     destinationFspId: participantId,
                     quoteId,
                 };
@@ -1438,7 +1442,7 @@ export class QuotingAggregate {
                     destinationFspId: participantId,
                     quoteId,
                     bulkQuoteId,
-                    errorDescription: errorMessage,
+                    errorCode: QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED,
                 };
             const errorEvent =
                 new QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent(
@@ -1455,7 +1459,7 @@ export class QuotingAggregate {
                     destinationFspId: participantId,
                     quoteId,
                     bulkQuoteId,
-                    errorDescription: errorMessage,
+                    errorCode: QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE,
                 };
             const errorEvent =
                 new QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent(
@@ -1478,7 +1482,7 @@ export class QuotingAggregate {
             this._logger.error(errorMessage);
             const errorPayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
                 bulkQuoteId,
-                errorDescription: errorMessage,
+                errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
                 requesterFspId: participantId,
                 quoteId,
             };
@@ -1505,7 +1509,7 @@ export class QuotingAggregate {
                 {
                     quoteId,
                     bulkQuoteId,
-                    errorDescription: errorMessage,
+                    errorCode: QuotingErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND,
                     //TODO: add property
                     requesterFspId: participantId,
                 };
@@ -1520,7 +1524,7 @@ export class QuotingAggregate {
             const errorPayload: QuoteBCRequiredRequesterParticipantIdMismatchErrorPayload =
                 {
                     bulkQuoteId,
-                    errorDescription: errorMessage,
+                    errorCode: QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_ID_MISMATCH,
                     requesterFspId: participantId,
                     quoteId,
                 };
@@ -1539,7 +1543,7 @@ export class QuotingAggregate {
                     requesterFspId: participantId,
                     quoteId,
                     bulkQuoteId,
-                    errorDescription: errorMessage,
+                    errorCode: QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_NOT_APPROVED,
                 };
             const errorEvent =
                 new QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent(
@@ -1556,7 +1560,7 @@ export class QuotingAggregate {
                     requesterFspId: participantId,
                     quoteId,
                     bulkQuoteId,
-                    errorDescription: errorMessage,
+                    errorCode: QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_NOT_ACTIVE,
                 };
             const errorEvent =
                 new QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent(

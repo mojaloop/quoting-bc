@@ -46,12 +46,9 @@ import {
     UnableToGetQuotesError,
     QuoteNotFoundError,
 } from "../errors";
-import {
-    IQuoteRepo,
-    IQuote,
-    QuotingSearchResults
-} from "@mojaloop/quoting-bc-domain-lib";
+import { IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
 import { randomUUID } from "crypto";
+import { IQuote, QuotingSearchResults } from "@mojaloop/quoting-bc-public-types-lib";
 
 const MAX_ENTRIES_PER_PAGE = 100;
 

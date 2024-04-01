@@ -72,7 +72,8 @@ import { QuotingAggregate } from "./../../src/aggregate";
 import { mockedBulkQuote1 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuote } from "../../src/types";
+import { IQuote } from "@mojaloop/quoting-bc-public-types-lib";
+import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
 
 describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     let aggregate: QuotingAggregate;
@@ -122,7 +123,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCInvalidBulkQuoteLengthErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-            errorDescription: `BulkQuote ${mockedBulkQuote.bulkQuoteId} has no individual quotes`,
+            errorCode: QuotingErrorCodeNames.INVALID_BULK_QUOTE_LENGTH,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -161,7 +162,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             requesterFspId,
-            errorDescription: "Payer fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -200,7 +201,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             destinationFspId: null as any,
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -249,7 +250,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             destinationFspId: null as any,
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -298,7 +299,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             destinationFspId: null as any,
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
         };
 
         jest.spyOn(participantService, "getParticipantInfo").mockResolvedValue({
@@ -346,7 +347,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCBulkQuoteExpiredErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             expirationDate: surpassedExpiration,
-            errorDescription: `BulkQuote with id ${mockedBulkQuote.bulkQuoteId} has expired on ${surpassedExpiration}`,
+            errorCode: QuotingErrorCodeNames.BULK_QUOTE_EXPIRED,
         };
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -397,7 +398,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload =
             {
                 bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-                errorDescription: `Error adding bulk quote ${mockedBulkQuote.bulkQuoteId} to database`,
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE,
             };
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -463,7 +464,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload =
             {
                 bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-                errorDescription: `Error adding bulk quote ${mockedBulkQuote.bulkQuoteId} to database`,
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE,
             };
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -536,7 +537,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             requesterFspId,
-            errorDescription: "Payer fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -582,7 +583,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             requesterFspId,
-            errorDescription: "Payer fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -660,7 +661,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
             {
                 bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-                errorDescription: `Error updating bulk quote ${mockedBulkQuote.bulkQuoteId} in database`,
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
             };
 
         jest.spyOn(messageProducer, "send");
@@ -718,7 +719,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
             {
                 bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-                errorDescription: `Error updating bulk quote ${mockedBulkQuote.bulkQuoteId} in database`,
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
             };
 
         jest.spyOn(messageProducer, "send");
@@ -779,7 +780,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
             {
                 bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-                errorDescription: `Error updating bulk quote ${mockedBulkQuote.bulkQuoteId} in database`,
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
             };
 
         jest.spyOn(messageProducer, "send");
@@ -852,7 +853,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
             {
                 bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-                errorDescription: `Error updating bulk quote ${mockedBulkQuote.bulkQuoteId} in database`,
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
             };
 
         jest.spyOn(messageProducer, "send");
@@ -926,7 +927,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
             {
                 bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-                errorDescription: `Error updating bulk quote ${mockedBulkQuote.bulkQuoteId} in database`,
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
             };
 
         jest.spyOn(messageProducer, "send");
@@ -1004,7 +1005,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             destinationFspId: null as any,
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1102,7 +1103,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCBulkQuoteExpiredErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             expirationDate: surpassedExpiration,
-            errorDescription: `BulkQuote with id ${mockedBulkQuote.bulkQuoteId} has expired on ${surpassedExpiration}`,
+            errorCode: QuotingErrorCodeNames.BULK_QUOTE_EXPIRED,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1195,7 +1196,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-            errorDescription: `Bulk Quote ${mockedBulkQuote.bulkQuoteId} not found`,
+            errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1254,7 +1255,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             requesterFspId,
-            errorDescription: "Payer fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1293,7 +1294,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             destinationFspId,
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1336,7 +1337,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-            errorDescription: `Bulk Quote ${mockedBulkQuote.bulkQuoteId} not found`,
+            errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1387,7 +1388,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-            errorDescription: `Bulk Quote ${mockedBulkQuote.bulkQuoteId} not found`,
+            errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1451,7 +1452,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-            errorDescription: `Individual quotes for Bulk Quote ${mockedBulkQuote.bulkQuoteId} not found`,
+            errorCode: QuotingErrorCodeNames.INDIVIDUAL_QUOTES_NOT_FOUND,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1519,7 +1520,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-            errorDescription: `Individual quotes for Bulk Quote ${mockedBulkQuote.bulkQuoteId} not found`,
+            errorCode: QuotingErrorCodeNames.INDIVIDUAL_QUOTES_NOT_FOUND,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1600,7 +1601,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             requesterFspId,
-            errorDescription: "Payer fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1647,7 +1648,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             quoteId: null,
             destinationFspId,
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
         };
 
         jest.spyOn(messageProducer, "send");

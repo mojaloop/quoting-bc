@@ -33,7 +33,7 @@
 "use strict";
 
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuote, IBulkQuote, QuotingSearchResults } from "../types";
+import { IQuote, IBulkQuote, QuotingSearchResults } from "@mojaloop/quoting-bc-public-types-lib";
 
 export interface IQuoteRepo {
   init(): Promise<void>;
