@@ -64,7 +64,9 @@ export const mockedQuote1: IQuote = {
                 middleName: "Turcotte",
                 lastName: "River Turcotte",
             },
+            kycInformation: null,
         },
+        supportedCurrencies: [],
         merchantClassificationCode: "123",
     },
     payer: {
@@ -82,7 +84,9 @@ export const mockedQuote1: IQuote = {
                 middleName: "Blanda",
                 lastName: "Luther Blanda",
             },
+            kycInformation: null,
         },
+        supportedCurrencies: [],
         merchantClassificationCode: "133",
     },
     amountType: "SEND",
@@ -102,6 +106,8 @@ export const mockedQuote1: IQuote = {
                 "Dolores porro et ut quos exercitationem ut eaque dolorum sint.\nQuisquam nihil deserunt iure et ducimus officia aut ea.\nA molestiae minus facere recusandae.",
         },
     },
+    converter: null,
+    currencyConversion: null,
     feesPayer: {
         currency: "EUR",
         amount: "5",
@@ -182,7 +188,9 @@ export const mockedQuote2: IQuote = {
                 middleName: "Doe",
                 lastName: "John Doe",
             },
+            kycInformation: null,
         },
+        supportedCurrencies: [],
         merchantClassificationCode: "13",
     },
     payer: {
@@ -200,7 +208,9 @@ export const mockedQuote2: IQuote = {
                 middleName: "Singh",
                 lastName: "Luther Singh",
             },
+            kycInformation: null,
         },
+        supportedCurrencies: [],
         merchantClassificationCode: "14",
     },
     amountType: "SEND",
@@ -220,6 +230,8 @@ export const mockedQuote2: IQuote = {
                 "Dolores porro et ut quos exercitationem ut eaque dolorum sint.\nQuisquam nihil deserunt iure et ducimus officia aut ea.\nA molestiae minus facere recusandae.",
         },
     },
+    converter: null,
+    currencyConversion: null,
     expiration: "2024-08-15T08:43:25.699Z",
     extensionList: {
         extension: [
@@ -300,7 +312,9 @@ export const mockedQuote3: IQuote = {
                 middleName: "Second",
                 lastName: "John Second",
             },
+            kycInformation: null,
         },
+        supportedCurrencies: [],
         merchantClassificationCode: "14",
     },
     payer: {
@@ -318,7 +332,9 @@ export const mockedQuote3: IQuote = {
                 middleName: "Blanda",
                 lastName: "Raymond Blanda",
             },
+            kycInformation: null,
         },
+        supportedCurrencies: [],
         merchantClassificationCode: "15",
     },
     amountType: "RECEIVE",
@@ -338,6 +354,8 @@ export const mockedQuote3: IQuote = {
                 "Dolores porro et ut quos exercitationem ut eaque dolorum sint.\nQuisquam nihil deserunt iure et ducimus offic",
         },
     },
+    converter: null,
+    currencyConversion: null,
     expiration: "2024-08-15T08:43:25.699Z",
     extensionList: {
         extension: [
@@ -418,7 +436,9 @@ export const mockedQuote4: IQuote = {
                 middleName: "Third",
                 lastName: "John Third",
             },
+            kycInformation: null,
         },
+        supportedCurrencies: [],
         merchantClassificationCode: "14",
     },
     payer: {
@@ -436,7 +456,9 @@ export const mockedQuote4: IQuote = {
                 middleName: "Rolfson",
                 lastName: "Marvin Rolfson",
             },
+            kycInformation: null,
         },
+        supportedCurrencies: [],
         merchantClassificationCode: "15",
     },
     amountType: "RECEIVE",
@@ -456,6 +478,8 @@ export const mockedQuote4: IQuote = {
                 "Dolores porro et ut quos exercitationem ut eaque dolorum sint.\nQuisquam nihil deserunt iure et ducimus offic",
         },
     },
+    converter: null,
+    currencyConversion: null,
     expiration: "2024-08-15T08:43:25.699Z",
     extensionList: {
         extension: [
@@ -617,7 +641,9 @@ export const mockedBulkQuote2: IBulkQuote = {
                 lastName: "John Smith",
             },
             dateOfBirth: "1980-01-01",
+            kycInformation: null,
         },
+        supportedCurrencies: [],
         partyIdInfo: {
             fspId: "2",
             partyIdentifier: "2",
@@ -657,7 +683,9 @@ export const mockedBulkQuote3: IBulkQuote = {
                 lastName: "John Third",
             },
             dateOfBirth: "1980-01-01",
+            kycInformation: null,
         },
+        supportedCurrencies: [],
         partyIdInfo: {
             fspId: "3",
             partyIdentifier: "3",

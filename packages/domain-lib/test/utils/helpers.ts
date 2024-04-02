@@ -85,6 +85,8 @@ export function createQuoteRequestReceivedEvtPayload(
         quoteId: quote.quoteId,
         transactionId: quote.transactionId,
         amountType: quote.amountType,
+        converter: quote.converter,
+        currencyConversion: quote.currencyConversion,
         note: quote.note,
         extensionList: quote.extensionList,
         fees: quote.feesPayer,
