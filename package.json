@@ -55,6 +55,7 @@
         "typescript": "^5.0.4"
     },
     "workspaces": [
+        "packages/public-types-lib",
         "packages/domain-lib",
         "packages/implementations-lib",
         "packages/quoting-svc",

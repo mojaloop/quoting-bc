@@ -32,11 +32,8 @@
 "use strict";
 
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import {
-  IQuoteRepo,
-  IQuote,
-  QuotingSearchResults
-} from "@mojaloop/quoting-bc-domain-lib";
+import { IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
+import { IQuote, QuotingSearchResults } from "@mojaloop/quoting-bc-public-types-lib";
 
 export class MemoryQuoteRepo implements IQuoteRepo {
   private readonly _logger: ILogger;

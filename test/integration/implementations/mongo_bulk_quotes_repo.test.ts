@@ -35,7 +35,8 @@
 import { BulkQuoteAlreadyExistsError, BulkQuoteNotFoundError, MongoBulkQuotesRepo } from "../../../packages/implementations-lib/src";
 import { Collection, MongoClient } from "mongodb";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { IBulkQuote, IBulkQuoteRepo } from "../../../packages/domain-lib/src";
+import { IBulkQuote } from "@mojaloop/quoting-bc-public-types-lib";
+import { IBulkQuoteRepo } from "../../../packages/domain-lib/src";
 import { mockedBulkQuote1, mockedBulkQuote2 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 
 const logger: ILogger = new ConsoleLogger();

@@ -50,7 +50,7 @@ import {
     GetBulkQuoteQueryRejectedEvtPayload,
     GetBulkQuoteQueryRejectedResponseEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { QuoteStatus } from "../../src/types";
+import { QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
 import {
     createBulkQuotePendingReceivedEvtPayload,
     createBulkQuoteRequestedEvtPayload,
@@ -235,7 +235,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         expect(bulkQuoteRepo.addBulkQuote).toHaveBeenCalledWith(
             expect.objectContaining({
                 bulkQuoteId: mockedQuote.bulkQuoteId,
-                status: QuoteStatus.PENDING,
+                status: QuoteState.PENDING,
             })
         );
     });
@@ -291,12 +291,12 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 expect.objectContaining({
                     quoteId: mockedQuote.individualQuotes[0].quoteId,
                     bulkQuoteId: mockedQuote.bulkQuoteId,
-                    status: QuoteStatus.PENDING,
+                    status: QuoteState.PENDING,
                 }),
                 expect.objectContaining({
                     quoteId: mockedQuote.individualQuotes[1].quoteId,
                     bulkQuoteId: mockedQuote.bulkQuoteId,
-                    status: QuoteStatus.PENDING,
+                    status: QuoteState.PENDING,
                 }),
             ])
         );
@@ -492,7 +492,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 individualQuotes: mockedQuote.individualQuotes,
                 extensionList: mockedQuote.extensionList,
                 quotesNotProcessedIds: ["3", "4"],
-                status: QuoteStatus.ACCEPTED,
+                status: QuoteState.ACCEPTED,
             })
         );
     });
@@ -559,11 +559,11 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         expect(quoteRepositorySpy).toHaveBeenCalledWith([
             expect.objectContaining({
                 ...responseQuotes[0],
-                status: QuoteStatus.ACCEPTED,
+                status: QuoteState.ACCEPTED,
             }),
             expect.objectContaining({
                 ...responseQuotes[1],
-                status: QuoteStatus.ACCEPTED,
+                status: QuoteState.ACCEPTED,
             }),
         ]);
     });
