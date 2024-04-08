@@ -6,7 +6,7 @@
 [![Docker pulls](https://img.shields.io/docker/pulls/mojaloop/quoting-bc.svg?style=flat)](https://hub.docker.com/r/mojaloop/quoting-bc)
 [![CircleCI](https://circleci.com/gh/mojaloop/quoting-bc.svg?style=svg)](https://circleci.com/gh/mojaloop/quoting-bc)
 
-The Quoting and Agreements Bounded Context provides Participants with quotations for undertaking transfers, and records the participant accept/reject responses. 
+The Quoting and Agreements Bounded Context provides participants with quotations for undertaking transfers, and records the participant accept/reject responses. 
 
 ## Contents
 - [quoting-bc](#quoting-bc)
@@ -129,6 +129,6 @@ The process includes five phases.
 ## Documentation
 The following documentation provides insight into the Settlements Bounded Context.
 
-- **Technical Flows** - [`../docs/flows`](docs/flows/)
+- **MIRO Board** - https://miro.com/app/board/o9J_lJyA1TA=/
 - **Reference Architecture** - https://mojaloop.github.io/reference-architecture-doc/boundedContexts/quotingAgreement/ 
 - **Work Sessions** - https://docs.google.com/document/d/1Nm6B_tSR1mOM0LEzxZ9uQnGwXkruBeYB2slgYK1Kflo/edit#heading=h.6w64vxvw6er4

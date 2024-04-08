@@ -64,7 +64,7 @@ npm run test:integration
 | KAFKA_LOGS_TOPIC      | Kafka topic for logs          | logs    |
 | KAFKA_AUDITS_TOPIC        | Kafka topic for audits              | audits                 |
 | AUDIT_KEY_FILE_PATH  | File path for audit key           | /app/data/audit_private_key.pem         |
-| SVC_CLIENT_ID        | Service client ID                 | settlements-bc-api-svc                 |
+| SVC_CLIENT_ID        | Service client ID                 |   quoting-bc-quoting-svc                 |
 | SVC_CLIENT_SECRET    | Service client secret             | superServiceSecret     |
 | SVC_DEFAULT_HTTP_PORT                 | Default HTTP port for the service                  | 3033  |
 | SERVICE_START_TIMEOUT_MS               | Timeout for service startup in milliseconds        | 60_000                 |
