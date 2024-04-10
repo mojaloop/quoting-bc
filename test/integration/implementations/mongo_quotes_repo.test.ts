@@ -36,8 +36,7 @@ import { ILogger,ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-type
 import { MongoClient, Collection } from "mongodb";
 import { mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import {  MongoQuotesRepo, QuoteNotFoundError, QuoteAlreadyExistsError } from "../../../packages/implementations-lib/src";
-import { QuoteStatus } from "../../../packages/domain-lib/src";
-import { IQuote } from "@mojaloop/quoting-bc-domain-lib";
+import { IQuote } from "@mojaloop/quoting-bc-public-types-lib";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);

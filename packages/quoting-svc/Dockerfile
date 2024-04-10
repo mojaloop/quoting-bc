@@ -28,6 +28,7 @@ RUN BUILD_LIBRDKAFKA=0 npm install
 COPY tsconfig.json ./
 
 # copy required supporting modules/packages (especially private ones not published to npm)
+COPY packages/public-types-lib ./packages/public-types-lib
 COPY packages/domain-lib ./packages/domain-lib
 COPY packages/implementations-lib ./packages/implementations-lib
 

@@ -49,7 +49,7 @@ import {
     QuoteResponseReceivedEvt,
     QuoteResponseReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IMoney, QuoteStatus } from "../../src/types";
+import { IMoney, QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
 import {
     createMessage,
     createQuoteQueryRejectedEvtPayload,
@@ -194,6 +194,8 @@ describe("Domain - Unit Tests for Quote Events", () => {
             note: mockedQuote.note,
             expiration: mockedQuote.expiration,
             extensionList: mockedQuote.extensionList,
+            converter: null,
+            currencyConversion: null
         };
 
         jest.spyOn(
@@ -287,7 +289,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         expect(quoteRepo.addQuote).toHaveBeenCalledWith(
             expect.objectContaining({
                 quoteId: mockedQuote.quoteId,
-                status: QuoteStatus.PENDING,
+                status: QuoteState.PENDING,
             })
         );
     });
@@ -371,6 +373,8 @@ describe("Domain - Unit Tests for Quote Events", () => {
             note: mockedQuote.note,
             expiration: mockedQuote.expiration,
             extensionList: mockedQuote.extensionList,
+            converter: null,
+            currencyConversion: null
         };
 
         jest.spyOn(quoteRepo, "addQuote").mockResolvedValueOnce(
@@ -466,7 +470,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
                 expiration: mockedQuote.expiration,
                 geoCode: mockedQuote.geoCode,
                 quoteId: mockedQuote.quoteId,
-                status: QuoteStatus.ACCEPTED,
+                status: QuoteState.ACCEPTED,
             })
         );
     });

@@ -92,7 +92,8 @@ import {
     QuoteResponseReceivedEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuoteSchemeRules, QuoteStatus } from "../../src/types";
+import { IQuoteSchemeRules, QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
+import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
 
 let aggregate: QuotingAggregate;
 
@@ -136,7 +137,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCInvalidMessagePayloadErrorPayload = {
             quoteId: null,
             bulkQuoteId: null,
-            errorDescription: "Message payload is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD,
             requesterFspId,
         };
 
@@ -172,7 +173,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCInvalidMessageTypeErrorPayload = {
             quoteId: mockedQuote.quoteId,
             bulkQuoteId: null,
-            errorDescription: "Message name is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_TYPE,
             requesterFspId,
         };
 
@@ -216,7 +217,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
             quoteId: mockedQuote.quoteId,
             bulkQuoteId: null,
-            errorDescription: "Payer fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
             requesterFspId: null as any,
         };
 
@@ -253,7 +254,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             {
                 quoteId: mockedQuote.quoteId,
                 bulkQuoteId: null,
-                errorDescription: `Payer participant not found for fspId: ${requesterFspId}`,
+                errorCode: QuotingErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND,
                 requesterFspId,
             };
 
@@ -294,7 +295,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             {
                 quoteId: mockedQuote.quoteId,
                 bulkQuoteId: null,
-                errorDescription: `Payer participant not found for fspId: ${requesterFspId}`,
+                errorCode: QuotingErrorCodeNames.SOURCE_PARTICIPANT_NOT_FOUND,
                 requesterFspId,
             };
 
@@ -336,7 +337,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             {
                 quoteId: mockedQuote.quoteId,
                 bulkQuoteId: null,
-                errorDescription: `Payer participant fspId ${requesterFspId} mismatch with the one fetched from participant service ${fakeParticipantId}`,
+                errorCode: QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_ID_MISMATCH,
                 requesterFspId,
             };
 
@@ -383,7 +384,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             {
                 quoteId: mockedQuote.quoteId,
                 bulkQuoteId: null,
-                errorDescription: `Payer participant fspId ${requesterFspId} is not active`,
+                errorCode: QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_NOT_ACTIVE,
                 requesterFspId,
             };
 
@@ -430,7 +431,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             {
                 quoteId: mockedQuote.quoteId,
                 bulkQuoteId: null,
-                errorDescription: `Payer participant fspId ${requesterFspId} is not approved`,
+                errorCode: QuotingErrorCodeNames.REQUIRED_SOURCE_PARTICIPANT_NOT_APPROVED,
                 requesterFspId,
             };
 
@@ -480,7 +481,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload =
             {
                 quoteId: mockedQuote.quoteId,
-                errorDescription: `Quote request scheme validation failed for quoteId: ${mockedQuote.quoteId}`,
+                errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST,
             };
 
         jest.spyOn(messageProducer, "send");
@@ -543,7 +544,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
             bulkQuoteId: null,
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
             destinationFspId: null as any,
             quoteId: mockedQuote.quoteId,
         };
@@ -603,7 +604,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
             bulkQuoteId: null,
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
             destinationFspId: null as any,
             quoteId: mockedQuote.quoteId,
         };
@@ -656,7 +657,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCDestinationParticipantNotFoundErrorPayload =
             {
                 bulkQuoteId: null,
-                errorDescription: `Payee participant not found for participantId: ${destinationFspId}`,
+                errorCode: QuotingErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND,
                 destinationFspId: destinationFspId as string,
                 quoteId: mockedQuote.quoteId,
             };
@@ -703,7 +704,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCDestinationParticipantNotFoundErrorPayload =
             {
                 bulkQuoteId: null,
-                errorDescription: `Payee participant not found for participantId: ${destinationFspId}`,
+                errorCode: QuotingErrorCodeNames.DESTINATION_PARTICIPANT_NOT_FOUND,
                 destinationFspId: destinationFspId as string,
                 quoteId: mockedQuote.quoteId,
             };
@@ -751,7 +752,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCRequiredDestinationParticipantIdMismatchErrorPayload =
             {
                 bulkQuoteId: null,
-                errorDescription: `Payee participant ${destinationFspId} id mismatch with expected ${mismatchDestinationFspId}`,
+                errorCode: QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH,
                 destinationFspId: destinationFspId as string,
                 quoteId: mockedQuote.quoteId,
             };
@@ -804,7 +805,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCRequiredDestinationParticipantIsNotApprovedErrorPayload =
             {
                 bulkQuoteId: null,
-                errorDescription: `Payee participant fspId ${destinationFspId} is not approved`,
+                errorCode: QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED,
                 destinationFspId: destinationFspId as string,
                 quoteId: mockedQuote.quoteId,
             };
@@ -857,7 +858,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const responsePayload: QuoteBCRequiredDestinationParticipantIsNotActiveErrorPayload =
             {
                 bulkQuoteId: null,
-                errorDescription: `Payee participant fspId ${destinationFspId} is not active`,
+                errorCode: QuotingErrorCodeNames.REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE,
                 destinationFspId: destinationFspId as string,
                 quoteId: mockedQuote.quoteId,
             };
@@ -912,7 +913,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         const responsePayload: QuoteBCQuoteExpiredErrorPayload = {
-            errorDescription: `Quote with id ${mockedQuote.quoteId} has expired at ${surpassedExpiration}`,
+            errorCode: QuotingErrorCodeNames.QUOTE_EXPIRED,
             quoteId: mockedQuote.quoteId,
             expirationDate: surpassedExpiration,
         };
@@ -962,7 +963,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         const responsePayload: QuoteBCUnableToAddQuoteToDatabaseErrorPayload = {
-            errorDescription: "Unable to add quote with to database",
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_QUOTE,
             quoteId: mockedQuote.quoteId,
         };
 
@@ -1033,7 +1034,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload =
             {
-                errorDescription: `Quote request scheme validation failed for quoteId: ${mockedQuote.quoteId}`,
+                errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST,
                 quoteId: mockedQuote.quoteId,
             };
 
@@ -1062,7 +1063,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         // Assert
         expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
             expect.objectContaining({
-                status: QuoteStatus.REJECTED,
+                status: QuoteState.REJECTED,
             })
         );
         expect(messageProducer.send).toHaveBeenCalledWith(
@@ -1098,7 +1099,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
-            errorDescription: "Payer fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
             bulkQuoteId: null,
             requesterFspId: null as any,
             quoteId: mockedQuote.quoteId,
@@ -1126,7 +1127,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         // Assert
         expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
             expect.objectContaining({
-                status: QuoteStatus.REJECTED,
+                status: QuoteState.REJECTED,
             })
         );
         expect(messageProducer.send).toHaveBeenCalledWith(
@@ -1162,7 +1163,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
             bulkQuoteId: null,
             destinationFspId: null as any,
             quoteId: mockedQuote.quoteId,
@@ -1200,7 +1201,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         // Assert
         expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
             expect.objectContaining({
-                status: QuoteStatus.REJECTED,
+                status: QuoteState.REJECTED,
             })
         );
         expect(messageProducer.send).toHaveBeenCalledWith(
@@ -1232,7 +1233,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         const responsePayload: QuoteBCQuoteExpiredErrorPayload = {
-            errorDescription: `Quote with id ${mockedQuote.quoteId} has expired at ${surpassedExpiration}`,
+            errorCode: QuotingErrorCodeNames.QUOTE_EXPIRED,
             quoteId: mockedQuote.quoteId,
             expirationDate: surpassedExpiration,
         };
@@ -1273,7 +1274,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         // Assert
         expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
             expect.objectContaining({
-                status: QuoteStatus.EXPIRED,
+                status: QuoteState.EXPIRED,
             })
         );
         expect(messageProducer.send).toHaveBeenCalledWith(
@@ -1302,7 +1303,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload =
             {
-                errorDescription: "Unable to update quote in database",
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_QUOTE,
                 quoteId: mockedQuote.quoteId,
             };
 
@@ -1368,7 +1369,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
             bulkQuoteId: null,
-            errorDescription: "Payer fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
             requesterFspId: null as any,
             quoteId: mockedQuote.quoteId,
         };
@@ -1407,7 +1408,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
             bulkQuoteId: null,
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
             destinationFspId: null as any,
             quoteId: mockedQuote.quoteId,
         };
@@ -1456,7 +1457,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         const responsePayload: QuoteBCQuoteNotFoundErrorPayload = {
-            errorDescription: `Quote with id ${mockedQuote.quoteId} not found`,
+            errorCode: QuotingErrorCodeNames.QUOTE_NOT_FOUND,
             quoteId: mockedQuote.quoteId,
         };
 
@@ -1508,7 +1509,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         const responsePayload: QuoteBCQuoteNotFoundErrorPayload = {
-            errorDescription: `Quote with id ${mockedQuote.quoteId} not found`,
+            errorCode: QuotingErrorCodeNames.QUOTE_NOT_FOUND,
             quoteId: mockedQuote.quoteId,
         };
 
@@ -1571,7 +1572,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         const responsePayload: QuoteBCQuoteNotFoundErrorPayload = {
-            errorDescription: `Quote with id ${mockedQuote.quoteId} not found`,
+            errorCode: QuotingErrorCodeNames.QUOTE_NOT_FOUND,
             quoteId: mockedQuote.quoteId,
         };
 
@@ -1639,7 +1640,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
             bulkQuoteId: null,
-            errorDescription: "Payer fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
             requesterFspId: null as any,
             quoteId: mockedQuote.quoteId,
         };
@@ -1676,7 +1677,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
             bulkQuoteId: null,
-            errorDescription: "Payee fspId is null or undefined",
+            errorCode: QuotingErrorCodeNames.INVALID_DESTINATION_PARTICIPANT,
             destinationFspId: null as any,
             quoteId: mockedQuote.quoteId,
         };

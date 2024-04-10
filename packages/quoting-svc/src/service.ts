@@ -40,6 +40,7 @@ import {
 	IAccountLookupService,
 	QuotingPrivilegesDefinition
 } from "@mojaloop/quoting-bc-domain-lib";
+import { IQuoteSchemeRules } from "@mojaloop/quoting-bc-public-types-lib";
 import {IMessageProducer, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {

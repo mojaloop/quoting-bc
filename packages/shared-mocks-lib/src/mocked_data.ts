@@ -35,8 +35,8 @@
 import {
     IBulkQuote,
     IQuote,
-    QuoteStatus,
-} from "@mojaloop/quoting-bc-domain-lib";
+    QuoteState,
+} from "@mojaloop/quoting-bc-public-types-lib";
 
 const now = Date.now();
 
@@ -64,8 +64,10 @@ export const mockedQuote1: IQuote = {
                 middleName: "Turcotte",
                 lastName: "River Turcotte",
             },
+            kycInformation: null,
         },
         merchantClassificationCode: "123",
+        supportedCurrencies: [],
     },
     payer: {
         partyIdInfo: {
@@ -82,8 +84,10 @@ export const mockedQuote1: IQuote = {
                 middleName: "Blanda",
                 lastName: "Luther Blanda",
             },
+            kycInformation: null,
         },
         merchantClassificationCode: "133",
+        supportedCurrencies: [],
     },
     amountType: "SEND",
     amount: {
@@ -115,7 +119,7 @@ export const mockedQuote1: IQuote = {
             },
         ],
     },
-    status: QuoteStatus.ACCEPTED,
+    status: QuoteState.ACCEPTED,
     ilpPacket: "omnis",
     payeeReceiveAmount: {
         currency: "EUR",
@@ -182,8 +186,10 @@ export const mockedQuote2: IQuote = {
                 middleName: "Doe",
                 lastName: "John Doe",
             },
+            kycInformation: null,
         },
         merchantClassificationCode: "13",
+        supportedCurrencies: [],
     },
     payer: {
         partyIdInfo: {
@@ -200,8 +206,10 @@ export const mockedQuote2: IQuote = {
                 middleName: "Singh",
                 lastName: "Luther Singh",
             },
+            kycInformation: null,
         },
         merchantClassificationCode: "14",
+        supportedCurrencies: [],
     },
     amountType: "SEND",
     amount: {
@@ -229,7 +237,7 @@ export const mockedQuote2: IQuote = {
             },
         ],
     },
-    status: QuoteStatus.PENDING,
+    status: QuoteState.PENDING,
     ilpPacket: "omnis",
     payeeReceiveAmount: {
         currency: "USD",
@@ -300,8 +308,10 @@ export const mockedQuote3: IQuote = {
                 middleName: "Second",
                 lastName: "John Second",
             },
+            kycInformation: null,
         },
         merchantClassificationCode: "14",
+        supportedCurrencies: [],
     },
     payer: {
         partyIdInfo: {
@@ -318,8 +328,10 @@ export const mockedQuote3: IQuote = {
                 middleName: "Blanda",
                 lastName: "Raymond Blanda",
             },
+            kycInformation: null,
         },
         merchantClassificationCode: "15",
+        supportedCurrencies: [],
     },
     amountType: "RECEIVE",
     amount: {
@@ -347,7 +359,7 @@ export const mockedQuote3: IQuote = {
             },
         ],
     },
-    status: QuoteStatus.REJECTED,
+    status: QuoteState.REJECTED,
     ilpPacket: "omnis",
     payeeReceiveAmount: {
         currency: "USD",
@@ -418,8 +430,10 @@ export const mockedQuote4: IQuote = {
                 middleName: "Third",
                 lastName: "John Third",
             },
+            kycInformation: null,
         },
         merchantClassificationCode: "14",
+        supportedCurrencies: [],
     },
     payer: {
         partyIdInfo: {
@@ -436,8 +450,10 @@ export const mockedQuote4: IQuote = {
                 middleName: "Rolfson",
                 lastName: "Marvin Rolfson",
             },
+            kycInformation: null,
         },
         merchantClassificationCode: "15",
+        supportedCurrencies: [],
     },
     amountType: "RECEIVE",
     amount: {
@@ -465,7 +481,7 @@ export const mockedQuote4: IQuote = {
             },
         ],
     },
-    status: QuoteStatus.ACCEPTED,
+    status: QuoteState.ACCEPTED,
     ilpPacket: "omnis",
     payeeReceiveAmount: {
         currency: "EUR",
@@ -599,7 +615,7 @@ export const mockedBulkQuote1: IBulkQuote = {
         latitude: "1",
         longitude: "2",
     },
-    status: QuoteStatus.RECEIVED,
+    status: QuoteState.RECEIVED,
     quotesNotProcessedIds: ["3", "4"],
 } as unknown as IBulkQuote;
 
@@ -617,6 +633,7 @@ export const mockedBulkQuote2: IBulkQuote = {
                 lastName: "John Smith",
             },
             dateOfBirth: "1980-01-01",
+            kycInformation: null,
         },
         partyIdInfo: {
             fspId: "2",
@@ -624,6 +641,7 @@ export const mockedBulkQuote2: IBulkQuote = {
             partyIdType: "partyType2",
             partySubIdOrType: "partySubIdOrType2",
         },
+        supportedCurrencies: []
     },
     expiration: "2024-08-15T08:43:25.699Z",
     individualQuotes: [mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4],
@@ -639,7 +657,7 @@ export const mockedBulkQuote2: IBulkQuote = {
         latitude: "1",
         longitude: "2",
     },
-    status: QuoteStatus.RECEIVED,
+    status: QuoteState.RECEIVED,
     quotesNotProcessedIds: ["1", "2"],
 };
 
@@ -657,6 +675,7 @@ export const mockedBulkQuote3: IBulkQuote = {
                 lastName: "John Third",
             },
             dateOfBirth: "1980-01-01",
+            kycInformation: null,
         },
         partyIdInfo: {
             fspId: "3",
@@ -664,6 +683,7 @@ export const mockedBulkQuote3: IBulkQuote = {
             partyIdType: "partyType3",
             partySubIdOrType: "partySubIdOrType3",
         },
+        supportedCurrencies: []
     },
     expiration: "2024-08-15T08:43:25.699Z",
     individualQuotes: [mockedQuote1, mockedQuote2, mockedQuote3],
@@ -679,6 +699,6 @@ export const mockedBulkQuote3: IBulkQuote = {
         latitude: "1",
         longitude: "2",
     },
-    status: QuoteStatus.REJECTED,
+    status: QuoteState.REJECTED,
     quotesNotProcessedIds: ["3"],
 };

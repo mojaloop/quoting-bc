@@ -36,7 +36,7 @@ import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-ty
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { MemoryQuoteRepo, MemoryBulkQuoteRepo, MemoryMessageProducer, MemoryParticipantService, MemoryAccountLookupService } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { IQuoteRepo, IBulkQuoteRepo, IParticipantService, IAccountLookupService } from "../../src/interfaces/infrastructure";
-import {IQuoteSchemeRules } from "../../src/types";
+import { IQuoteSchemeRules } from "@mojaloop/quoting-bc-public-types-lib";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);

@@ -32,82 +32,10 @@
 
 "use strict";
 
-export enum QuoteStatus {
-    RECEIVED = "RECEIVED",
-    PENDING = "PENDING",
-    REJECTED = "REJECTED",
-    ACCEPTED = "ACCEPTED",
-    EXPIRED = "EXPIRED"
-}
+import { IQuote, IBulkQuote, IParty, IAmountType, IMoney, ITransactionType, IGeoCode, IExtensionList, IErrorInformation, QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
 
-export interface IPartyComplexName {
-    firstName: string | null;
-    middleName: string | null;
-    lastName: string | null;
-}
-
-export interface IPartyPersonalInfo {
-    complexName: IPartyComplexName | null;
-    dateOfBirth: string | null
-}
-
-export interface IPartyIdInfo {
-    partyIdType: string
-    partyIdentifier: string
-    partySubIdOrType: string | null
-    fspId: string | null
-}
-
-export interface IParty {
-    partyIdInfo: IPartyIdInfo;
-    merchantClassificationCode: string | null;
-    name: string | null;
-    personalInfo: IPartyPersonalInfo | null;
-}
-
-export interface IMoney {
-    currency: string;
-    amount: string
-}
-
-export interface IRefund {
-    originalTransactionId: string;
-    refundReason: string | null;
-}
-
-export interface ITransactionType {
-    scenario: string
-    subScenario: string | null
-    initiator: string
-    initiatorType: string
-    refundInfo: IRefund | null,
-    balanceOfPayments: string | null
-}
-
-export type IAmountType = "SEND" | "RECEIVE";
-
-export interface IGeoCode {
-    latitude: string;
-    longitude: string;
-}
-export interface IExtensionList {
-    extension: { key: string; value: string;}[];
-}
-
-export interface IErrorInformation {
-    errorCode: string;
-    errorDescription: string;
-    extensionList: IExtensionList
-}
-
-export interface IParticipant {
-    id: string;
-    type: string;
-    subId: string | null;
-    isActive: boolean;
-}
-
-export interface IQuote {
+/** Quote entity **/
+export class Quote implements IQuote {
     createdAt: number;
 	updatedAt: number;
     requesterFspId:string;
@@ -127,7 +55,7 @@ export interface IQuote {
     expiration: string | null;
     extensionList: IExtensionList | null;
     errorInformation: IErrorInformation | null;
-    status: QuoteStatus | null;
+    status: QuoteState | null;
     totalTransferAmount: IMoney | null;
     ilpPacket: string | null;
     condition: string | null;
@@ -136,7 +64,9 @@ export interface IQuote {
     payeeFspCommission: IMoney | null;
     transferAmount : IMoney | null;
 }
-export interface IBulkQuote {
+
+/** BulkQuote entity **/
+export class BulkQuote implements IBulkQuote {
     createdAt: number;
 	updatedAt: number;
     bulkQuoteId: string;
@@ -146,16 +76,5 @@ export interface IBulkQuote {
     individualQuotes: IQuote[];
     quotesNotProcessedIds: string[];
     extensionList: IExtensionList | null;
-    status: QuoteStatus | null;
-}
-
-export interface IQuoteSchemeRules {
-    currencies: string[];
-}
-
-export declare type QuotingSearchResults = {
-    pageSize: number;
-    totalPages: number;
-    pageIndex: number;
-    items: IQuote[];
+    status: QuoteState | null;
 }

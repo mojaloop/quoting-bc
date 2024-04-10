@@ -49,8 +49,7 @@ import {
     QuoteQueryReceivedEvtPayload,
     GetBulkQuoteQueryRejectedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IBulkQuote } from "../../dist";
-import { IMoney, IQuote } from "../../src/types";
+import { IBulkQuote, IMoney, IQuote } from "@mojaloop/quoting-bc-public-types-lib";
 
 export function createQuoteResponseReceivedEvtPayload(
     mockedQuote: IQuote
@@ -90,6 +89,8 @@ export function createQuoteRequestReceivedEvtPayload(
         fees: quote.feesPayer,
         transactionType: quote.transactionType,
         transactionRequestId: quote.transactionRequestId,
+        converter: null, 
+        currencyConversion: null
     };
 }
 

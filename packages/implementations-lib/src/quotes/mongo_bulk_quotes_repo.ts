@@ -44,7 +44,8 @@ import {
     UnableToDeleteBulkQuoteError,
     BulkQuoteNotFoundError,
 } from "../errors";
-import { IBulkQuoteRepo, IBulkQuote } from "@mojaloop/quoting-bc-domain-lib";
+import { IBulkQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
+import { IBulkQuote } from "@mojaloop/quoting-bc-public-types-lib";
 
 export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
     private readonly _logger: ILogger;
