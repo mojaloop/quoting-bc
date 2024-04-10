@@ -65,7 +65,7 @@ import {
 } from "@mojaloop/security-bc-client-lib";
 import {IAuthenticatedHttpRequester, IAuthorizationClient, ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 import crypto from "crypto";
-import {IConfigurationClient , Currency} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import { DefaultConfigProvider, ConfigurationClient, IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -177,6 +177,7 @@ export class Service {
 		aggregate?: QuotingAggregate, // TODO: remove aggregate from here and tests
         authorizationClient?: IAuthorizationClient,
 		configProvider?: IConfigProvider,
+		configClient?: IConfigurationClient
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
