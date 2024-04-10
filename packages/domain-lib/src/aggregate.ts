@@ -40,12 +40,12 @@ import {
     BulkQuoteReceivedEvt,
     BulkQuoteReceivedEvtPayload,
     BulkQuoteRequestedEvt,
-    GetBulkQuoteQueryRejectedEvt,
-    GetBulkQuoteQueryRejectedResponseEvt,
-    GetBulkQuoteQueryRejectedResponseEvtPayload,
-    GetQuoteQueryRejectedEvt,
-    GetQuoteQueryRejectedResponseEvt,
-    GetQuoteQueryRejectedResponseEvtPayload,
+    BulkQuoteRejectedEvt,
+    BulkQuoteRejectedResponseEvt,
+    BulkQuoteRejectedResponseEvtPayload,
+    QuoteRejectedEvt,
+    QuoteRejectedResponseEvt,
+    QuoteRejectedResponseEvtPayload,
     QuoteBCBulkQuoteExpiredErrorEvent,
     QuoteBCBulkQuoteExpiredErrorPayload,
     QuoteBCBulkQuoteNotFoundErrorEvent,
@@ -204,10 +204,10 @@ export class QuotingAggregate {
                         message as QuoteQueryReceivedEvt
                     );
                     break;
-                case GetQuoteQueryRejectedEvt.name:
+                case QuoteRejectedEvt.name:
                     eventToPublish =
-                        await this.handleGetQuoteQueryRejectedEvent(
-                            message as GetQuoteQueryRejectedEvt
+                        await this.handleQuoteRejectedEvent(
+                            message as QuoteRejectedEvt
                         );
                     break;
                 case BulkQuoteRequestedEvt.name:
@@ -227,10 +227,10 @@ export class QuotingAggregate {
                             message as BulkQuoteQueryReceivedEvt
                         );
                     break;
-                case GetBulkQuoteQueryRejectedEvt.name:
+                case BulkQuoteRejectedEvt.name:
                     eventToPublish =
                         await this.handleGetBulkQuoteQueryRejectedEvent(
-                            message as GetBulkQuoteQueryRejectedEvt
+                            message as BulkQuoteRejectedEvt
                         );
                     break;
                 default: {
@@ -642,11 +642,11 @@ export class QuotingAggregate {
     //#endregion
 
     //#region handleGetQuoteQueryRejectedEvt
-    private async handleGetQuoteQueryRejectedEvent(
-        message: GetQuoteQueryRejectedEvt
+    private async handleQuoteRejectedEvent(
+        message: QuoteRejectedEvt
     ): Promise<DomainEventMsg> {
         this._logger.debug(
-            `Got getQuoteQueryRejected msg for quoteId: ${message.payload.quoteId}`
+            `Got QuoteRejected msg for quoteId: ${message.payload.quoteId}`
         );
 
         const quoteId = message.payload.quoteId;
@@ -680,12 +680,12 @@ export class QuotingAggregate {
             return destinationParticipantError;
         }
 
-        const payload: GetQuoteQueryRejectedResponseEvtPayload = {
+        const payload: QuoteRejectedResponseEvtPayload = {
             quoteId,
             errorInformation: message.payload.errorInformation,
         };
 
-        const event = new GetQuoteQueryRejectedResponseEvt(payload);
+        const event = new QuoteRejectedResponseEvt(payload);
 
         return event;
     }
@@ -1047,7 +1047,7 @@ export class QuotingAggregate {
     //#region handleGetBulkQuoteQueryRejected
 
     private async handleGetBulkQuoteQueryRejectedEvent(
-        message: GetBulkQuoteQueryRejectedEvt
+        message: BulkQuoteRejectedEvt
     ): Promise<DomainEventMsg> {
         this._logger.debug(
             `Got GetBulkQuoteQueryRejected msg for quoteId: ${message.payload.bulkQuoteId}`
@@ -1084,12 +1084,12 @@ export class QuotingAggregate {
             return destinationParticipantError;
         }
 
-        const payload: GetBulkQuoteQueryRejectedResponseEvtPayload = {
+        const payload: BulkQuoteRejectedResponseEvtPayload = {
             bulkQuoteId,
             errorInformation: message.payload.errorInformation,
         };
 
-        const event = new GetBulkQuoteQueryRejectedResponseEvt(payload);
+        const event = new BulkQuoteRejectedResponseEvt(payload);
 
         return event;
     }

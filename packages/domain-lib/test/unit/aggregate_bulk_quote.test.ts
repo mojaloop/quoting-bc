@@ -46,9 +46,9 @@ import {
     BulkQuoteReceivedEvtPayload,
     BulkQuoteRequestedEvt,
     BulkQuoteRequestedEvtPayload,
-    GetBulkQuoteQueryRejectedEvt,
-    GetBulkQuoteQueryRejectedEvtPayload,
-    GetBulkQuoteQueryRejectedResponseEvt,
+    BulkQuoteRejectedEvt,
+    BulkQuoteRejectedEvtPayload,
+    BulkQuoteRejectedResponseEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
 import {
@@ -706,7 +706,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleGetBulkQuoteQueryRejectedEvent - it should publish bulk quote with error information", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload: GetBulkQuoteQueryRejectedEvtPayload = {
+        const payload: BulkQuoteRejectedEvtPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             errorInformation: {
                 errorCode: "3200",
@@ -725,7 +725,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
 
         const message: IMessage = createMessage(
             payload,
-            GetBulkQuoteQueryRejectedEvt.name,
+            BulkQuoteRejectedEvt.name,
             fspiopOpaqueState
         );
 
@@ -733,7 +733,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             null
         );
 
-        //TODO: add extension list to GetBulkQuoteQueryRejectedResponseEvtPayload
+        //TODO: add extension list to BulkQuoteRejectedResponseEvtPayload
         const responsePayload = {
             errorInformation: {
                 errorCode: "3200",
@@ -766,7 +766,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         expect(messageProducer.send).toHaveBeenCalledWith(
             expect.objectContaining({
                 payload: responsePayload,
-                msgName: GetBulkQuoteQueryRejectedResponseEvt.name,
+                msgName: BulkQuoteRejectedResponseEvt.name,
                 fspiopOpaqueState,
             })
         );

@@ -50,7 +50,7 @@ import {
     createQuoteResponseReceivedEvtPayload,
 } from "../utils/helpers";
 import {
-    GetQuoteQueryRejectedEvt,
+    QuoteRejectedEvt,
     QuoteBCDestinationParticipantNotFoundErrorEvent,
     QuoteBCDestinationParticipantNotFoundErrorPayload,
     QuoteBCInvalidDestinationFspIdErrorEvent,
@@ -1623,7 +1623,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
     //#endregion
 
     //#region handleGetQuoteQueryRejectedEvt
-    test("handleGetQuoteQueryRejectedEvent - should send error event if quote is rejected due to invalid requester fsp", async () => {
+    test("handleQuoteRejectedEvent - should send error event if quote is rejected due to invalid requester fsp", async () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = null;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
@@ -1631,7 +1631,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         const message: IMessage = createMessage(
             payload,
-            GetQuoteQueryRejectedEvt.name,
+            QuoteRejectedEvt.name,
             {
                 requesterFspId,
                 destinationFspId,
@@ -1660,7 +1660,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-    test("handleGetQuoteQueryRejectedEvent - should send error event if quote is rejected due to invalid destination fsp", async () => {
+    test("handleQuoteRejectedEvent - should send error event if quote is rejected due to invalid destination fsp", async () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
@@ -1668,7 +1668,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         const message: IMessage = createMessage(
             payload,
-            GetQuoteQueryRejectedEvt.name,
+            QuoteRejectedEvt.name,
             {
                 requesterFspId,
                 destinationFspId,

@@ -35,8 +35,8 @@
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import {
-    GetQuoteQueryRejectedEvt,
-    GetQuoteQueryRejectedEvtPayload,
+    QuoteRejectedEvt,
+    QuoteRejectedEvtPayload,
     QuoteQueryReceivedEvt,
     QuoteQueryReceivedEvtPayload,
     QuoteQueryResponseEvtPayload,
@@ -651,11 +651,11 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
     //#endregion
 
-    //#region GetQuoteQueryRejectedEvt
-    test("handleGetQuoteQueryRejectedEvent - should publish quote event with error information", async () => {
+    //#region QuoteRejectedEvt
+    test("handleQuoteRejectedEvent - should publish quote event with error information", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
-        const payload: GetQuoteQueryRejectedEvtPayload =
+        const payload: QuoteRejectedEvtPayload =
             createQuoteQueryRejectedEvtPayload(mockedQuote);
 
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
@@ -668,11 +668,11 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
         const message: IMessage = createMessage(
             payload,
-            GetQuoteQueryRejectedEvt.name,
+            QuoteRejectedEvt.name,
             fspiopOpaqueState
         );
 
-        const payloadResponse: GetQuoteQueryRejectedEvtPayload = {
+        const payloadResponse: QuoteRejectedEvtPayload = {
             quoteId: mockedQuote.quoteId,
             errorInformation: mockedQuote.errorInformation as any,
         };
