@@ -66,7 +66,7 @@ import {
     messageProducer,
     participantService,
     accountLookupService,
-    schemaRules,
+    currencyList,
 } from "../utils/mocked_variables";
 import { QuotingAggregate } from "./../../src/aggregate";
 import { mockedBulkQuote1 } from "@mojaloop/quoting-bc-shared-mocks-lib";
@@ -87,7 +87,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             true,
-            schemaRules
+            currencyList
         );
     });
 
@@ -428,7 +428,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -497,7 +497,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -606,7 +606,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -678,7 +678,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -738,7 +738,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -805,7 +805,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -879,7 +879,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -956,7 +956,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -1038,7 +1038,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -1140,7 +1140,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -1417,7 +1417,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -1485,7 +1485,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -1553,7 +1553,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act

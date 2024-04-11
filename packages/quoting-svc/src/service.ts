@@ -40,7 +40,6 @@ import {
 	IAccountLookupService,
 	QuotingPrivilegesDefinition
 } from "@mojaloop/quoting-bc-domain-lib";
-import { IQuoteSchemeRules } from "@mojaloop/quoting-bc-public-types-lib";
 import {IMessageProducer, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {
@@ -66,6 +65,8 @@ import {
 } from "@mojaloop/security-bc-client-lib";
 import {IAuthenticatedHttpRequester, IAuthorizationClient, ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 import crypto from "crypto";
+import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import { DefaultConfigProvider, ConfigurationClient, IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -81,7 +82,7 @@ const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEB
 
 // infra & dbs
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
-const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
+const MONGO_URL = process.env["MONGO_URL"] || "";
 
 // const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
@@ -121,9 +122,6 @@ const consumerOptions: MLKafkaJsonConsumerOptions = {
 
 // Application variables
 const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"]=== "true" )? true : false;
-const SCHEME_RULES: IQuoteSchemeRules = {
-	currencies: ["USD", "EUR", "GBP"],
-};
 
 const producerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL,
@@ -145,6 +143,9 @@ const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && pars
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
 const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
+const CONFIG_BASE_URL = process.env["CONFIG_BASE_URL"] || "http://localhost:3100";
+const CONFIGSET_VERSION = process.env["CONFIGSET_VERSION"] || "0.0.1";
+
 let globalLogger: ILogger;
 
 export class Service {
@@ -162,6 +163,7 @@ export class Service {
     static startupTimer: NodeJS.Timeout;
     static authorizationClient: IAuthorizationClient;
     static tokenHelper: ITokenHelper;
+	static configClient : IConfigurationClient; 
 
 	static async start(
 		logger?: ILogger,
@@ -173,7 +175,8 @@ export class Service {
 		participantService?: IParticipantService,
 		accountLookupService?: IAccountLookupService,
 		aggregate?: QuotingAggregate, // TODO: remove aggregate from here and tests
-        authorizationClient?: IAuthorizationClient
+        authorizationClient?: IAuthorizationClient,
+		configProvider?: IConfigProvider,
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -194,6 +197,26 @@ export class Service {
 		}
 		globalLogger = this.logger = logger.createChild("Service");
 
+		if (!configProvider) {
+			// use default url from PLATFORM_CONFIG_CENTRAL_URL env var
+			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+			const messageConsumer = new MLKafkaJsonConsumer({
+				kafkaBrokerList: KAFKA_URL,
+				kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
+			}, logger.createChild("configClient.consumer"));
+			configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer, CONFIG_BASE_URL);
+
+		}
+
+		this.configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, configProvider);
+			await this.configClient.init();
+			await this.configClient.bootstrap(true);
+			await this.configClient.fetch();
+
+		// Configs:
+		const currencyList = this.configClient.globalConfigs.getCurrencies();
 		/*
 		// start auditClient
 		if (!auditClient) {
@@ -282,7 +305,7 @@ export class Service {
 		logger.info("Bulk Quote Registry Repo Initialized");
 
 		if(!aggregate){
-			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE, SCHEME_RULES);
+			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE, currencyList);
 		}
 
 		this.aggregate = aggregate;
