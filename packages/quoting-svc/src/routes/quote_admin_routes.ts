@@ -43,7 +43,6 @@
 import express from "express";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IBulkQuoteRepo, IQuoteRepo, QuotingPrivileges } from "@mojaloop/quoting-bc-domain-lib";
-import { QuotingSearchResults, } from "@mojaloop/quoting-bc-public-types-lib";
 import { check } from "express-validator";
 import { BaseRoutes } from "./base/base_routes";
 import { IAuthorizationClient, ITokenHelper } from "@mojaloop/security-bc-public-types-lib";
@@ -109,7 +108,7 @@ export class QuotingAdminExpressRoutes extends BaseRoutes {
 
             this.logger.debug("Fetching all quotes");
 
-            const fetched:QuotingSearchResults = await this.quoteRepo.searchQuotes(
+            const fetched = await this.quoteRepo.searchQuotes(
                 amountType,
                 transactionType,
                 quoteId,
