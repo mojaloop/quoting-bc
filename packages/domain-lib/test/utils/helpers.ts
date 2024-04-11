@@ -39,12 +39,9 @@ import {
 import {
     QuoteResponseReceivedEvtPayload,
     QuoteRequestReceivedEvtPayload,
-    BulkQuotePendingReceivedEvt,
     BulkQuotePendingReceivedEvtPayload,
     BulkQuoteRequestedEvtPayload,
-    GetQuoteQueryRejectedResponseEvtPayload,
     QuoteRejectedEvtPayload,
-    BulkQuoteQueryReceivedEvt,
     BulkQuoteQueryReceivedEvtPayload,
     QuoteQueryReceivedEvtPayload,
     BulkQuoteRejectedEvtPayload,
