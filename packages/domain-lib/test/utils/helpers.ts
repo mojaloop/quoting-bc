@@ -39,15 +39,12 @@ import {
 import {
     QuoteResponseReceivedEvtPayload,
     QuoteRequestReceivedEvtPayload,
-    BulkQuotePendingReceivedEvt,
     BulkQuotePendingReceivedEvtPayload,
     BulkQuoteRequestedEvtPayload,
-    GetQuoteQueryRejectedResponseEvtPayload,
-    GetQuoteQueryRejectedEvtPayload,
-    BulkQuoteQueryReceivedEvt,
+    QuoteRejectedEvtPayload,
     BulkQuoteQueryReceivedEvtPayload,
     QuoteQueryReceivedEvtPayload,
-    GetBulkQuoteQueryRejectedEvtPayload,
+    BulkQuoteRejectedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IBulkQuote, IMoney, IQuote } from "@mojaloop/quoting-bc-public-types-lib";
 
@@ -105,7 +102,7 @@ export function createQuoteQueryReceivedEvtPayload(
 
 export function createQuoteQueryRejectedEvtPayload(
     mockedQuote: IQuote
-): GetQuoteQueryRejectedEvtPayload {
+): QuoteRejectedEvtPayload {
     const quote = Object.assign({}, mockedQuote);
     return {
         quoteId: quote.quoteId,
@@ -160,7 +157,7 @@ export function createBulkQuoteQueryRejectedEvtPayload(
             }[];
         } | null;
     }
-): GetBulkQuoteQueryRejectedEvtPayload {
+): BulkQuoteRejectedEvtPayload {
     const bulkQuote = Object.assign({}, mockedBulkQuote);
     return {
         bulkQuoteId: bulkQuote.bulkQuoteId,

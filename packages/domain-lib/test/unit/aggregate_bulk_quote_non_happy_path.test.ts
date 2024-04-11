@@ -50,7 +50,7 @@ import {
     BulkQuoteQueryReceivedEvt,
     QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCBulkQuoteNotFoundErrorPayload,
-    GetBulkQuoteQueryRejectedEvt,
+    BulkQuoteRejectedEvt,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {
     createBulkQuotePendingReceivedEvtPayload,
@@ -1593,7 +1593,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
 
         const message: IMessage = createMessage(
             payload,
-            GetBulkQuoteQueryRejectedEvt.name,
+            BulkQuoteRejectedEvt.name,
             fspiopOpaqueState
         );
 
