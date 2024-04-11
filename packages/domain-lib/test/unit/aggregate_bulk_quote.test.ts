@@ -63,7 +63,7 @@ import {
     messageProducer,
     participantService,
     accountLookupService,
-    schemaRules,
+    currencyList,
 } from "../utils/mocked_variables";
 import {
     mockedBulkQuote1,
@@ -84,7 +84,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
     });
 
@@ -349,7 +349,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             participantService,
             accountLookupService,
             true,
-            schemaRules
+            currencyList
         );
 
         // Act

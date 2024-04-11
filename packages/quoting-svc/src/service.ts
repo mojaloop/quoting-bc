@@ -40,7 +40,6 @@ import {
 	IAccountLookupService,
 	QuotingPrivilegesDefinition
 } from "@mojaloop/quoting-bc-domain-lib";
-import { IQuoteSchemeRules } from "@mojaloop/quoting-bc-public-types-lib";
 import {IMessageProducer, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {
@@ -178,7 +177,6 @@ export class Service {
 		aggregate?: QuotingAggregate, // TODO: remove aggregate from here and tests
         authorizationClient?: IAuthorizationClient,
 		configProvider?: IConfigProvider,
-		configClient?: IConfigurationClient
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -219,9 +217,6 @@ export class Service {
 
 		// Configs:
 		const currencyList = this.configClient.globalConfigs.getCurrencies();
-		const SCHEME_RULES = {
-			currencies : currencyList.map(currency => currency.code)
-		};
 		/*
 		// start auditClient
 		if (!auditClient) {
@@ -310,7 +305,7 @@ export class Service {
 		logger.info("Bulk Quote Registry Repo Initialized");
 
 		if(!aggregate){
-			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE, SCHEME_RULES);
+			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE, currencyList);
 		}
 
 		this.aggregate = aggregate;

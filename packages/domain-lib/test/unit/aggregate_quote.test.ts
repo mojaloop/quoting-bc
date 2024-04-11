@@ -63,7 +63,7 @@ import {
     accountLookupService,
     logger,
     bulkQuoteRepo,
-    schemaRules,
+    currencyList,
 } from "../utils/mocked_variables";
 import {
     mockedQuote1,
@@ -83,7 +83,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             participantService,
             accountLookupService,
             true,
-            schemaRules
+            currencyList
         );
     });
 
@@ -258,7 +258,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -439,7 +439,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         const repositorySpy = jest.spyOn(quoteRepo, "updateQuote");

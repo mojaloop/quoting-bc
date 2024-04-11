@@ -131,11 +131,11 @@ import {
     IGeoCode,
     IMoney,
     IQuote,
-    IQuoteSchemeRules,
     QuoteState,
     QuotingErrorCodeNames 
 } from "@mojaloop/quoting-bc-public-types-lib";
 import { BulkQuote, Quote } from "./entities";
+import { Currency } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 ("use strict");
 
@@ -147,7 +147,7 @@ export class QuotingAggregate {
     private readonly _participantService: IParticipantService;
     private readonly _accountLookupService: IAccountLookupService;
     private readonly _passThroughMode: boolean;
-    private readonly _schemeRules: IQuoteSchemeRules;
+    private readonly _currencyList: Currency[];
 
     constructor(
         logger: ILogger,
@@ -157,7 +157,7 @@ export class QuotingAggregate {
         participantService: IParticipantService,
         accountLookupService: IAccountLookupService,
         passThroughMode: boolean,
-        schemeRules: IQuoteSchemeRules
+        currencyList: Currency[]
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._quotesRepo = quoteRepo;
@@ -166,12 +166,12 @@ export class QuotingAggregate {
         this._participantService = participantService;
         this._accountLookupService = accountLookupService;
         this._passThroughMode = passThroughMode ?? false;
-        this._schemeRules = schemeRules;
+        this._currencyList = currencyList;
     }
 
     //#region Event Handlers
     async handleQuotingEvent(message: IMessage): Promise<void> {
-        this._logger.debug(`Got message in Quoting handler - msg: ${JSON.stringify(message)}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`Got message in Quoting handler - msg: ${JSON.stringify(message)}`);
         const requesterFspId =
             message.fspiopOpaqueState?.requesterFspId ?? null;
         const quoteId = message.payload?.quoteId ?? null;
@@ -271,7 +271,7 @@ export class QuotingAggregate {
         message: QuoteRequestReceivedEvt
     ): Promise<DomainEventMsg> {
         const quoteId = message.payload.quoteId;
-        this._logger.debug(
+        this._logger.isDebugEnabled() && this._logger.debug(
             `Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`
         );
         const requesterFspId =
@@ -294,8 +294,8 @@ export class QuotingAggregate {
             return requesterParticipantError;
         }
 
-        const isSchemaValid = this.validateScheme(message);
-        if (!isSchemaValid) {
+        const isCurrencyValid = this.validateCurrency(message);
+        if (!isCurrencyValid) {
             const errorPayload: QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload =
                 {
                     quoteId,
@@ -457,8 +457,8 @@ export class QuotingAggregate {
         let quoteErrorEvent: DomainEventMsg | null = null;
         let quoteStatus: QuoteState = QuoteState.ACCEPTED;
 
-        const isSchemaValid = this.validateScheme(message);
-        if (!isSchemaValid) {
+        const isCurrencyValid = this.validateCurrency(message);
+        if (!isCurrencyValid) {
             const errorPayload: QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload =
                 {
                     errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST,
@@ -1222,7 +1222,7 @@ export class QuotingAggregate {
 
     //#region Validations
 
-    private validateScheme(message: IMessage): boolean {
+    private validateCurrency(message: IMessage): boolean {
         const currency =
             message.payload.transferAmount?.currency ??
             message.payload.amount?.currency;
@@ -1231,11 +1231,9 @@ export class QuotingAggregate {
             return false;
         }
 
-        const currenciesSupported = this._schemeRules.currencies.map(
-            (currency) => currency.toLocaleLowerCase()
-        );
+        const currenciesSupported = this._currencyList.find(supportedCurrency => supportedCurrency.code == currency);
 
-        if (!currenciesSupported.includes(currency.toLocaleLowerCase())) {
+        if (!currenciesSupported) {
             this._logger.error("Currency is not supported");
             return false;
         }

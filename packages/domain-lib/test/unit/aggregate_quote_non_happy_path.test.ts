@@ -38,7 +38,7 @@ import {
     messageProducer,
     participantService,
     accountLookupService,
-    schemaRules,
+    currencyList,
 } from "../utils/mocked_variables";
 import { QuotingAggregate } from "./../../src/aggregate";
 import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -94,6 +94,7 @@ import {
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import { IQuoteSchemeRules, QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
 import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
+import { Currency } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 let aggregate: QuotingAggregate;
 
@@ -107,7 +108,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             true,
-            schemaRules
+            currencyList
         );
     });
 
@@ -465,9 +466,13 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
-        const newSchemaRules: IQuoteSchemeRules = {
-            currencies: ["ZAR"],
-        };
+        const newCurrencyList: Currency[] = [
+            {
+              "code": "ZAR",
+              "num" : "710" ,
+              "decimals": 2
+            },
+        ]
 
         const message: IMessage = createMessage(
             payload,
@@ -503,7 +508,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             true,
-            newSchemaRules
+            newCurrencyList
         );
 
         // Act
@@ -995,7 +1000,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         // Act
@@ -1019,9 +1024,13 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteResponseReceivedEvtPayload(mockedQuote);
-        const invalidSchema: IQuoteSchemeRules = {
-            currencies: ["ZAR"],
-        };
+        const invalidCurrencyList: Currency[] = [
+            {
+              "code": "ZAR",
+              "num" : "710" ,
+              "decimals": 2
+            },
+        ];
 
         const message: IMessage = createMessage(
             payload,
@@ -1047,7 +1056,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                 participantService,
                 accountLookupService,
                 false,
-                invalidSchema
+                invalidCurrencyList
             );
 
         jest.spyOn(messageProducer, "send");
@@ -1113,7 +1122,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         jest.spyOn(messageProducer, "send");
@@ -1177,7 +1186,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         jest.spyOn(messageProducer, "send");
@@ -1246,7 +1255,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         jest.spyOn(messageProducer, "send");
@@ -1315,7 +1324,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         jest.spyOn(messageProducer, "send");
@@ -1521,7 +1530,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         jest.spyOn(messageProducer, "send");
@@ -1584,7 +1593,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             participantService,
             accountLookupService,
             false,
-            schemaRules
+            currencyList
         );
 
         jest.spyOn(messageProducer, "send");
