@@ -30,6 +30,8 @@
  --------------
 **/
 
+"use strict";
+
 import {
     BulkQuoteAcceptedEvt,
     BulkQuoteAcceptedEvtPayload,
@@ -125,19 +127,18 @@ import {
 } from "./interfaces/infrastructure";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import {     
+import {
     IBulkQuote,
     IExtensionList,
     IGeoCode,
     IMoney,
     IQuote,
     QuoteState,
-    QuotingErrorCodeNames 
+    QuotingErrorCodeNames
 } from "@mojaloop/quoting-bc-public-types-lib";
 import { BulkQuote, Quote } from "./entities";
 import { Currency } from "@mojaloop/platform-configuration-bc-public-types-lib";
-
-("use strict");
+import { IHistogram, IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 export class QuotingAggregate {
     private readonly _logger: ILogger;
@@ -148,6 +149,8 @@ export class QuotingAggregate {
     private readonly _accountLookupService: IAccountLookupService;
     private readonly _passThroughMode: boolean;
     private readonly _currencyList: Currency[];
+    private readonly _metrics: IMetrics;
+    private readonly _histogram: IHistogram;
 
     constructor(
         logger: ILogger,
@@ -157,7 +160,8 @@ export class QuotingAggregate {
         participantService: IParticipantService,
         accountLookupService: IAccountLookupService,
         passThroughMode: boolean,
-        currencyList: Currency[]
+        currencyList: Currency[],
+        metrics: IMetrics
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._quotesRepo = quoteRepo;
@@ -167,9 +171,149 @@ export class QuotingAggregate {
         this._accountLookupService = accountLookupService;
         this._passThroughMode = passThroughMode ?? false;
         this._currencyList = currencyList;
+        this._metrics = metrics;
+
+        this._histogram = metrics.getHistogram(`${QuotingAggregate.constructor.name}`, `${QuotingAggregate.constructor.name} calls`, [
+            "callName",
+            "success",
+        ]);
     }
 
     //#region Event Handlers
+    async handleQuotingEventBatch (sourceMessages: IMessage[]): Promise<void> {
+        return new Promise<void>(async (resolve, reject) => {
+            const startTime = Date.now();
+            const timerEndFn = this._histogram.startTimer({callName: "handleAccountLookUpEventBatch"});
+
+            try {
+                const allEventsToPublish = [];
+
+                for (const message of sourceMessages) {
+                    const handlerTimerEndFn = this._histogram.startTimer({
+                        callName: "handleQuotingEvent",
+                    });
+
+                    this._logger.isDebugEnabled() && this._logger.debug(`Got message in Quoting handler - msgName: ${message.msgName} - msgKey/quoteid: ${message.msgKey}`);
+
+                    const requesterFspId = message.fspiopOpaqueState?.requesterFspId ?? null;
+                    const quoteId = message.payload?.quoteId ?? null;
+                    const bulkQuoteId = message.payload?.bulkQuoteId ?? null;
+
+                    const eventMessageError = this._validateMessageOrGetErrorEvent(message);
+
+                    if (eventMessageError) {
+                        eventMessageError.fspiopOpaqueState = message.fspiopOpaqueState;
+                        allEventsToPublish.push(eventMessageError);
+                        handlerTimerEndFn({success: "false"});
+                        continue;
+                    }
+
+                    let eventToPublish = null;
+
+                    try {
+                        switch (message.msgName) {
+                            case QuoteRequestReceivedEvt.name:
+                                eventToPublish = await this._handleQuoteRequestReceivedEvent(
+                                    message as QuoteRequestReceivedEvt
+                                );
+                                break;
+                            case QuoteResponseReceivedEvt.name:
+                                eventToPublish =
+                                    await this._handleQuoteResponseReceivedEvent(
+                                        message as QuoteResponseReceivedEvt
+                                    );
+                                break;
+                            case QuoteQueryReceivedEvt.name:
+                                eventToPublish = await this._handleQuoteQueryReceivedEvent(
+                                    message as QuoteQueryReceivedEvt
+                                );
+                                break;
+                            case GetQuoteQueryRejectedEvt.name:
+                                eventToPublish =
+                                    await this._handleGetQuoteQueryRejectedEvent(
+                                        message as GetQuoteQueryRejectedEvt
+                                    );
+                                break;
+                            case BulkQuoteRequestedEvt.name:
+                                eventToPublish = await this._handleBulkQuoteRequestedEvent(
+                                    message as BulkQuoteRequestedEvt
+                                );
+                                break;
+                            case BulkQuotePendingReceivedEvt.name:
+                                eventToPublish =
+                                    await this._handleBulkQuotePendingReceivedEvent(
+                                        message as BulkQuotePendingReceivedEvt
+                                    );
+                                break;
+                            case BulkQuoteQueryReceivedEvt.name:
+                                eventToPublish =
+                                    await this._handleGetBulkQuoteQueryReceivedEvent(
+                                        message as BulkQuoteQueryReceivedEvt
+                                    );
+                                break;
+                            case GetBulkQuoteQueryRejectedEvt.name:
+                                eventToPublish =
+                                    await this._handleGetBulkQuoteQueryRejectedEvent(
+                                        message as GetBulkQuoteQueryRejectedEvt
+                                    );
+                                break;
+                            default: {
+                                const errorMessage = `Message type has invalid format or value ${message.msgName}`;
+                                this._logger.error(errorMessage);
+                                const errorCode = QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN;
+                                const errorPayload: QuoteBCUnknownErrorPayload = {
+                                    quoteId,
+                                    bulkQuoteId,
+                                    errorCode: errorCode,
+                                    requesterFspId,
+                                };
+                                eventToPublish = new QuoteBCUnknownErrorEvent(errorPayload);
+                            }
+                        }
+                    } catch (error: unknown) {
+                        const errorMessage = `Error while handling message ${message.msgName}`;
+                        this._logger.error(errorMessage + `- ${error}`);
+                        const errorCode = QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN;
+                        const errorPayload: QuoteBCUnknownErrorPayload = {
+                            quoteId,
+                            bulkQuoteId,
+                            errorCode: errorCode,
+                            requesterFspId,
+                        };
+                        eventToPublish = new QuoteBCUnknownErrorEvent(errorPayload);
+                    }
+
+                    handlerTimerEndFn({success: "true"});
+
+                    if (eventToPublish){
+                        eventToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
+                        allEventsToPublish.push(eventToPublish);
+                    }
+                }
+
+                if (allEventsToPublish) {
+                    const handlerTimerEndFn_phase3 = this._histogram.startTimer({
+                        callName: "handleQuotingEventBatch - producer send",
+                    });
+                    await this._messageProducer.send(allEventsToPublish);
+                    handlerTimerEndFn_phase3({success: "true"});
+                }
+
+                timerEndFn({success: "true"});
+                this._logger.debug(`  Completed batch in handleQuotingEventBatch batch size: ${sourceMessages.length}`);
+                this._logger.debug(`  Took: ${Date.now() - startTime}`);
+                this._logger.debug("\n\n");
+                return resolve();
+            }catch (error){
+                timerEndFn({success: "false"});
+                const errorMessage = "Unknown error while handling message batch";
+                this._logger.error(errorMessage, error);
+                return reject();
+            }
+        })
+    }
+
+    /*
     async handleQuotingEvent(message: IMessage): Promise<void> {
         this._logger.isDebugEnabled() && this._logger.debug(`Got message in Quoting handler - msg: ${JSON.stringify(message)}`);
         const requesterFspId =
@@ -262,18 +406,22 @@ export class QuotingAggregate {
         eventToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
         await this._messageProducer.send(eventToPublish);
     }
+    */
 
     //#endregion
 
     //#region Quotes
     //#region handleQuoteRequestReceivedEvt
-    private async handleQuoteRequestReceivedEvent(
+    private async _handleQuoteRequestReceivedEvent(
         message: QuoteRequestReceivedEvt
     ): Promise<DomainEventMsg> {
-        const quoteId = message.payload.quoteId;
+        const timerEndFn = this._histogram.startTimer({ callName: "handleQuoteRequestReceivedEvent"});
         this._logger.isDebugEnabled() && this._logger.debug(
-            `Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`
+            `Got QuoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`
         );
+
+        const quoteId = message.payload.quoteId;
+        // TODO we cannot use the fspiopOpaqueState contents inside the switch, if the field is necessary have the FSPIOP-API-SVC putting it in the msg
         const requesterFspId =
             message.payload.payer?.partyIdInfo?.fspId ??
             message.fspiopOpaqueState.requesterFspId ??
@@ -285,74 +433,78 @@ export class QuotingAggregate {
         const expirationDate = message.payload.expiration ?? null;
 
         const requesterParticipantError =
-            await this.validateRequesterParticipantInfoOrGetErrorEvent(
+            await this._validateRequesterParticipantInfoOrGetErrorEvent(
                 requesterFspId,
                 quoteId,
                 null
             );
         if (requesterParticipantError) {
+            timerEndFn({ success: "false" });
+            this._logger.isDebugEnabled() && this._logger.debug(
+                `Quote ${quoteId} in handleQuoteRequestReceivedEvent failed due to requester participant error`
+            );
             return requesterParticipantError;
+
         }
 
-        const isCurrencyValid = this.validateCurrency(message);
+        const isCurrencyValid = this._validateCurrency(message);
         if (!isCurrencyValid) {
-            const errorPayload: QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload =
-                {
-                    quoteId,
-                    errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST,
-                };
             const errorEvent =
                 new QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent(
-                    errorPayload
+                    {
+                        quoteId,
+                        errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST,
+                    }
                 );
+            this._logger.isDebugEnabled() && this._logger.debug(`Quote ${quoteId} in handleQuoteRequestReceivedEvent has invalid currency`);
+            timerEndFn({ success: "false" });
             return errorEvent;
         }
 
+        // if the message didn't provide a destinationFspId, get it from the lookup service
         if (!destinationFspId) {
-            const payeePartyId =
-                message.payload.payee?.partyIdInfo?.partyIdentifier ?? null;
-            const payeePartyType =
-                message.payload.payee?.partyIdInfo?.partyIdType ?? null;
+            const payeePartyId = message.payload.payee?.partyIdInfo?.partyIdentifier ?? null;
+            const payeePartyType = message.payload.payee?.partyIdInfo?.partyIdType ?? null;
             const currency = message.payload.amount?.currency ?? null;
-            this._logger.debug(
-                `Get destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`
+            this._logger.isDebugEnabled() && this._logger.debug(
+                `No destinationFspId, trying to get it from lookup service - for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`
             );
             try {
-                destinationFspId =
-                    await this._accountLookupService.getAccountLookup(
+                destinationFspId = await this._accountLookupService.getAccountLookup(
                         payeePartyType,
                         payeePartyId,
                         currency
                     );
-                this._logger.debug(
+                this._logger.isDebugEnabled() && this._logger.debug(
                     `Got destinationFspId: ${destinationFspId} from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`
                 );
             } catch (error: unknown) {
                 destinationFspId = null;
-                this._logger.error(
-                    `Error while getting destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`,
-                    error
-                );
+                this._logger.error("Error while getting destinationFspId from account lookup service for ",error);
             }
         }
 
         const destinationParticipantError =
-            await this.validateDestinationParticipantInfoOrGetErrorEvent(
+            await this._validateDestinationParticipantInfoOrGetErrorEvent(
                 destinationFspId,
                 quoteId,
                 null
             );
         if (destinationParticipantError) {
+            timerEndFn({ success: "false" });
+            this._logger.isDebugEnabled() && this._logger.debug (`Quote ${quoteId} in handleQuoteRequestReceivedEvent has invalid destination Participant`);
             return destinationParticipantError;
         }
 
         if (expirationDate) {
             const expirationDateValidationError =
-                this.validateQuoteExpirationDateOrGetErrorEvent(
+                this._validateQuoteExpirationDateOrGetErrorEvent(
                     quoteId,
                     expirationDate
                 );
             if (expirationDateValidationError) {
+                this._logger.isDebugEnabled() && this._logger.debug (`Quote ${quoteId} in handleQuoteRequestReceivedEvent has invalid expiration date`);
+                timerEndFn({ success: "false" });
                 return expirationDateValidationError;
             }
         }
@@ -391,8 +543,12 @@ export class QuotingAggregate {
         };
 
         if (!this._passThroughMode) {
+            const repoTimerEndFn = this._histogram.startTimer({
+                callName: "handleQuoteRequestReceivedEvent_storeInRepo",
+            });
             try {
                 await this._quotesRepo.addQuote(quote);
+                repoTimerEndFn({ success: "true" });
             } catch (error: unknown) {
                 this._logger.error(
                     `Error adding quote with id ${quoteId}to database`,
@@ -407,6 +563,9 @@ export class QuotingAggregate {
                     new QuoteBCUnableToAddQuoteToDatabaseErrorEvent(
                         errorPayload
                     );
+
+                repoTimerEndFn({ success: "false" });
+                timerEndFn({ success: "false" });
                 return errorEvent;
             }
         }
@@ -436,47 +595,45 @@ export class QuotingAggregate {
 
         const event = new QuoteRequestAcceptedEvt(payload);
 
+        timerEndFn({ success: "true" });
         return event;
     }
     //#endregion
 
     //#region handleQuoteResponseReceivedEvt
-    private async handleQuoteResponseReceivedEvent(
+    private async _handleQuoteResponseReceivedEvent(
         message: QuoteResponseReceivedEvt
     ): Promise<DomainEventMsg> {
-        const quoteId = message.payload.quoteId;
-        this._logger.debug(
-            `Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`
+        const timerEndFn = this._histogram.startTimer({ callName: "handleQuoteResponseReceivedEvent"});
+        this._logger.isDebugEnabled() && this._logger.debug(
+            `Got QuoteResponseReceivedEvt msg for quoteId: ${message.payload.quoteId}`
         );
 
-        const requesterFspId =
-            message.fspiopOpaqueState?.requesterFspId ?? null;
-        const destinationFspId =
-            message.fspiopOpaqueState?.destinationFspId ?? null;
+        const quoteId = message.payload.quoteId;
+        // TODO we cannot use the fspiopOpaqueState contents inside the switch, if the field is necessary have the FSPIOP-API-SVC putting it in the msg
+        const requesterFspId = message.fspiopOpaqueState?.requesterFspId ?? null;
+        const destinationFspId = message.fspiopOpaqueState?.destinationFspId ?? null;
         const expirationDate = message.payload.expiration ?? null;
         let quoteErrorEvent: DomainEventMsg | null = null;
         let quoteStatus: QuoteState = QuoteState.ACCEPTED;
 
-        const isCurrencyValid = this.validateCurrency(message);
+        // TODO if not if this._passThroughMode must try to find the quote in the repo
+
+        const isCurrencyValid = this._validateCurrency(message);
         if (!isCurrencyValid) {
-            const errorPayload: QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload =
+            quoteErrorEvent =  new QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent(
                 {
                     errorCode: QuotingErrorCodeNames.RULE_SCHEME_VIOLATED_REQUEST,
                     quoteId,
-                };
-            quoteErrorEvent =
-                new QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent(
-                    errorPayload
-                );
-            this._logger.error(
-                `Quote ${quoteId} rejected due to scheme validation error`
+                }
             );
+            this._logger.isDebugEnabled() && this._logger.debug (`Quote ${quoteId} in handleQuoteResponseReceivedEvent is being rejected due to invalid currency`);
             quoteStatus = QuoteState.REJECTED;
         }
 
         if (quoteErrorEvent === null) {
             const requesterParticipantError =
-                await this.validateRequesterParticipantInfoOrGetErrorEvent(
+                await this._validateRequesterParticipantInfoOrGetErrorEvent(
                     requesterFspId,
                     quoteId,
                     null
@@ -484,15 +641,15 @@ export class QuotingAggregate {
             if (requesterParticipantError) {
                 quoteErrorEvent = requesterParticipantError;
                 quoteStatus = QuoteState.REJECTED;
-                this._logger.error(
-                    `Quote ${quoteId} rejected due to requester participant error`
+                this._logger.isDebugEnabled() && this._logger.debug(
+                    `Quote ${quoteId} in handleQuoteResponseReceivedEvent is being rejected due to requester participant error`
                 );
             }
         }
 
         if (quoteErrorEvent === null) {
             const destinationParticipantError =
-                await this.validateDestinationParticipantInfoOrGetErrorEvent(
+                await this._validateDestinationParticipantInfoOrGetErrorEvent(
                     destinationFspId,
                     quoteId,
                     null
@@ -500,22 +657,32 @@ export class QuotingAggregate {
             if (destinationParticipantError) {
                 quoteErrorEvent = destinationParticipantError;
                 quoteStatus = QuoteState.REJECTED;
+                this._logger.isDebugEnabled() && this._logger.debug(
+                    `Quote ${quoteId} in handleQuoteResponseReceivedEvent is being rejected due to destination participant error`
+                );
             }
         }
 
         if (quoteErrorEvent === null) {
             const expirationDateError =
-                this.validateQuoteExpirationDateOrGetErrorEvent(
+                this._validateQuoteExpirationDateOrGetErrorEvent(
                     quoteId,
                     expirationDate
                 );
             if (expirationDateError) {
                 quoteErrorEvent = expirationDateError;
                 quoteStatus = QuoteState.EXPIRED;
+
+                this._logger.isDebugEnabled() && this._logger.debug(
+                    `Quote ${quoteId} in handleQuoteResponseReceivedEvent is being rejected due to it being expired`
+                );
             }
         }
 
         if (!this._passThroughMode) {
+            const repoTimerEndFn = this._histogram.startTimer({
+                callName: "handleQuoteResponseReceivedEvent_storeInRepo",
+            });
             const quote: Partial<Quote> = {
                 quoteId: message.payload.quoteId,
                 condition: message.payload.condition,
@@ -532,24 +699,26 @@ export class QuotingAggregate {
 
             try {
                 await this._quotesRepo.updateQuote(quote as IQuote);
+                repoTimerEndFn({ success: "true" });
             } catch (err: unknown) {
-                const error = (err as Error).message;
-                this._logger.error(`Error updating quote: ${error}`);
-                const errorPayload: QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload =
+                this._logger.error("Error updating quote", err);
+                repoTimerEndFn({ success: "false" });
+                timerEndFn({ success: "false" });
+                return new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent(
                     {
                         errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_QUOTE,
                         quoteId,
-                    };
-                const errorEvent =
-                    new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent(
-                        errorPayload
-                    );
-                return errorEvent;
+                    }
+                );
             }
         }
 
         // Return error event if previous validations failed
         if (quoteErrorEvent !== null) {
+            timerEndFn({ success: "false" });
+            this._logger.isDebugEnabled() && this._logger.debug(
+                `Quote ${quoteId} in handleQuoteResponseReceivedEvent is being rejected with msg: ${quoteErrorEvent.msgName}`
+            );
             return quoteErrorEvent;
         }
 
@@ -565,15 +734,20 @@ export class QuotingAggregate {
             geoCode: message.payload.geoCode,
             extensionList: message.payload.extensionList,
         };
+
+        this._logger.isDebugEnabled() && this._logger.debug(
+            `QuoteResponseReceivedEvt msg for quoteId: ${message.payload.quoteId} completed`
+        );
+
         //TODO: add evt to name
         const event = new QuoteResponseAccepted(payload);
-
+        timerEndFn({ success: "true" });
         return event;
     }
     //#endregion
 
     //#region handleQuoteQueryReceivedEvt
-    private async handleQuoteQueryReceivedEvent(
+    private async _handleQuoteQueryReceivedEvent(
         message: QuoteQueryReceivedEvt
     ): Promise<DomainEventMsg> {
         const quoteId = message.payload.quoteId;
@@ -581,13 +755,14 @@ export class QuotingAggregate {
             `Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`
         );
 
+        // TODO we cannot use the fspiopOpaqueState contents inside the switch, if the field is necessary have the FSPIOP-API-SVC putting it in the msg
         const requesterFspId =
             message.fspiopOpaqueState?.requesterFspId ?? null;
         const destinationFspId =
             message.fspiopOpaqueState?.destinationFspId ?? null;
 
         const requesterParticipantError =
-            await this.validateRequesterParticipantInfoOrGetErrorEvent(
+            await this._validateRequesterParticipantInfoOrGetErrorEvent(
                 requesterFspId,
                 quoteId,
                 null
@@ -597,7 +772,7 @@ export class QuotingAggregate {
         }
 
         const destinationParticipantError =
-            await this.validateDestinationParticipantInfoOrGetErrorEvent(
+            await this._validateDestinationParticipantInfoOrGetErrorEvent(
                 destinationFspId,
                 quoteId,
                 null
@@ -642,7 +817,7 @@ export class QuotingAggregate {
     //#endregion
 
     //#region handleGetQuoteQueryRejectedEvt
-    private async handleGetQuoteQueryRejectedEvent(
+    private async _handleGetQuoteQueryRejectedEvent(
         message: GetQuoteQueryRejectedEvt
     ): Promise<DomainEventMsg> {
         this._logger.debug(
@@ -650,12 +825,13 @@ export class QuotingAggregate {
         );
 
         const quoteId = message.payload.quoteId;
+        // TODO we cannot use the fspiopOpaqueState contents inside the switch, if the field is necessary have the FSPIOP-API-SVC putting it in the msg
         const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
         const destinationFspId =
             message.fspiopOpaqueState.destinationFspId ?? null;
 
         const requesterParticipantError =
-            await this.validateRequesterParticipantInfoOrGetErrorEvent(
+            await this._validateRequesterParticipantInfoOrGetErrorEvent(
                 requesterFspId,
                 quoteId,
                 null
@@ -668,7 +844,7 @@ export class QuotingAggregate {
         }
 
         const destinationParticipantError =
-            await this.validateDestinationParticipantInfoOrGetErrorEvent(
+            await this._validateDestinationParticipantInfoOrGetErrorEvent(
                 destinationFspId,
                 quoteId,
                 null
@@ -694,13 +870,15 @@ export class QuotingAggregate {
 
     //#region BulkQuotes
     //#region handleBulkQuoteRequestedEvt
-    private async handleBulkQuoteRequestedEvent(
+    private async _handleBulkQuoteRequestedEvent(
         message: BulkQuoteRequestedEvt
     ): Promise<DomainEventMsg> {
         const bulkQuoteId = message.payload.bulkQuoteId;
         this._logger.debug(
             `Got handleBulkQuoteRequestedEvt msg for quoteId: ${message.payload.bulkQuoteId}`
         );
+
+        // TODO we cannot use the fspiopOpaqueState contents inside the switch, if the field is necessary have the FSPIOP-API-SVC putting it in the msg
         const requesterFspId =
             message.fspiopOpaqueState?.requesterFspId ?? null;
         const expirationDate = message.payload.expiration ?? null;
@@ -719,7 +897,7 @@ export class QuotingAggregate {
         }
 
         const requesterParticipantError =
-            await this.validateRequesterParticipantInfoOrGetErrorEvent(
+            await this._validateRequesterParticipantInfoOrGetErrorEvent(
                 requesterFspId,
                 null,
                 bulkQuoteId
@@ -776,7 +954,7 @@ export class QuotingAggregate {
         }
 
         const destinationParticipantError =
-            await this.validateDestinationParticipantInfoOrGetErrorEvent(
+            await this._validateDestinationParticipantInfoOrGetErrorEvent(
                 destinationFspId,
                 null,
                 bulkQuoteId
@@ -787,7 +965,7 @@ export class QuotingAggregate {
 
         if (expirationDate) {
             const expirationDateError =
-                this.validateBulkQuoteExpirationDateOrGetErrorEvent(
+                this._validateBulkQuoteExpirationDateOrGetErrorEvent(
                     bulkQuoteId,
                     expirationDate
                 );
@@ -813,7 +991,7 @@ export class QuotingAggregate {
 
         if (!this._passThroughMode) {
             try {
-                await this.addBulkQuote(bulkQuote);
+                await this._addBulkQuote(bulkQuote);
             } catch (error: unknown) {
                 const errorMessage = `Error adding bulk quote ${bulkQuoteId} to database`;
                 this._logger.error(errorMessage, error);
@@ -848,13 +1026,15 @@ export class QuotingAggregate {
     //#endregion
 
     //#region handleBulkQuotePendingReceivedEvt
-    private async handleBulkQuotePendingReceivedEvent(
+    private async _handleBulkQuotePendingReceivedEvent(
         message: BulkQuotePendingReceivedEvt
     ): Promise<DomainEventMsg> {
         const bulkQuoteId = message.payload.bulkQuoteId;
         this._logger.debug(
             `Got BulkQuotePendingReceivedEvt msg for bulkQuoteId:${bulkQuoteId} and bulkQuotes: ${message.payload.individualQuoteResults}`
         );
+
+        // TODO we cannot use the fspiopOpaqueState contents inside the switch, if the field is necessary have the FSPIOP-API-SVC putting it in the msg
         const requesterFspId =
             message.fspiopOpaqueState?.requesterFspId ?? null;
         const destinationFspId =
@@ -865,7 +1045,7 @@ export class QuotingAggregate {
         let quoteStatus: QuoteState = QuoteState.ACCEPTED;
 
         const requesterParticipantError =
-            await this.validateRequesterParticipantInfoOrGetErrorEvent(
+            await this._validateRequesterParticipantInfoOrGetErrorEvent(
                 requesterFspId,
                 null,
                 bulkQuoteId
@@ -877,7 +1057,7 @@ export class QuotingAggregate {
 
         if (bulkQuoteErrorEvent === null) {
             const destinationParticipantError =
-                await this.validateDestinationParticipantInfoOrGetErrorEvent(
+                await this._validateDestinationParticipantInfoOrGetErrorEvent(
                     destinationFspId,
                     null,
                     bulkQuoteId
@@ -890,7 +1070,7 @@ export class QuotingAggregate {
 
         if (bulkQuoteErrorEvent === null && expirationDate) {
             const expirationDateError =
-                this.validateBulkQuoteExpirationDateOrGetErrorEvent(
+                this._validateBulkQuoteExpirationDateOrGetErrorEvent(
                     bulkQuoteId,
                     expirationDate
                 );
@@ -905,7 +1085,7 @@ export class QuotingAggregate {
 
         if (!this._passThroughMode) {
             try {
-                await this.updateBulkQuote(
+                await this._updateBulkQuote(
                     bulkQuoteId,
                     requesterFspId,
                     destinationFspId,
@@ -947,7 +1127,7 @@ export class QuotingAggregate {
     //#endregion
 
     //#region handleGetBulkQuoteQueryReceived
-    private async handleGetBulkQuoteQueryReceivedEvent(
+    private async _handleGetBulkQuoteQueryReceivedEvent(
         message: BulkQuoteQueryReceivedEvt
     ): Promise<DomainEventMsg> {
         const bulkQuoteId = message.payload.bulkQuoteId;
@@ -955,13 +1135,14 @@ export class QuotingAggregate {
             `Got GetBulkQuoteQueryReceived msg for bulkQuoteId: ${bulkQuoteId}`
         );
 
+        // TODO we cannot use the fspiopOpaqueState contents inside the switch, if the field is necessary have the FSPIOP-API-SVC putting it in the msg
         const requesterFspId =
             message.fspiopOpaqueState?.requesterFspId ?? null;
         const destinationFspId =
             message.fspiopOpaqueState?.destinationFspId ?? null;
 
         const requesterParticipantError =
-            await this.validateRequesterParticipantInfoOrGetErrorEvent(
+            await this._validateRequesterParticipantInfoOrGetErrorEvent(
                 requesterFspId,
                 null,
                 bulkQuoteId
@@ -971,7 +1152,7 @@ export class QuotingAggregate {
         }
 
         const destinationParticipantError =
-            await this.validateDestinationParticipantInfoOrGetErrorEvent(
+            await this._validateDestinationParticipantInfoOrGetErrorEvent(
                 destinationFspId,
                 null,
                 bulkQuoteId
@@ -1046,7 +1227,7 @@ export class QuotingAggregate {
 
     //#region handleGetBulkQuoteQueryRejected
 
-    private async handleGetBulkQuoteQueryRejectedEvent(
+    private async _handleGetBulkQuoteQueryRejectedEvent(
         message: GetBulkQuoteQueryRejectedEvt
     ): Promise<DomainEventMsg> {
         this._logger.debug(
@@ -1054,12 +1235,13 @@ export class QuotingAggregate {
         );
 
         const bulkQuoteId = message.payload.bulkQuoteId;
+        // TODO we cannot use the fspiopOpaqueState contents inside the switch, if the field is necessary have the FSPIOP-API-SVC putting it in the msg
         const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
         const destinationFspId =
             message.fspiopOpaqueState.destinationFspId ?? null;
 
         const requesterParticipantError =
-            await this.validateRequesterParticipantInfoOrGetErrorEvent(
+            await this._validateRequesterParticipantInfoOrGetErrorEvent(
                 requesterFspId,
                 null,
                 bulkQuoteId
@@ -1072,7 +1254,7 @@ export class QuotingAggregate {
         }
 
         const destinationParticipantError =
-            await this.validateDestinationParticipantInfoOrGetErrorEvent(
+            await this._validateDestinationParticipantInfoOrGetErrorEvent(
                 destinationFspId,
                 null,
                 bulkQuoteId
@@ -1098,7 +1280,7 @@ export class QuotingAggregate {
 
     //#region Quotes database operations
 
-    private async addBulkQuote(bulkQuote: IBulkQuote): Promise<void> {
+    private async _addBulkQuote(bulkQuote: IBulkQuote): Promise<void> {
         //Add bulkQuote to database and iterate through quotes to add them to database
         try {
             await this._bulkQuotesRepo.addBulkQuote(bulkQuote);
@@ -1128,7 +1310,7 @@ export class QuotingAggregate {
         }
     }
 
-    private async updateBulkQuote(
+    private async _updateBulkQuote(
         bulkQuoteId: string,
         requesterFspId: string,
         destinationFspId: string,
@@ -1222,7 +1404,7 @@ export class QuotingAggregate {
 
     //#region Validations
 
-    private validateCurrency(message: IMessage): boolean {
+    private _validateCurrency(message: IMessage): boolean {
         const currency =
             message.payload.transferAmount?.currency ??
             message.payload.amount?.currency;
@@ -1241,7 +1423,7 @@ export class QuotingAggregate {
         return true;
     }
 
-    private validateBulkQuoteExpirationDateOrGetErrorEvent(
+    private _validateBulkQuoteExpirationDateOrGetErrorEvent(
         bulkQuoteId: string,
         expirationDate: string
     ): DomainEventMsg | null {
@@ -1284,7 +1466,7 @@ export class QuotingAggregate {
         return null;
     }
 
-    private validateQuoteExpirationDateOrGetErrorEvent(
+    private _validateQuoteExpirationDateOrGetErrorEvent(
         quoteId: string,
         expirationDate: string
     ): DomainEventMsg | null {
@@ -1323,7 +1505,7 @@ export class QuotingAggregate {
         return null;
     }
 
-    private validateMessageOrGetErrorEvent(
+    private _validateMessageOrGetErrorEvent(
         message: IMessage
     ): DomainEventMsg | null {
         const requesterFspId =
@@ -1365,7 +1547,7 @@ export class QuotingAggregate {
         return null;
     }
 
-    private async validateDestinationParticipantInfoOrGetErrorEvent(
+    private async _validateDestinationParticipantInfoOrGetErrorEvent(
         participantId: string,
         quoteId: string | null,
         bulkQuoteId: string | null
@@ -1468,7 +1650,7 @@ export class QuotingAggregate {
         return null;
     }
 
-    private async validateRequesterParticipantInfoOrGetErrorEvent(
+    private async _validateRequesterParticipantInfoOrGetErrorEvent(
         participantId: string,
         quoteId: string | null,
         bulkQuoteId: string | null

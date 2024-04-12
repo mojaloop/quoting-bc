@@ -59,6 +59,7 @@ describe("Account Lookup Adapter - Unit Tests", () => {
             logger,
             BASE_URL_ACCOUNT_LOOKUP_CLIENT,
             authenticatedRequester,
+            "void", 0, 0,
             20000,
          );
      });

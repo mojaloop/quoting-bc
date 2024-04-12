@@ -37,8 +37,18 @@ import { AccountLookupHttpClient } from "@mojaloop/account-lookup-bc-client-lib"
 import { IAccountLookupService } from "@mojaloop/quoting-bc-domain-lib";
 import { GetAccountLookupAdapterError } from "../errors";
 import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
+import Redis from "ioredis";
 
 const HTTP_CLIENT_TIMEOUT_MS = 10_000;
+const DEFAULT_REDIS_CACHE_DURATION_SECS = 5; // 5 secs
+
+interface ICacheRecord {
+    fspId: string;
+    partyType: string;
+    partyId: string;
+    partySubType: string | null;
+    currency: string | null;
+}
 
 export class AccountLookupAdapter implements IAccountLookupService {
 	private readonly _logger: ILogger;
@@ -47,32 +57,96 @@ export class AccountLookupAdapter implements IAccountLookupService {
 	private readonly _authRequester: IAuthenticatedHttpRequester;
 	private readonly _requestTimeout: number;
 
-	constructor(
+    private readonly _redisClient: Redis;
+    private readonly _redisKeyPrefix= "quotingAlsCache";
+    private readonly _redisCacheDurationSecs:number;
+
+    constructor(
 		logger: ILogger,
 		clientBaseUrl: string,
 		authRequester: IAuthenticatedHttpRequester,
-		requestTimeout: number = HTTP_CLIENT_TIMEOUT_MS
+        redisHost: string, redisPort: number, redisCacheDurationSecs: number,
+        requestTimeout: number = HTTP_CLIENT_TIMEOUT_MS
 		) {
-		this._logger = logger;
+		this._logger = logger.createChild(this.constructor.name);
 		this._clientBaseUrl = clientBaseUrl;
 		this._authRequester = authRequester;
 		this._requestTimeout = requestTimeout;
 		this._externalAccountLookupClient = new AccountLookupHttpClient(logger, this._clientBaseUrl, this._authRequester, this._requestTimeout);
+
+        this._redisClient = new Redis({
+            port: redisPort,
+            host: redisHost,
+            lazyConnect: true
+        });
 	}
+
+    async init(): Promise<void> {
+        try{
+            await this._redisClient.connect();
+            this._logger.debug("Connected to Redis successfully");
+        }catch(error: unknown){
+            this._logger.error(`Unable to connect to redis cache: ${(error as Error).message}`);
+            throw error;
+        }
+    }
+
+    private _getKeyWithPrefix (partyType: string, partyId: string, currency: string | null): string {
+        return `${this._redisKeyPrefix}_${partyType}_${partyId}_${currency}`;
+    }
+
+    private async _getFromCache(
+        partyType: string,
+        partyId: string,
+        //partySubType: string | null,
+        currency: string | null
+    ):Promise<ICacheRecord | null>{
+        const objStr = await this._redisClient.get(this._getKeyWithPrefix(partyType, partyId, currency));
+        if(!objStr) return null;
+
+        try{
+            const obj = JSON.parse(objStr);
+
+            // manual conversion for any non-primitive props or children
+            return obj;
+        }catch (e) {
+            this._logger.error(e);
+            return null;
+        }
+    }
+
+    private async _setToCache(record:ICacheRecord):Promise<void>{
+        const key = this._getKeyWithPrefix(record.partyType, record.partyId, record.currency);
+        await this._redisClient.setex(key, this._redisCacheDurationSecs, JSON.stringify(record));
+    }
 
 	async getAccountLookup(partyType:string, partyId:string, currency:string | null): Promise<string| null> {
 		try {
-			this._logger.info(`getAccountLookup: calling external account lookup service for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
-			const result = await this._externalAccountLookupClient.participantLookUp(partyType, partyId,currency);
-			this._logger.info(`getAccountLookup: caching result for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
+            const cacheData = await this._getFromCache(partyType, partyId, currency);
+            if (cacheData){
+                return cacheData.fspId;
+            }
 
-			if(result) {
+            this._logger.isDebugEnabled() && this._logger.debug(
+                `getAccountLookup: calling external account lookup service for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`
+            );
+			const result = await this._externalAccountLookupClient.participantLookUp(partyType, partyId,currency);
+
+            if(result) {
+                this._logger.isDebugEnabled() && this._logger.debug( `getAccountLookup: caching result for partyId: ${partyId}, partyType ${partyType}, currency: ${currency}`);
+
+                await this._setToCache({
+                    fspId: result,
+                    partyType: partyType,
+                    partyId: partyId,
+                    currency, partySubType: null
+                });
 				return result;
 			}
 			return null;
 
 		} catch (e: unknown) {
-			this._logger.error(`getAccountLookup: error getting for partyId: ${partyId}, partyType: ${partyType}, currency: ${currency} - ${e}`);
+			this._logger.error(`getAccountLookup: error getting for partyId: ${partyId}, partyType: ${partyType}, currency: ${currency}`, e);
 			throw new GetAccountLookupAdapterError("Error calling external account lookup service");
 		}
 	}

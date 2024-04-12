@@ -67,6 +67,8 @@ import {IAuthenticatedHttpRequester, IAuthorizationClient, ITokenHelper} from "@
 import crypto from "crypto";
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import { DefaultConfigProvider, ConfigurationClient, IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -83,6 +85,10 @@ const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEB
 // infra & dbs
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const MONGO_URL = process.env["MONGO_URL"] || "";
+
+const REDIS_HOST = process.env["REDIS_HOST"] || "localhost";
+const REDIS_PORT = (process.env["REDIS_PORT"] && parseInt(process.env["REDIS_PORT"])) || 6379;
+const REDIS_CACHE_DURATION_SECS = (process.env["REDIS_CACHE_DURATION_SECS"] && parseInt(process.env["REDIS_CACHE_DURATION_SECS"])) || 30; // 30 secs
 
 // const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
@@ -115,9 +121,15 @@ const PARTICIPANTS_CACHE_TIMEOUT_MS =
     (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) ||
     30 * 1000;
 
+const CONSUMER_BATCH_SIZE = (process.env["CONSUMER_BATCH_SIZE"] && parseInt(process.env["CONSUMER_BATCH_SIZE"])) || 1;
+const CONSUMER_BATCH_TIMEOUT_MS = (process.env["CONSUMER_BATCH_TIMEOUT_MS"] && parseInt(process.env["CONSUMER_BATCH_TIMEOUT_MS"])) || 5;
+
+
 const consumerOptions: MLKafkaJsonConsumerOptions = {
 	kafkaBrokerList: KAFKA_URL,
-	kafkaGroupId: `${BC_NAME}_${APP_NAME}`
+	kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
+    batchSize: CONSUMER_BATCH_SIZE,
+    batchTimeoutMs: CONSUMER_BATCH_TIMEOUT_MS
 };
 
 // Application variables
@@ -143,7 +155,7 @@ const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && pars
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
 const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
-const CONFIG_BASE_URL = process.env["CONFIG_BASE_URL"] || "http://localhost:3100";
+//const CONFIG_BASE_URL = process.env["CONFIG_BASE_URL"] || "http://localhost:3100";
 const CONFIGSET_VERSION = process.env["CONFIGSET_VERSION"] || "0.0.1";
 
 let globalLogger: ILogger;
@@ -163,7 +175,8 @@ export class Service {
     static startupTimer: NodeJS.Timeout;
     static authorizationClient: IAuthorizationClient;
     static tokenHelper: ITokenHelper;
-	static configClient : IConfigurationClient; 
+	static configClient : IConfigurationClient;
+    static metrics: IMetrics;
 
 	static async start(
 		logger?: ILogger,
@@ -177,6 +190,7 @@ export class Service {
 		aggregate?: QuotingAggregate, // TODO: remove aggregate from here and tests
         authorizationClient?: IAuthorizationClient,
 		configProvider?: IConfigProvider,
+        metrics?: IMetrics,
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -206,7 +220,7 @@ export class Service {
 				kafkaBrokerList: KAFKA_URL,
 				kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
 			}, logger.createChild("configClient.consumer"));
-			configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer, CONFIG_BASE_URL);
+			configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
 
 		}
 
@@ -248,6 +262,16 @@ export class Service {
 		// 	throw new Error("Invalid SCHEMA_RULES");
 		// }
 
+        if (!metrics) {
+            const labels: Map<string, string> = new Map<string, string>();
+            labels.set("bc", BC_NAME);
+            labels.set("app", APP_NAME);
+            labels.set("version", APP_VERSION);
+            labels.set("instance_id", INSTANCE_ID);
+            PrometheusMetrics.Setup({prefix: "", defaultLabels: labels}, this.logger);
+            metrics = PrometheusMetrics.getInstance();
+        }
+        this.metrics = metrics;
 
 		if(!quotesRepo){
 			quotesRepo = new MongoQuotesRepo(this.logger, MONGO_URL, DB_NAME_QUOTES);
@@ -286,7 +310,12 @@ export class Service {
 		this.participantService = participantService;
 
 		if(!accountLookupService){
-			accountLookupService = new AccountLookupAdapter(this.logger, ACCOUNT_LOOKUP_SVC_URL, authRequester, HTTP_CLIENT_TIMEOUT_MS);
+			const lookupAdapterImpl = new AccountLookupAdapter(
+                this.logger, ACCOUNT_LOOKUP_SVC_URL, authRequester,
+                REDIS_HOST, REDIS_PORT, REDIS_CACHE_DURATION_SECS, HTTP_CLIENT_TIMEOUT_MS
+            );
+            await lookupAdapterImpl.init();
+            accountLookupService = lookupAdapterImpl;
 		}
 		this.accountLookupService = accountLookupService;
 
@@ -305,14 +334,24 @@ export class Service {
 		logger.info("Bulk Quote Registry Repo Initialized");
 
 		if(!aggregate){
-			aggregate = new QuotingAggregate(this.logger, this.quotesRepo, this.bulkQuotesRepo, this.messageProducer, this.participantService, this.accountLookupService, PASS_THROUGH_MODE, currencyList);
+			aggregate = new QuotingAggregate(this.logger,
+                this.quotesRepo,
+                this.bulkQuotesRepo,
+                this.messageProducer,
+                this.participantService,
+                this.accountLookupService,
+                PASS_THROUGH_MODE,
+                currencyList,
+                this.metrics
+            );
 		}
 
 		this.aggregate = aggregate;
 
 		logger.info("Aggregate Initialized");
 
-		this.messageConsumer.setCallbackFn(this.aggregate.handleQuotingEvent.bind(this.aggregate));
+		// this.messageConsumer.setCallbackFn(this.aggregate.handleQuotingEvent.bind(this.aggregate));
+		this.messageConsumer.setBatchCallbackFn(this.aggregate.handleQuotingEventBatch.bind(this.aggregate));
 
 		// authorization client
 		if (!authorizationClient) {
@@ -365,6 +404,15 @@ export class Service {
 			this.app = express();
 			this.app.use(express.json()); // for parsing application/json
 			this.app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
+
+            // Add health and metrics http routes
+            this.app.get("/health", (req: express.Request, res: express.Response) => {
+                return res.send({status: "OK"});
+            });
+            this.app.get("/metrics", async (req: express.Request, res: express.Response) => {
+                const strMetrics = await (this.metrics as PrometheusMetrics).getMetricsForPrometheusScrapper();
+                return res.send(strMetrics);
+            });
 
 			// Add admin and client http routes
 			const quotingAdminRoutes = new QuotingAdminExpressRoutes(this.quotesRepo, this.bulkQuotesRepo, this.logger, this.tokenHelper, this.authorizationClient);
