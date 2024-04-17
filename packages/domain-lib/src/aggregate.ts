@@ -106,6 +106,8 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {
     BulkQuoteNotFoundError,
+    InvalidMessagePayloadError,
+    InvalidMessageTypeError,
     UnableToAddBatchQuoteError,
     UnableToAddBulkQuoteError,
     UnableToGetBatchQuotesError,
@@ -113,9 +115,12 @@ import {
     UnableToUpdateBulkQuoteError,
 } from "./errors";
 import {
+    CommandMsg,
     DomainEventMsg,
+    IDomainMessage,
     IMessage,
     IMessageProducer,
+    MessageTypes,
 } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
     IAccountLookupService,
@@ -136,6 +141,8 @@ import {
 } from "@mojaloop/quoting-bc-public-types-lib";
 import { BulkQuote, Quote } from "./entities";
 import { Currency } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {ICounter, IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { RequestReceivedQuoteCmd } from "./commands";
 
 ("use strict");
 
@@ -149,6 +156,15 @@ export class QuotingAggregate {
     private readonly _passThroughMode: boolean;
     private readonly _currencyList: Currency[];
 
+    private _metrics: IMetrics;
+    private _histo: IHistogram;
+    private _commandsCounter:ICounter;
+
+    private _quotesCache: Map<string, IQuote> = new Map<string, IQuote>();
+    private _bulkQuotesCache: Map<string, IBulkQuote> = new Map<string, IBulkQuote>();
+    private _batchCommands: Map<string, IDomainMessage> = new Map<string, IDomainMessage>();
+    private _outputEvents: DomainEventMsg[] = [];
+
     constructor(
         logger: ILogger,
         quoteRepo: IQuoteRepo,
@@ -156,8 +172,10 @@ export class QuotingAggregate {
         messageProducer: IMessageProducer,
         participantService: IParticipantService,
         accountLookupService: IAccountLookupService,
+        metrics: IMetrics,
         passThroughMode: boolean,
-        currencyList: Currency[]
+        currencyList: Currency[],
+
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._quotesRepo = quoteRepo;
@@ -167,109 +185,177 @@ export class QuotingAggregate {
         this._accountLookupService = accountLookupService;
         this._passThroughMode = passThroughMode ?? false;
         this._currencyList = currencyList;
+
+        this._histo = metrics.getHistogram("QuotingAggregate", "QuotingAggregate calls", ["callName", "success"]);
+        this._commandsCounter = metrics.getCounter("QuotingAggregate_CommandsProcessed", "Commands processed by the Quoting Aggregate", ["commandName"]);
     }
 
-    //#region Event Handlers
-    async handleQuotingEvent(message: IMessage): Promise<void> {
-        this._logger.isDebugEnabled() && this._logger.debug(`Got message in Quoting handler - msg: ${JSON.stringify(message)}`);
-        const requesterFspId =
-            message.fspiopOpaqueState?.requesterFspId ?? null;
-        const quoteId = message.payload?.quoteId ?? null;
-        const bulkQuoteId = message.payload?.bulkQuoteId ?? null;
+    async init(): Promise<void> {
+        // TODO
+        //await this._messageProducer.connect();
+    }
 
-        const eventMessageError = this.validateMessageOrGetErrorEvent(message);
-        let eventToPublish = null;
+    async processCommandBatch(cmdMessages: CommandMsg[]): Promise<void> {
+        // TODO make sure we're not processing another batch already
+        // eslint-disable-next-line no-async-promise-executor
+        return new Promise<void>(async (resolve) => {
+            this._outputEvents = [];
+            this._batchCommands.clear();
 
-        if (eventMessageError) {
-            eventMessageError.fspiopOpaqueState = message.fspiopOpaqueState;
-            await this._messageProducer.send(eventMessageError);
-            return;
+            try {
+                // execute starts
+                const execStarts_timerEndFn = this._histo.startTimer({ callName: "executeStarts"});
+                for (const cmd of cmdMessages) {
+                    if(cmd.msgType !== MessageTypes.COMMAND) continue;
+                    await this._processCommand(cmd);
+                    if(cmd.payload.bulkTransferId) {
+                        // if(cmd.msgName === PrepareBulkTransferCmd.name) {
+                        //     this._commandsCounter.inc({commandName: cmd.msgName}, cmd.payload.individualTransfers.length);
+                        // } else if(cmd.msgName === CommitBulkTransferFulfilCmd.name) {
+                        //     this._commandsCounter.inc({commandName: cmd.msgName}, cmd.payload.individualTransferResults.length);
+                        // }
+                    } else {
+                        this._commandsCounter.inc({commandName: cmd.msgName}, 1);
+                    }
+        
+
+
+                }
+                execStarts_timerEndFn({success:"true"});
+
+                // if(this._abBatchRequests.length<=0){
+                //     // return Promise.resolve();
+                //     resolve();
+                //     return;
+                // }
+
+                // if(this._abBatchRequests.length !== cmdMessages.length)
+                //     // eslint-disable-next-line no-debugger
+                //     debugger;
+
+                // send to A&B
+                // const execAB_timerEndFn = this._histo.startTimer({ callName: "executeAandbProcessHighLevelBatch"});
+                // if(this._logger.isDebugEnabled()) this._logger.debug("processCommandBatch() - before accountsAndBalancesAdapter.processHighLevelBatch()");
+                // this._abBatchResponses = await this._accountAndBalancesAdapter.processHighLevelBatch(this._abBatchRequests);
+                // if(this._logger.isDebugEnabled()) this._logger.debug("processCommandBatch() - after accountsAndBalancesAdapter.processHighLevelBatch()");
+                // execAB_timerEndFn({success:"true"});
+
+                // peek first and check count to establish no errors - or any other way to determine error
+
+                // // execute continues
+                // const executeContinues_timerEndFn = this._histo.startTimer({ callName: "executeContinues"});
+                // for (const abResponse of this._abBatchResponses) {
+                //     await this._processAccountsAndBalancesResponse(abResponse);
+                // }
+                // executeContinues_timerEndFn({success:"true"});
+
+                // // if the continues queued cancellations, send then now
+                // if(this._abCancelationBatchRequests.length){
+                //     // send cancellations to A&B
+                //     const execAB_timerEndFn = this._histo.startTimer({ callName: "executeAandbProcessHighLevelCancelationBatch"});
+                //     if(this._logger.isDebugEnabled()) this._logger.debug("processCommandBatch() - before accountsAndBalancesAdapter.processHighLevelCancelationBatch()");
+                //     this._abBatchResponses = await this._accountAndBalancesAdapter.processHighLevelBatch(this._abCancelationBatchRequests);
+                //     if(this._logger.isDebugEnabled()) this._logger.debug("processCommandBatch() - after accountsAndBalancesAdapter.processHighLevelCancelationBatch()");
+                //     execAB_timerEndFn({success:"true"});
+                // }
+
+            } catch (err: unknown) {
+                const error = (err as Error).message;
+                this._logger.error(err, error);
+                throw error;
+            } finally {
+                // flush in mem repositories
+                await this._flush();
+
+                // send resulting/output events
+                await this._messageProducer.send(this._outputEvents);
+
+                // eslint-disable-next-line no-unsafe-finally
+                // return Promise.resolve();
+                resolve();
+            }
+        });
+    }
+
+    private async _flush():Promise<void>{
+        const timerEndFn = this._histo.startTimer({callName: "flush"});
+
+        if(this._quotesCache.size){
+            const entries = Array.from(this._quotesCache.values());
+            await this._quotesRepo.storeQuotes(entries);
+            this._quotesCache.clear();
         }
 
-        try {
-            switch (message.msgName) {
-                case QuoteRequestReceivedEvt.name:
-                    eventToPublish = await this.handleQuoteRequestReceivedEvent(
-                        message as QuoteRequestReceivedEvt
-                    );
-                    break;
-                case QuoteResponseReceivedEvt.name:
-                    eventToPublish =
-                        await this.handleQuoteResponseReceivedEvent(
-                            message as QuoteResponseReceivedEvt
-                        );
-                    break;
-                case QuoteQueryReceivedEvt.name:
-                    eventToPublish = await this.handleQuoteQueryReceivedEvent(
-                        message as QuoteQueryReceivedEvt
-                    );
-                    break;
-                case QuoteRejectedEvt.name:
-                    eventToPublish =
-                        await this.handleQuoteRejectedEvent(
-                            message as QuoteRejectedEvt
-                        );
-                    break;
-                case BulkQuoteRequestedEvt.name:
-                    eventToPublish = await this.handleBulkQuoteRequestedEvent(
-                        message as BulkQuoteRequestedEvt
-                    );
-                    break;
-                case BulkQuotePendingReceivedEvt.name:
-                    eventToPublish =
-                        await this.handleBulkQuotePendingReceivedEvent(
-                            message as BulkQuotePendingReceivedEvt
-                        );
-                    break;
-                case BulkQuoteQueryReceivedEvt.name:
-                    eventToPublish =
-                        await this.handleGetBulkQuoteQueryReceivedEvent(
-                            message as BulkQuoteQueryReceivedEvt
-                        );
-                    break;
-                case BulkQuoteRejectedEvt.name:
-                    eventToPublish =
-                        await this.handleGetBulkQuoteQueryRejectedEvent(
-                            message as BulkQuoteRejectedEvt
-                        );
-                    break;
-                default: {
-                    const errorMessage = `Message type has invalid format or value ${message.msgName}`;
-                    this._logger.error(errorMessage);
-                    const errorCode = QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN;
-                    const errorPayload: QuoteBCUnknownErrorPayload = {
-                        quoteId,
-                        bulkQuoteId,
-                        errorCode: errorCode,
-                        requesterFspId,
-                    };
-                    eventToPublish = new QuoteBCUnknownErrorEvent(errorPayload);
-                }
+        timerEndFn({success: "true"});
+    }
+
+    private async _processCommand(cmd: CommandMsg): Promise<void> {
+        // cache command for later retrieval in continue methods - do this first!
+        if(cmd.payload.bulkTransferId) {
+            let quotes:any = [];
+
+            // if(cmd.msgName === PrepareBulkTransferCmd.name) {
+            //     quotes = cmd.payload.individualTransfers;
+            // } else if(cmd.msgName === CommitBulkTransferFulfilCmd.name) {
+            //     quotes = cmd.payload.individualTransferResults;
+            // }
+            for(let i=0 ; i<quotes.length ; i+=1) {
+                const individualQuote = quotes[i];
+                this._batchCommands.set(quotes[i].quoteId, { ...cmd, ...individualQuote });
             }
-        } catch (error: unknown) {
-            const errorMessage = `Error while handling message ${message.msgName}`;
-            this._logger.error(errorMessage + `- ${error}`);
+        } else {
+            this._batchCommands.set(cmd.payload.quoteId, cmd);
+        }
+
+        // validate message
+        this._ensureValidMessage(cmd);
+
+        if (cmd.msgName === RequestReceivedQuoteCmd.name) {
+            return this._handleQuoteRequestReceivedEvent(cmd as RequestReceivedQuoteCmd);
+
+        } else {
+            const requesterFspId = cmd.payload.requesterFspId;
+            const quoteId = cmd.payload.quoteId;
+			const errorMessage = `Command type is unknown: ${cmd.msgName}`;
+            this._logger.error(errorMessage);
+            const bulkQuoteId = cmd.payload?.bulkQuoteId ?? null;
+
             const errorCode = QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN;
-            const errorPayload: QuoteBCUnknownErrorPayload = {
-                quoteId,
+            const errorEvent = new QuoteBCInvalidMessageTypeErrorEvent({
                 bulkQuoteId,
+                quoteId,
                 errorCode: errorCode,
                 requesterFspId,
-            };
-            eventToPublish = new QuoteBCUnknownErrorEvent(errorPayload);
+            });
+            errorEvent.fspiopOpaqueState = cmd.fspiopOpaqueState;
+            this._outputEvents.push(errorEvent);
         }
-
-        eventToPublish.fspiopOpaqueState = message.fspiopOpaqueState;
-        await this._messageProducer.send(eventToPublish);
     }
 
-    //#endregion
+    private _ensureValidMessage(message: CommandMsg): void {
+        if (!message.payload) {
+            this._logger.error("QuotingCommandHandler: message payload has invalid format or value");
+            throw new InvalidMessagePayloadError();
+        }
+
+        if (!message.msgName) {
+            this._logger.error("QuotingCommandHandler: message name is invalid");
+            throw new InvalidMessageTypeError();
+        }
+
+        if (message.msgType !== MessageTypes.COMMAND) {
+            this._logger.error(`QuotingCommandHandler: message type is invalid : ${message.msgType}`);
+            throw new InvalidMessageTypeError();
+        }
+    }
 
     //#region Quotes
     //#region handleQuoteRequestReceivedEvt
-    private async handleQuoteRequestReceivedEvent(
+    private async _handleQuoteRequestReceivedEvent(
         message: QuoteRequestReceivedEvt
-    ): Promise<DomainEventMsg> {
+    ): Promise<void> {
+        if(this._logger.isDebugEnabled()) this._logger.debug(`quoteRequestReceived() - Got quoteRequestReceivedEvt msg for quoteId: ${message.payload.quoteId}`);
+
         const quoteId = message.payload.quoteId;
         this._logger.isDebugEnabled() && this._logger.debug(
             `Got handleQuoteRequestReceivedEvt msg for quoteId: ${quoteId}`
@@ -291,7 +377,7 @@ export class QuotingAggregate {
                 null
             );
         if (requesterParticipantError) {
-            return requesterParticipantError;
+            this._outputEvents.push(requesterParticipantError);
         }
 
         const isCurrencyValid = this.validateCurrency(message);
@@ -305,7 +391,7 @@ export class QuotingAggregate {
                 new QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent(
                     errorPayload
                 );
-            return errorEvent;
+            this._outputEvents.push(errorEvent);
         }
 
         if (!destinationFspId) {
@@ -343,7 +429,7 @@ export class QuotingAggregate {
                 null
             );
         if (destinationParticipantError) {
-            return destinationParticipantError;
+            this._outputEvents.push(destinationParticipantError);
         }
 
         if (expirationDate) {
@@ -353,7 +439,7 @@ export class QuotingAggregate {
                     expirationDate
                 );
             if (expirationDateValidationError) {
-                return expirationDateValidationError;
+                this._outputEvents.push(expirationDateValidationError);
             }
         }
 
@@ -407,7 +493,7 @@ export class QuotingAggregate {
                     new QuoteBCUnableToAddQuoteToDatabaseErrorEvent(
                         errorPayload
                     );
-                return errorEvent;
+                this._outputEvents.push(errorEvent);
             }
         }
 
@@ -436,7 +522,9 @@ export class QuotingAggregate {
 
         const event = new QuoteRequestAcceptedEvt(payload);
 
-        return event;
+        if(this._logger.isDebugEnabled()) this._logger.debug(`quoteRequestReceived() - completed for quoteId: ${quote.quoteId}`);
+
+        this._outputEvents.push(event);
     }
     //#endregion
 

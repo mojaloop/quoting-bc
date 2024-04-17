@@ -42,6 +42,9 @@ export class MemoryQuoteRepo implements IQuoteRepo {
   constructor(logger: ILogger) {
     this._logger = logger;
   }
+  storeQuotes(quotes: IQuote[]): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
 
   init(): Promise<void> {
     return Promise.resolve();

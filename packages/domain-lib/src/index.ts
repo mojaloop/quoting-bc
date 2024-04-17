@@ -45,3 +45,4 @@ export * from "./aggregate";
 export * from "./entities";
 export * from "./interfaces/infrastructure";
 export * from "./privileges";
+export * from "./commands";

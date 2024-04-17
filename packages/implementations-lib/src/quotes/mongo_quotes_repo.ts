@@ -134,6 +134,33 @@ export class MongoQuotesRepo implements IQuoteRepo {
         });
     }
 
+    async storeQuotes(quotes: IQuote[]): Promise<void> {
+		const operations = quotes.map(value => {
+			return {
+				replaceOne: {
+					filter: { quoteId: value.quoteId },
+					replacement: value,
+					upsert: true
+				}
+			};
+		});
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		let updateResult: any;
+		try {
+			updateResult = await this.quotes.bulkWrite(operations);
+
+			if ((updateResult.upsertedCount + updateResult.modifiedCount) !== quotes.length) {
+				const err = new Error("Could not storeQuotes - mismatch between requests length and MongoDb response length");
+				this._logger.error(err);
+				throw err;
+			}
+		} catch (error: unknown) {
+			this._logger.error(error);
+			throw error;
+		}
+	}
+
     async updateQuote(quote: IQuote): Promise<void> {
         const existingQuote = await this.getQuoteById(quote.quoteId);
 
