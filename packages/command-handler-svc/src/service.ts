@@ -128,7 +128,7 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 let globalLogger: ILogger;
 
 // Express Server
-const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3501;
+const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3035;
 
 const DB_NAME_QUOTING = "quoting";
 const PARTICIPANTS_CACHE_TIMEOUT_MS =
@@ -141,6 +141,7 @@ const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"]=== "true" )? true : 
 
 const ACCOUNT_LOOKUP_HTTP_CLIENT_TIMEOUT_MS = 10_000;
 
+// TODO: Replace this with the commented values once updated on security-bc
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-quoting-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 

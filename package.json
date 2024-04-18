@@ -62,7 +62,10 @@
         "packages/public-types-lib",
         "packages/domain-lib",
         "packages/implementations-lib",
-        "packages/quoting-svc",
+        "packages/quoting-config-lib",
+        "packages/event-handler-svc",
+        "packages/command-handler-svc",
+        "packages/quoting-api-svc",
         "packages/shared-mocks-lib",
         "packages/*"
     ],

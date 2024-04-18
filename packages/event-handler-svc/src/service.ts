@@ -103,8 +103,9 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 let globalLogger: ILogger;
 
 // Express Server
-const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3502;
+const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3034;
 
+// TODO: Replace this with the commented values once updated on security-bc
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-quoting-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 

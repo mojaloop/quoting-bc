@@ -40,12 +40,18 @@ import {
 } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
 
+    BulkQuotePendingReceivedEvt,
+    BulkQuoteQueryReceivedEvt,
+    BulkQuoteRejectedEvt,
+    BulkQuoteRequestedEvt,
+    QuoteQueryReceivedEvt,
+	QuoteRejectedEvt,
 	QuoteRequestReceivedEvt,
     QuoteResponseReceivedEvt,
     QuotingBCTopics,
 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { RequestReceivedQuoteCmd, RequestReceivedQuoteCmdPayload, ResponseReceivedQuoteCmd, ResponseReceivedQuoteCmdPayload } from "../../domain-lib";
+import { QueryReceivedQuoteCmd, QueryReceivedQuoteCmdPayload, RejectedBulkQuoteCmd, RejectedBulkQuoteCmdPayload, RejectedQuoteCmd, RejectedQuoteCmdPayload, RequestReceivedBulkQuoteCmd, RequestReceivedBulkQuoteCmdPayload, RequestReceivedQuoteCmd, RequestReceivedQuoteCmdPayload, ResponseReceivedBulkQuoteCmd, ResponseReceivedBulkQuoteCmdPayload, ResponseReceivedQuoteCmd, ResponseReceivedQuoteCmdPayload } from "../../domain-lib";
 
 import {ICounter, IGauge, IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
@@ -141,6 +147,24 @@ export class QuotingEventHandler{
         }else if(message.msgName === QuoteResponseReceivedEvt.name){
             const quoteCmd = this._prepareEventToResponseReceiveQuoteCommand(message as QuoteResponseReceivedEvt);
             return quoteCmd;
+        }else if(message.msgName === QuoteQueryReceivedEvt.name){
+            const quoteCmd = this._prepareEventToQueryReceiveQuoteCommand(message as QuoteQueryReceivedEvt);
+            return quoteCmd;
+        }else if(message.msgName === QuoteRejectedEvt.name){
+            const quoteCmd = this._prepareEventToRejectQuoteCommand(message as QuoteRejectedEvt);
+            return quoteCmd;
+        } else if(message.msgName === BulkQuoteRequestedEvt.name) {
+            const quoteCmd = this._prepareEventToRequestReceiveBulkQuoteCommand(message as BulkQuoteRequestedEvt);
+            return quoteCmd;
+        }else if(message.msgName === BulkQuotePendingReceivedEvt.name){
+            const quoteCmd = this._prepareEventToResponseReceiveBulkQuoteCommand(message as BulkQuotePendingReceivedEvt);
+            return quoteCmd;
+        }else if(message.msgName === BulkQuoteQueryReceivedEvt.name){
+            const quoteCmd = this._prepareEventToQueryReceiveBulkQuoteCommand(message as BulkQuoteQueryReceivedEvt);
+            return quoteCmd;
+        }else if(message.msgName === BulkQuoteRejectedEvt.name){
+            const quoteCmd = this._prepareEventToRejectBulkQuoteCommand(message as BulkQuoteRejectedEvt);
+            return quoteCmd;
         }else{
             // ignore silently what we don't handle
             return null;
@@ -188,6 +212,76 @@ export class QuotingEventHandler{
 			prepare: evt.fspiopOpaqueState,
 		};
 		const cmd = new ResponseReceivedQuoteCmd(cmdPayload);
+		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+		return cmd;
+	}
+    
+	private _prepareEventToQueryReceiveQuoteCommand(evt: QuoteQueryReceivedEvt): QueryReceivedQuoteCmd {
+		const cmdPayload: QueryReceivedQuoteCmdPayload = {
+            quoteId: evt.payload.quoteId,
+            prepare: evt.fspiopOpaqueState,
+        };
+		const cmd = new QueryReceivedQuoteCmd(cmdPayload);
+		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+		return cmd;
+	}
+
+    private _prepareEventToRejectQuoteCommand(evt: QuoteRejectedEvt): RejectedQuoteCmd {
+		const cmdPayload: RejectedQuoteCmdPayload = {
+            quoteId: evt.payload.quoteId,
+            errorInformation: evt.payload.errorInformation,
+            prepare: evt.fspiopOpaqueState,
+        };
+		const cmd = new RejectedQuoteCmd(cmdPayload);
+		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+		return cmd;
+	}
+
+    private _prepareEventToRequestReceiveBulkQuoteCommand(evt: BulkQuoteRequestedEvt): RequestReceivedBulkQuoteCmd{
+		const cmdPayload: RequestReceivedBulkQuoteCmdPayload = {
+            bulkQuoteId: evt.payload.bulkQuoteId,
+            payer: evt.payload.payer,
+            geoCode: evt.payload.geoCode,
+            expiration: evt.payload.expiration,
+            individualQuotes: evt.payload.individualQuotes,
+            extensionList: evt.payload.extensionList,
+            prepare: evt.fspiopOpaqueState,
+        };
+		const cmd = new RequestReceivedBulkQuoteCmd(cmdPayload);
+		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+		return cmd;
+	}
+
+    private _prepareEventToResponseReceiveBulkQuoteCommand(evt: BulkQuotePendingReceivedEvt): ResponseReceivedBulkQuoteCmd{
+		const cmdPayload: ResponseReceivedBulkQuoteCmdPayload = {
+            bulkQuoteId: evt.payload.bulkQuoteId,
+            individualQuoteResults: evt.payload.individualQuoteResults,
+            expiration: evt.payload.expiration,
+            extensionList: evt.payload.extensionList,
+            prepare: evt.fspiopOpaqueState,
+        };
+		const cmd = new ResponseReceivedBulkQuoteCmd(cmdPayload);
+		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+		return cmd;
+	}
+
+    private _prepareEventToQueryReceiveBulkQuoteCommand(evt: BulkQuoteQueryReceivedEvt): QueryReceivedQuoteCmd {
+		const cmdPayload: QueryReceivedQuoteCmdPayload = {
+            quoteId: evt.payload.bulkQuoteId,
+            prepare: evt.fspiopOpaqueState,
+        };
+		const cmd = new QueryReceivedQuoteCmd(cmdPayload);
+		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+		return cmd;
+	}
+
+    private _prepareEventToRejectBulkQuoteCommand(evt: BulkQuoteRejectedEvt): RejectedBulkQuoteCmd {
+		const cmdPayload: RejectedBulkQuoteCmdPayload = {
+            bulkQuoteId: evt.payload.bulkQuoteId,
+            errorInformation: evt.payload.errorInformation,
+            prepare: evt.fspiopOpaqueState,
+        };
+		const cmd = new RejectedBulkQuoteCmd(cmdPayload);
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
 		return cmd;
 	}
