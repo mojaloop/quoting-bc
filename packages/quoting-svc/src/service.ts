@@ -82,7 +82,7 @@ const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEB
 
 // infra & dbs
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
-const MONGO_URL = process.env["MONGO_URL"] || "";
+const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 
 // const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
