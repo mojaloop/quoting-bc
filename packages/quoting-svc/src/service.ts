@@ -143,7 +143,6 @@ const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && pars
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
 const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
-const CONFIG_BASE_URL = process.env["CONFIG_BASE_URL"] || "http://localhost:3100";
 const CONFIGSET_VERSION = process.env["CONFIGSET_VERSION"] || "0.0.1";
 
 let globalLogger: ILogger;
@@ -206,7 +205,7 @@ export class Service {
 				kafkaBrokerList: KAFKA_URL,
 				kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
 			}, logger.createChild("configClient.consumer"));
-			configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer, CONFIG_BASE_URL);
+			configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
 
 		}
 
