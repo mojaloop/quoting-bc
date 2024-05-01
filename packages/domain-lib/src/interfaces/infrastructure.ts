@@ -89,3 +89,12 @@ export type AccountLookupBulkQuoteFspIdRequest = { [key:string] : {
 export interface IAccountLookupService {
     getAccountLookup(partyType:string, partyId:string, currency:string | null): Promise<string| null>;
 }
+
+export interface ICache<T> {
+  get(key: string): T | undefined;
+  set(key: string, value: T): void;
+  delete(key: string): boolean;
+  clear(): void;
+  values(): Iterable<T>;
+  size: number;
+}

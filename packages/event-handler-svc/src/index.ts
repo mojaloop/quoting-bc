@@ -32,6 +32,8 @@
 
 "use strict";
 
+/* istanbul ignore file */
+
 import {Service} from "./service";
 
 Service.start().then(() => {

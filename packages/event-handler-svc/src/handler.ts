@@ -51,7 +51,7 @@ import {
     QuotingBCTopics,
 
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { QueryReceivedQuoteCmd, QueryReceivedQuoteCmdPayload, RejectedBulkQuoteCmd, RejectedBulkQuoteCmdPayload, RejectedQuoteCmd, RejectedQuoteCmdPayload, RequestReceivedBulkQuoteCmd, RequestReceivedBulkQuoteCmdPayload, RequestReceivedQuoteCmd, RequestReceivedQuoteCmdPayload, ResponseReceivedBulkQuoteCmd, ResponseReceivedBulkQuoteCmdPayload, ResponseReceivedQuoteCmd, ResponseReceivedQuoteCmdPayload } from "../../domain-lib";
+import { QueryReceivedBulkQuoteCmd, QueryReceivedBulkQuoteCmdPayload, QueryReceivedQuoteCmd, QueryReceivedQuoteCmdPayload, RejectedBulkQuoteCmd, RejectedBulkQuoteCmdPayload, RejectedQuoteCmd, RejectedQuoteCmdPayload, RequestReceivedBulkQuoteCmd, RequestReceivedBulkQuoteCmdPayload, RequestReceivedQuoteCmd, RequestReceivedQuoteCmdPayload, ResponseReceivedBulkQuoteCmd, ResponseReceivedBulkQuoteCmdPayload, ResponseReceivedQuoteCmd, ResponseReceivedQuoteCmdPayload } from "../../domain-lib";
 
 import {ICounter, IGauge, IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
@@ -265,12 +265,12 @@ export class QuotingEventHandler{
 		return cmd;
 	}
 
-    private _prepareEventToQueryReceiveBulkQuoteCommand(evt: BulkQuoteQueryReceivedEvt): QueryReceivedQuoteCmd {
-		const cmdPayload: QueryReceivedQuoteCmdPayload = {
-            quoteId: evt.payload.bulkQuoteId,
+    private _prepareEventToQueryReceiveBulkQuoteCommand(evt: BulkQuoteQueryReceivedEvt): QueryReceivedBulkQuoteCmd {
+		const cmdPayload: QueryReceivedBulkQuoteCmdPayload = {
+            bulkQuoteId: evt.payload.bulkQuoteId,
             prepare: evt.fspiopOpaqueState,
         };
-		const cmd = new QueryReceivedQuoteCmd(cmdPayload);
+		const cmd = new QueryReceivedBulkQuoteCmd(cmdPayload);
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
 		return cmd;
 	}

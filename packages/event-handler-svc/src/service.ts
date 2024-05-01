@@ -278,9 +278,7 @@ export class Service {
 				await this.auditClient.destroy();
 			}
 			if (this.logger && this.logger instanceof KafkaLogger) {
-				setTimeout(async ()=>{
-					await (this.logger as KafkaLogger).destroy();
-				}, 500);
+				await (this.logger as KafkaLogger).destroy();
 			}
 
 	}
@@ -291,6 +289,7 @@ export class Service {
  * process termination and cleanup
  */
 
+/* istanbul ignore next */
 async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<void> {
 	console.info(`Service - ${signal} received - cleaning up...`);
 	let clean_exit = false;
@@ -306,14 +305,18 @@ async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<voi
 }
 
 //catches ctrl+c event
+/* istanbul ignore next */
 process.on("SIGINT", _handle_int_and_term_signals);
 //catches program termination event
+/* istanbul ignore next */
 process.on("SIGTERM", _handle_int_and_term_signals);
 
 //do something when app is closing
+/* istanbul ignore next */
 process.on("exit", async () => {
 	console.info("Microservice - exiting...");
 });
+/* istanbul ignore next */
 process.on("uncaughtException", (err: Error) => {
 	console.error(err, "UncaughtException - EXITING...");
 	process.exit(999);

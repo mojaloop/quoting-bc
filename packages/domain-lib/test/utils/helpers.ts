@@ -33,6 +33,7 @@
 "use strict";
 
 import {
+    CommandMsg,
     IMessage,
     MessageTypes,
 } from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -181,5 +182,28 @@ export function createMessage(
         msgTimestamp: 0,
         msgType: MessageTypes.DOMAIN_EVENT,
         payload,
+    };
+}
+
+export function createCommand(
+    payload: object|null, 
+    messageName: string|null, 
+    fspiopOpaqueState: object|null, 
+    msgType: MessageTypes = MessageTypes.COMMAND
+): CommandMsg {
+    return {
+        fspiopOpaqueState,
+        msgId: "fake msg id",
+        msgKey: "fake msg key",
+        msgTopic: "fake msg topic",
+        msgName: messageName as string,
+        msgOffset: 0,
+        msgPartition: 0,
+        msgTimestamp: 0,
+        msgType: msgType,
+        payload,
+        aggregateId: "1",
+        boundedContextName: "quoting",
+        validatePayload: () => { return; }
     };
 }

@@ -43,7 +43,7 @@ export class MemoryQuoteRepo implements IQuoteRepo {
     this._logger = logger;
   }
   storeQuotes(quotes: IQuote[]): Promise<void> {
-    throw new Error("Method not implemented.");
+    return Promise.resolve();
   }
 
   init(): Promise<void> {

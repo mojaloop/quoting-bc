@@ -31,10 +31,10 @@
 
 "use strict";
 
+/* istanbul ignore file */
 
 import {CommandMsg} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {QUOTING_BOUNDED_CONTEXT_NAME, QUOTING_AGGREGATE_NAME, QuotingBCTopics} from "@mojaloop/platform-shared-lib-public-messages-lib";
-
 
 export type RequestReceivedQuoteCmdPayload = {
 	bulkQuoteId: string | null;

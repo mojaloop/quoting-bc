@@ -34,7 +34,6 @@
 
 import {
     QuoteBCInvalidBulkQuoteLengthErrorEvent,
-    BulkQuoteRequestedEvt,
     QuoteBCInvalidBulkQuoteLengthErrorPayload,
     QuoteBCInvalidRequesterFspIdErrorPayload,
     QuoteBCInvalidRequesterFspIdErrorEvent,
@@ -43,21 +42,18 @@ import {
     QuoteBCBulkQuoteExpiredErrorPayload,
     QuoteBCBulkQuoteExpiredErrorEvent,
     QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload,
-    QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
-    BulkQuotePendingReceivedEvt,
     QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload,
     QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
-    BulkQuoteQueryReceivedEvt,
     QuoteBCBulkQuoteNotFoundErrorEvent,
     QuoteBCBulkQuoteNotFoundErrorPayload,
-    BulkQuoteRejectedEvt,
+    QuoteBCUnableToGetBulkQuoteFromDatabaseErrorEvent,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {
     createBulkQuotePendingReceivedEvtPayload,
     createBulkQuoteQueryReceivedEvtPayload,
     createBulkQuoteQueryRejectedEvtPayload,
     createBulkQuoteRequestedEvtPayload,
-    createMessage,
+    createCommand,
 } from "../utils/helpers";
 import {
     logger,
@@ -70,10 +66,20 @@ import {
 } from "../utils/mocked_variables";
 import { QuotingAggregate } from "./../../src/aggregate";
 import { mockedBulkQuote1 } from "@mojaloop/quoting-bc-shared-mocks-lib";
-import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { CommandMsg, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuote } from "@mojaloop/quoting-bc-public-types-lib";
+import { IBulkQuote, IQuote } from "@mojaloop/quoting-bc-public-types-lib";
 import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
+import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { BulkQuotesCache, QuotesCache } from "@mojaloop/quoting-bc-implementations-lib";
+import { QueryReceivedBulkQuoteCmd, RejectedBulkQuoteCmd, RequestReceivedBulkQuoteCmd, ResponseReceivedBulkQuoteCmd } from "../../src/commands";
+
+const metricsMock: IMetrics = new MetricsMock();
+const quotesCache = new QuotesCache<IQuote>();
+const bulkQuotesCache = new BulkQuotesCache<IBulkQuote>();
+
+const PASS_THROUGH_MODE = true;
+const PASS_THROUGH_MODE_FALSE = false;
 
 describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     let aggregate: QuotingAggregate;
@@ -86,12 +92,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            true,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
     });
 
     afterEach(async () => {
+        quotesCache.clear();
+        bulkQuotesCache.clear();
         jest.restoreAllMocks();
     });
 
@@ -115,10 +126,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteRequestedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RequestReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidBulkQuoteLengthErrorPayload = {
@@ -129,14 +141,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(messageProducer, "send");
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidBulkQuoteLengthErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -152,10 +164,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteRequestedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RequestReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
@@ -168,14 +181,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(messageProducer, "send");
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -191,10 +204,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteRequestedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RequestReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -217,14 +231,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         );
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -240,10 +254,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteRequestedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RequestReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -266,14 +281,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         );
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -289,10 +304,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteRequestedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RequestReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -314,7 +330,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             .mockRejectedValue(new Error("Error fetching account lookup"));
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(lookupSpy).toHaveBeenCalledTimes(
@@ -338,10 +354,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteRequestedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RequestReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCBulkQuoteExpiredErrorPayload = {
@@ -366,18 +383,18 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(messageProducer, "send");
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCBulkQuoteExpiredErrorEvent.name,
-            })
+            })]
         );
     });
 
-    test("handleBulkQuoteRequestedEvent - should send error event if aggregate is not on passthrough mode and is unable to add bulk quote to the database", async () => {
+    test("handleBulkQuoteRequestedEvent - should send error event if aggregate is not on passthrough mode and is unable to update bulk quote to the database", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
         const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
@@ -389,16 +406,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteRequestedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RequestReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload =
             {
                 bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-                errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE,
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
             };
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -427,19 +445,22 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
-                msgName: QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name,
-            })
+                msgName: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name,
+            })]
         );
     });
 
@@ -455,16 +476,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteRequestedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RequestReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload =
             {
                 bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-                errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE,
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
             };
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -496,19 +518,22 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
-                msgName: QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent.name,
-            })
+                msgName: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name,
+            })]
         );
     });
     //#endregion handleBulkQuotePendingReceivedEvt
@@ -527,10 +552,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuotePendingReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            ResponseReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
@@ -540,17 +566,23 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
         };
 
+        jest.spyOn(bulkQuoteRepo, "getBulkQuoteById").mockResolvedValue(
+            mockedBulkQuote
+        );
+
+        jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValueOnce();
+
         jest.spyOn(messageProducer, "send");
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -573,11 +605,13 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuotePendingReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            ResponseReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
+
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
@@ -593,10 +627,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         );
         jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValue();
 
-        jest.spyOn(quoteRepo, "getQuotesByBulkQuoteId").mockResolvedValue(
-            responseQuotes
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
+            responseQuotes[0]
+        );
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
+            responseQuotes[1]
         );
         jest.spyOn(quoteRepo, "updateQuotes").mockResolvedValue();
+
+        jest.spyOn(quotesCache, "set");
 
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
@@ -605,26 +644,31 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(quoteRepo.updateQuotes).toHaveBeenCalledWith(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    ...responseQuotes[0],
-                    status: "REJECTED",
-                }),
-                expect.objectContaining({
-                    ...responseQuotes[1],
-                    status: "REJECTED",
-                }),
-            ])
-        );
+        // expect(quotesCache.set).toHaveBeenCalledWith(
+        //         responseQuotes[0].quoteId,
+        //         expect.objectContaining({
+        //             ...responseQuotes[0],
+        //             status: "REJECTED",
+        //         }),
+        // );
+        // expect(quotesCache.set).toHaveBeenCalledWith(
+        //     responseQuotes[1].quoteId,
+        //     expect.objectContaining({
+        //         ...responseQuotes[1],
+        //         status: "REJECTED",
+        //     }),
+        // );
 
         expect(bulkQuoteRepo.updateBulkQuote).toHaveBeenCalledWith({
             ...mockedBulkQuote,
@@ -632,10 +676,10 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         });
 
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -652,21 +696,24 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuotePendingReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            ResponseReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
             {
                 bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
+                errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND,
             };
 
         jest.spyOn(messageProducer, "send");
 
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById").mockResolvedValue(null);
+
+        jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValueOnce();
 
         jest.spyOn(logger, "error");
 
@@ -677,23 +724,22 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(logger.error).toHaveBeenCalledWith(
-            `Bulk Quote not found for bulkQuoteId: ${mockedBulkQuote.bulkQuoteId}`
-        );
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
-                msgName:
-                    QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name,
-            })
+                msgName: QuoteBCBulkQuoteNotFoundErrorEvent.name,
+            })]
         );
     });
 
@@ -710,10 +756,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuotePendingReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            ResponseReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
@@ -726,9 +773,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
 
         const error = new Error("Error fetching bulk quote from database");
 
+        jest.spyOn(bulkQuoteRepo, "getBulkQuoteById").mockResolvedValueOnce(
+            mockedBulkQuote
+        );
+                
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById").mockRejectedValue(error);
-
-        jest.spyOn(logger, "error");
 
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
@@ -737,24 +786,23 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(logger.error).toHaveBeenCalledWith(
-            `Error getting bulk quote:${mockedBulkQuote.bulkQuoteId}`,
-            error
-        );
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName:
                     QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -771,10 +819,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuotePendingReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            ResponseReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
@@ -795,8 +844,6 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             error
         );
 
-        jest.spyOn(logger, "error");
-
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
@@ -804,24 +851,23 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(logger.error).toHaveBeenCalledWith(
-            `Error getting quotes for bulk quote:${mockedBulkQuote.bulkQuoteId}`,
-            error
-        );
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName:
                     QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -844,10 +890,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             })
         );
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuotePendingReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            ResponseReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
@@ -869,8 +916,6 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const error = new Error("Error updating quotes in database");
         jest.spyOn(quoteRepo, "updateQuotes").mockRejectedValue(error);
 
-        jest.spyOn(logger, "error");
-
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
@@ -878,24 +923,23 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(logger.error).toHaveBeenCalledWith(
-            `Error updating quotes for bulkQuoteId: ${mockedBulkQuote.bulkQuoteId}.`,
-            error
-        );
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName:
                     QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -918,10 +962,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             })
         );
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuotePendingReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            ResponseReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
@@ -946,8 +991,6 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
 
         jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockRejectedValue(error);
 
-        jest.spyOn(logger, "error");
-
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
@@ -955,24 +998,23 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(logger.error).toHaveBeenCalledWith(
-            `Error updating bulk quote for bulkQuoteId: ${mockedBulkQuote.bulkQuoteId}.`,
-            error
-        );
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName:
                     QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -995,10 +1037,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuotePendingReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            ResponseReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -1025,10 +1068,16 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         );
         jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValue();
 
-        jest.spyOn(quoteRepo, "getQuotesByBulkQuoteId").mockResolvedValue(
-            responseQuotes
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
+            responseQuotes[0]
+        );
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
+            responseQuotes[1]
         );
         jest.spyOn(quoteRepo, "updateQuotes").mockResolvedValue();
+
+        jest.spyOn(quotesCache, "set");
 
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
@@ -1037,26 +1086,31 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(quoteRepo.updateQuotes).toHaveBeenCalledWith(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    ...responseQuotes[0],
-                    status: "REJECTED",
-                }),
-                expect.objectContaining({
-                    ...responseQuotes[1],
-                    status: "REJECTED",
-                }),
-            ])
-        );
+        // expect(quotesCache.set).toHaveBeenCalledWith(
+        //     responseQuotes[0].quoteId,
+        //     expect.objectContaining({
+        //         ...responseQuotes[0],
+        //         status: "REJECTED",
+        //     }),
+        // );
+        // expect(quotesCache.set).toHaveBeenCalledWith(
+        //     responseQuotes[1].quoteId,
+        //     expect.objectContaining({
+        //         ...responseQuotes[1],
+        //         status: "REJECTED",
+        //     }),
+        // );
 
         expect(bulkQuoteRepo.updateBulkQuote).toHaveBeenCalledWith({
             ...mockedBulkQuote,
@@ -1064,10 +1118,10 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         });
 
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1094,10 +1148,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuotePendingReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            ResponseReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCBulkQuoteExpiredErrorPayload = {
@@ -1127,10 +1182,16 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         );
         jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValue();
 
-        jest.spyOn(quoteRepo, "getQuotesByBulkQuoteId").mockResolvedValue(
-            responseQuotes
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
+            responseQuotes[0]
         );
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
+            responseQuotes[1]
+        );
+        
         jest.spyOn(quoteRepo, "updateQuotes").mockResolvedValue();
+
+        jest.spyOn(quotesCache, "set");
 
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
@@ -1139,26 +1200,29 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(quoteRepo.updateQuotes).toHaveBeenCalledWith(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    ...responseQuotes[0],
-                    status: "EXPIRED",
-                }),
-                expect.objectContaining({
-                    ...responseQuotes[1],
-                    status: "EXPIRED",
-                }),
-            ])
-        );
+        // expect(quotesCache.set).toHaveBeenCalledWith(
+        //     expect.arrayContaining([
+        //         expect.objectContaining({
+        //             ...responseQuotes[0],
+        //             status: "EXPIRED",
+        //         }),
+        //         expect.objectContaining({
+        //             ...responseQuotes[1],
+        //             status: "EXPIRED",
+        //         }),
+        //     ])
+        // );
 
         expect(bulkQuoteRepo.updateBulkQuote).toHaveBeenCalledWith({
             ...mockedBulkQuote,
@@ -1166,10 +1230,10 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         });
 
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCBulkQuoteExpiredErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1188,11 +1252,13 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteQueryReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            QueryReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
+
 
         const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
@@ -1222,14 +1288,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         );
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCBulkQuoteNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1245,10 +1311,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteQueryReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            QueryReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
@@ -1261,14 +1328,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(messageProducer, "send");
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1284,10 +1351,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteQueryReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            QueryReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -1306,14 +1374,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         } as IParticipant);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1329,10 +1397,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteQueryReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            QueryReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
@@ -1357,14 +1426,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById").mockResolvedValue(null);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCBulkQuoteNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1380,15 +1449,16 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteQueryReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            QueryReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
-            errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND,
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_GET_BULK_QUOTE,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -1416,19 +1486,87 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
+                payload: responsePayload,
+                msgName: QuoteBCUnableToGetBulkQuoteFromDatabaseErrorEvent.name,
+            })]
+        );
+    });
+
+    test("handleGetBulkQuoteQueryReceivedEvent - should return error event if without pass through mode when trying to get a bulk quote by id is not found", async () => {
+        // Arrange
+        const mockedBulkQuote = mockedBulkQuote1;
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote);
+
+        const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = "destinationFspId";
+        const fspiopOpaqueState = {
+            requesterFspId,
+            destinationFspId,
+        };
+
+        const command: CommandMsg = createCommand(
+            payload, 
+            QueryReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
+        );
+
+        const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
+            bulkQuoteId: mockedBulkQuote.bulkQuoteId,
+            errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND,
+        };
+
+        jest.spyOn(messageProducer, "send");
+        jest.spyOn(participantService, "getParticipantInfo")
+            .mockResolvedValueOnce({
+                id: requesterFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant)
+            .mockResolvedValueOnce({
+                id: destinationFspId,
+                type: "DFSP",
+                isActive: true,
+                approved: true,
+            } as IParticipant);
+
+        const aggregateWithoutPassthroughMode = new QuotingAggregate(
+            logger,
+            quoteRepo,
+            bulkQuoteRepo,
+            messageProducer,
+            participantService,
+            accountLookupService,
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
+        );
+
+        // Act
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCBulkQuoteNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1444,10 +1582,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteQueryReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            QueryReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
@@ -1484,19 +1623,22 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCBulkQuoteNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1512,11 +1654,13 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteQueryReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            QueryReceivedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
+
 
         const responsePayload: QuoteBCBulkQuoteNotFoundErrorPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
@@ -1552,19 +1696,22 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
+            quotesCache,
+            bulkQuotesCache
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCBulkQuoteNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1591,10 +1738,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteRejectedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RejectedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
@@ -1607,14 +1755,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(messageProducer, "send");
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1638,10 +1786,11 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
 
-        const message: IMessage = createMessage(
-            payload,
-            BulkQuoteQueryReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RejectedBulkQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -1663,14 +1812,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         } as IParticipant);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 

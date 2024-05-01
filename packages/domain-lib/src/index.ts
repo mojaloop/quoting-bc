@@ -40,6 +40,7 @@
 
  "use strict";
 
+/* istanbul ignore file */
 
 export * from "./aggregate";
 export * from "./entities";

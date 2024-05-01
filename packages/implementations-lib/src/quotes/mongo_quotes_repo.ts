@@ -45,6 +45,10 @@ import {
     UnableToAddManyQuotesError,
     UnableToGetQuotesError,
     QuoteNotFoundError,
+    BulkInsertMismatchBetweenRequestAndResponseLength,
+    UnableToBulkInsertQuotesError,
+    UnableToSearchQuotes,
+    UnableToGetQuoteSearchKeywords
 } from "../errors";
 import { IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
 import { randomUUID } from "crypto";
@@ -74,9 +78,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
                 .db(this._dbName)
                 .collection(this._collectionName);
         } catch (e: unknown) {
-            this._logger.error(
-                `Unable to connect to the database: ${(e as Error).message}`
-            );
+
             throw new UnableToInitQuoteRegistryError(
                 "Unable to connect to quote DB"
             );
@@ -151,13 +153,18 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			updateResult = await this.quotes.bulkWrite(operations);
 
 			if ((updateResult.upsertedCount + updateResult.modifiedCount) !== quotes.length) {
-				const err = new Error("Could not storeQuotes - mismatch between requests length and MongoDb response length");
-				this._logger.error(err);
-				throw err;
+				this._logger.error("Could not storeQuotes - mismatch between requests length and MongoDb response length");
+                throw new BulkInsertMismatchBetweenRequestAndResponseLength(
+                    "Could not storeQuotes - mismatch between requests length and MongoDb response length"
+                );
 			}
-		} catch (error: unknown) {
-			this._logger.error(error);
-			throw error;
+		} catch (e: unknown) {
+            this._logger.error(
+                `Unable to bulk insert quotes: ${(e as Error).message}`
+            );
+            throw new UnableToBulkInsertQuotesError(
+                "Unable to bulk insert quotes"
+            );
 		}
 	}
 
@@ -390,6 +397,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
             
         } catch (err) {
             this._logger.error(err);
+            throw new UnableToSearchQuotes("Unable to return quotes search");
         }
 
         return Promise.resolve(searchResults);
@@ -428,6 +436,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			}
         } catch (err) {
             this._logger.error(err);
+            throw new UnableToGetQuoteSearchKeywords("Unable to get search quote keywords");
         }
 
         return Promise.resolve(retObj);

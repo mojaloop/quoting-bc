@@ -36,13 +36,16 @@ import {
 	IParticipantService,
 	IQuoteRepo,
     IBulkQuoteRepo,
-    IAccountLookupService
+    IAccountLookupService,
+    ICache
 } from "@mojaloop/quoting-bc-domain-lib";
 import {
     ParticipantAdapter,
     MongoQuotesRepo,
     MongoBulkQuotesRepo,
-    AccountLookupAdapter
+    AccountLookupAdapter,
+    QuotesCache,
+    BulkQuotesCache
 } from "@mojaloop/quoting-bc-implementations-lib";
 import {existsSync} from "fs";
 import express, {Express} from "express";
@@ -75,6 +78,10 @@ import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-cli
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {DefaultConfigProvider, IConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
 import {GetQuotingConfigSet} from "@mojaloop/quoting-bc-config-lib";
+import {     
+    IBulkQuote,
+    IQuote,
+} from "@mojaloop/quoting-bc-public-types-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -158,9 +165,11 @@ export class Service {
 	static accountLookupService: IAccountLookupService;
 	static quotesRepo: IQuoteRepo;
     static bulkQuotesRepo: IBulkQuoteRepo;
-    static metrics:IMetrics;
+    static metrics: IMetrics;
     static configClient: IConfigurationClient;
     static startupTimer: NodeJS.Timeout;
+	static quotesCache: ICache<IQuote>;
+	static bulkQuotesCache : ICache<IBulkQuote>; 
 
     static async start(
         logger?: ILogger,
@@ -173,7 +182,9 @@ export class Service {
         bulkQuotesRepo?: IBulkQuoteRepo,
         metrics?:IMetrics,
         configProvider?: IConfigProvider,
-        aggregate?: QuotingAggregate
+        aggregate?: QuotingAggregate,
+        quotesCache?: ICache<IQuote>,
+        bulkQuotesCache?: ICache<IBulkQuote>,
     ): Promise<void> {
         console.log(`Service starting with PID: ${process.pid}`);
 
@@ -286,7 +297,15 @@ export class Service {
         }
         this.metrics = metrics;
 
+        if (!quotesCache) {
+            quotesCache = new QuotesCache<IQuote>();
+        }
+        this.quotesCache = quotesCache;
 
+        if (!bulkQuotesCache) {
+            bulkQuotesCache = new BulkQuotesCache<IBulkQuote>();
+        }
+        this.bulkQuotesCache = bulkQuotesCache;
 
         // Configs:
 		const currencyList = this.configClient.globalConfigs.getCurrencies();
@@ -302,6 +321,8 @@ export class Service {
                 this.metrics,
                 PASS_THROUGH_MODE,
                 currencyList,
+                this.quotesCache,
+                this.bulkQuotesCache,
             );
         }
         this.aggregate = aggregate;
@@ -376,9 +397,7 @@ export class Service {
             await this.auditClient.destroy();
         }
         if (this.logger && this.logger instanceof KafkaLogger) {
-            setTimeout(async ()=>{
-                await (this.logger as KafkaLogger).destroy();
-            }, 500);
+            await (this.logger as KafkaLogger).destroy();
         }
 
 	}
@@ -389,6 +408,7 @@ export class Service {
  * process termination and cleanup
  */
 
+/* istanbul ignore next */
 async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<void> {
 	console.info(`Service - ${signal} received - cleaning up...`);
 	let clean_exit = false;
@@ -404,14 +424,18 @@ async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<voi
 }
 
 //catches ctrl+c event
+/* istanbul ignore next */
 process.on("SIGINT", _handle_int_and_term_signals);
 //catches program termination event
+/* istanbul ignore next */
 process.on("SIGTERM", _handle_int_and_term_signals);
 
 //do something when app is closing
+/* istanbul ignore next */
 process.on("exit", async () => {
 	console.info("Microservice - exiting...");
 });
+/* istanbul ignore next */
 process.on("uncaughtException", (err: Error) => {
 	console.error(err, "UncaughtException - EXITING...");
 	process.exit(999);

@@ -61,6 +61,10 @@ import {
     QuoteBCInvalidDestinationFspIdErrorEvent,
     QuoteBCInvalidDestinationFspIdErrorPayload,
     QuoteBCInvalidMessagePayloadErrorEvent,
+    QuoteBCMessageNotCommandTypeErrorPayload,
+    QuoteBCMessageNotCommandTypeErrorEvent,
+    QuoteBCMissingMessageNameErrorEventPayload,
+    QuoteBCMissingMessageNameErrorEvent,
     QuoteBCInvalidMessagePayloadErrorPayload,
     QuoteBCInvalidMessageTypeErrorEvent,
     QuoteBCInvalidMessageTypeErrorPayload,
@@ -94,6 +98,8 @@ import {
     QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload,
     QuoteBCUnknownErrorEvent,
     QuoteBCUnknownErrorPayload,
+    QuoteBCUnableToStoreQuotesInDatabasePayload,
+    QuoteBCUnableToStoreQuotesInDatabaseEvent,
     QuoteQueryReceivedEvt,
     QuoteQueryResponseEvt,
     QuoteQueryResponseEvtPayload,
@@ -127,6 +133,7 @@ import {
 import {
     IAccountLookupService,
     IBulkQuoteRepo,
+    ICache,
     IParticipantService,
     IQuoteRepo,
 } from "./interfaces/infrastructure";
@@ -162,11 +169,10 @@ export class QuotingAggregate {
     private _histo: IHistogram;
     private _commandsCounter:ICounter;
 
-    private _quotesCache: Map<string, IQuote> = new Map<string, IQuote>();
-    private _bulkQuotesCache: Map<string, IBulkQuote> = new Map<string, IBulkQuote>();
+    private _quotesCache: ICache<IQuote>;
+    private _bulkQuotesCache: ICache<IBulkQuote>;
     private _batchCommands: Map<string, IDomainMessage> = new Map<string, IDomainMessage>();
     private _outputEvents: DomainEventMsg[] = [];
-
     constructor(
         logger: ILogger,
         quoteRepo: IQuoteRepo,
@@ -177,7 +183,8 @@ export class QuotingAggregate {
         metrics: IMetrics,
         passThroughMode: boolean,
         currencyList: Currency[],
-
+        quotesCache: ICache<IQuote>, 
+        bulkQuotesCache: ICache<IBulkQuote>,
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._quotesRepo = quoteRepo;
@@ -187,6 +194,8 @@ export class QuotingAggregate {
         this._accountLookupService = accountLookupService;
         this._passThroughMode = passThroughMode ?? false;
         this._currencyList = currencyList;
+        this._quotesCache = quotesCache;
+        this._bulkQuotesCache = bulkQuotesCache;
 
         this._histo = metrics.getHistogram("QuotingAggregate", "QuotingAggregate calls", ["callName", "success"]);
         this._commandsCounter = metrics.getCounter("QuotingAggregate_CommandsProcessed", "Commands processed by the Quoting Aggregate", ["commandName"]);
@@ -205,7 +214,7 @@ export class QuotingAggregate {
                 for (const cmd of cmdMessages) {
                     if(cmd.msgType !== MessageTypes.COMMAND) continue;
                     await this._processCommand(cmd);
-                    if(cmd.payload.bulkQuoteId) {
+                    if(cmd.payload && cmd.payload.bulkQuoteId) {
                         if(cmd.msgName === RequestReceivedBulkQuoteCmd.name) {
                             this._commandsCounter.inc({commandName: cmd.msgName}, cmd.payload.individualQuotes.length);
                         } else if(cmd.msgName === ResponseReceivedBulkQuoteCmd.name) {
@@ -243,7 +252,25 @@ export class QuotingAggregate {
 
         if(this._quotesCache.size){
             const entries = Array.from(this._quotesCache.values());
-            await this._quotesRepo.storeQuotes(entries);
+            try {
+                await this._quotesRepo.storeQuotes(entries);
+            } catch (error: unknown) {
+                this._logger.error(
+                    "Error adding quotes to database",
+                    error
+                );
+                const errorPayload: QuoteBCUnableToStoreQuotesInDatabasePayload =
+                    {
+                        errorCode: QuotingErrorCodeNames.UNABLE_TO_STORE_QUOTES,
+                    };
+                const errorEvent =
+                    new QuoteBCUnableToStoreQuotesInDatabaseEvent(
+                        errorPayload
+                    );
+                this._outputEvents.push(errorEvent);
+                timerEndFn({ success: "false" });
+                return;
+            }
             this._quotesCache.clear();
         }
 
@@ -251,9 +278,17 @@ export class QuotingAggregate {
     }
 
     private async _processCommand(cmd: CommandMsg): Promise<void> {
+        // validate message
+        const invalidMessageErrorEvent = this._ensureValidMessage(cmd);
+        
+        if (invalidMessageErrorEvent) {
+            this._outputEvents.push(invalidMessageErrorEvent);
+            return;
+        }
+        
         // cache command for later retrieval in continue methods - do this first!
         if(cmd.payload.bulkQuoteId) {
-            let quotes:any = [];
+            let quotes = [];
 
             if(cmd.msgName === BulkQuoteRequestedEvt.name) {
                 quotes = cmd.payload.individualQuotes;
@@ -268,8 +303,7 @@ export class QuotingAggregate {
             this._batchCommands.set(cmd.payload.quoteId, cmd);
         }
 
-        // validate message
-        this._ensureValidMessage(cmd);
+
 
         if (cmd.msgName === RequestReceivedQuoteCmd.name) {
             return this._handleQuoteRequest(cmd as RequestReceivedQuoteCmd);
@@ -288,39 +322,57 @@ export class QuotingAggregate {
         } else if (cmd.msgName === RejectedBulkQuoteCmd.name) {
             return this._handleBulkQuoteRejected(cmd as RejectedBulkQuoteCmd);
         } else {
-            const requesterFspId = cmd.payload.requesterFspId;
-            const quoteId = cmd.payload.quoteId;
 			const errorMessage = `Command type is unknown: ${cmd.msgName}`;
             this._logger.error(errorMessage);
-            const bulkQuoteId = cmd.payload?.bulkQuoteId ?? null;
 
             const errorCode = QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN;
             const errorEvent = new QuoteBCInvalidMessageTypeErrorEvent({
-                bulkQuoteId,
-                quoteId,
                 errorCode: errorCode,
-                requesterFspId,
             });
             errorEvent.fspiopOpaqueState = cmd.fspiopOpaqueState;
             this._outputEvents.push(errorEvent);
         }
     }
 
-    private _ensureValidMessage(message: CommandMsg): void {
+    private _ensureValidMessage(message: CommandMsg): null | DomainEventMsg {
         if (!message.payload) {
-            this._logger.error("QuotingCommandHandler: message payload has invalid format or value");
-            throw new InvalidMessagePayloadError();
+            const errorMessage = "Message payload is null or undefined";
+            this._logger.error(errorMessage);
+            const errorPayload: QuoteBCInvalidMessagePayloadErrorPayload = {
+                errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD,
+            };
+
+            const errorEvent = new QuoteBCInvalidMessagePayloadErrorEvent(
+                errorPayload
+            );
+            return errorEvent;
         }
 
         if (!message.msgName) {
-            this._logger.error("QuotingCommandHandler: message name is invalid");
-            throw new InvalidMessageTypeError();
+            const errorMessage = "Message name is null or undefined";
+            this._logger.error(errorMessage);
+            const errorPayload: QuoteBCMissingMessageNameErrorEventPayload = {
+                errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_NAME,
+            };
+            const errorEvent = new QuoteBCMissingMessageNameErrorEvent(
+                errorPayload
+            );
+            return errorEvent;
+        }
+        
+        if (message.msgType !== MessageTypes.COMMAND) {
+            const errorMessage = `QuotingCommandHandler: message type is invalid : ${message.msgType}`;
+            this._logger.error(errorMessage);
+            const errorPayload: QuoteBCMessageNotCommandTypeErrorPayload = {
+                errorCode: QuotingErrorCodeNames.MESSAGE_TYPE_NOT_COMMAND,
+            };
+            const errorEvent = new QuoteBCMessageNotCommandTypeErrorEvent(
+                errorPayload
+            );
+            return errorEvent;
         }
 
-        if (message.msgType !== MessageTypes.COMMAND) {
-            this._logger.error(`QuotingCommandHandler: message type is invalid : ${message.msgType}`);
-            throw new InvalidMessageTypeError();
-        }
+        return null;
     }
 
     //#region Quotes
@@ -333,6 +385,7 @@ export class QuotingAggregate {
 			callName: "_handleQuoteRequest",
 		});
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`_handleQuoteRequest() - Got _handleQuoteRequest msg for quoteId: ${message.payload.quoteId}`);
 
         const quoteId = message.payload.quoteId;
@@ -455,26 +508,7 @@ export class QuotingAggregate {
         };
 
         if (!this._passThroughMode) {
-            try {
-                this._quotesCache.set(quote.quoteId, quote);
-            } catch (error: unknown) {
-                this._logger.error(
-                    `Error adding quote with id ${quoteId}to database`,
-                    error
-                );
-                const errorPayload: QuoteBCUnableToAddQuoteToDatabaseErrorPayload =
-                    {
-                        errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_QUOTE,
-                        quoteId,
-                    };
-                const errorEvent =
-                    new QuoteBCUnableToAddQuoteToDatabaseErrorEvent(
-                        errorPayload
-                    );
-                this._outputEvents.push(errorEvent);
-                timerEndFn({ success: "false" });
-                return;
-            }
+            this._quotesCache.set(quote.quoteId, quote);
         }
 
         const payee = message.payload.payee;
@@ -507,6 +541,7 @@ export class QuotingAggregate {
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
         
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`quoteRequestReceived() - completed for quoteId: ${quote.quoteId}`);
     }
     //#endregion
@@ -520,6 +555,7 @@ export class QuotingAggregate {
 			callName: "_handleQuoteResponse",
 		});
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`_handleQuoteResponse() - Got _handleQuoteResponse msg for quoteId: ${message.payload.quoteId}`);
         
         let quote: IQuote | null = null;
@@ -575,6 +611,13 @@ export class QuotingAggregate {
                 `Quote ${quoteId} rejected due to scheme validation error`
             );
             quoteStatus = QuoteState.REJECTED;
+            quote.status = quoteStatus;
+            if(!this._passThroughMode) {
+                this._quotesCache.set(quote.quoteId, quote);
+            }
+            this._outputEvents.push(quoteErrorEvent);
+            timerEndFn({ success: "false" });
+            return;
         }
 
         if (quoteErrorEvent === null) {
@@ -590,6 +633,14 @@ export class QuotingAggregate {
                 this._logger.error(
                     `Quote ${quoteId} rejected due to requester participant error`
                 );
+                
+                quote.status = quoteStatus;
+                if(!this._passThroughMode) {
+                    this._quotesCache.set(quote.quoteId, quote);
+                }
+                this._outputEvents.push(quoteErrorEvent);
+                timerEndFn({ success: "false" });
+                return;
             }
         }
 
@@ -603,6 +654,14 @@ export class QuotingAggregate {
             if (destinationParticipantError) {
                 quoteErrorEvent = destinationParticipantError;
                 quoteStatus = QuoteState.REJECTED;
+
+                quote.status = quoteStatus;
+                if(!this._passThroughMode) {
+                    this._quotesCache.set(quote.quoteId, quote);
+                }
+                this._outputEvents.push(quoteErrorEvent);
+                timerEndFn({ success: "false" });
+                return;
             }
         }
 
@@ -615,6 +674,14 @@ export class QuotingAggregate {
             if (expirationDateError) {
                 quoteErrorEvent = expirationDateError;
                 quoteStatus = QuoteState.EXPIRED;
+
+                quote.status = quoteStatus;
+                if(!this._passThroughMode) {
+                    this._quotesCache.set(quote.quoteId, quote);
+                }
+                this._outputEvents.push(expirationDateError);
+                timerEndFn({ success: "false" });
+                return;
             }
         }
 
@@ -633,24 +700,7 @@ export class QuotingAggregate {
                 status: quoteStatus,
             };
 
-            try {
-                this._quotesCache.set(message.payload.quoteId, quote as Quote);
-            } catch (err: unknown) {
-                const error = (err as Error).message;
-                this._logger.error(`Error updating quote: ${error}`);
-                const errorPayload: QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload =
-                    {
-                        errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_QUOTE,
-                        quoteId,
-                    };
-                const errorEvent =
-                    new QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent(
-                        errorPayload
-                    );
-                this._outputEvents.push(errorEvent);
-                timerEndFn({ success: "false" });
-                return;
-            }
+            this._quotesCache.set(message.payload.quoteId, quote as Quote);
         }
 
         // Return error event if previous validations failed
@@ -676,11 +726,13 @@ export class QuotingAggregate {
         const event = new QuoteResponseAccepted(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`quoteResponseReceived() - completed for quoteId: ${message.payload.quoteId}`);
 
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug("_handleQuoteResponse() - complete");
     }
     //#endregion
@@ -694,6 +746,7 @@ export class QuotingAggregate {
 			callName: "_handleQuoteQuery",
 		});
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`_handleQuoteQuery() - Got _handleQuoteQuery msg for quoteId: ${message.payload.quoteId}`);
 
         const quoteId = message.payload.quoteId;
@@ -776,6 +829,7 @@ export class QuotingAggregate {
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`quoteQueryReceived() - completed for quoteId: ${message.payload.quoteId}`);
     }
     //#endregion
@@ -789,6 +843,7 @@ export class QuotingAggregate {
 			callName: "_handleQuoteRejected",
 		});
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`_handleQuoteRejected() - Got _handleQuoteRejected msg for quoteId: ${message.payload.quoteId}`);
 
         const quoteId = message.payload.quoteId;
@@ -826,6 +881,39 @@ export class QuotingAggregate {
             return;
         }
 
+        let quote:IQuote | null = null;
+
+		try {
+			quote = await this._getQuote(message.payload.quoteId);
+		} catch(err: unknown) {
+			const error = (err as Error).message;
+			const errorMessage = `Unable to get quote record for quoteId: ${message.payload.quoteId} from repository`;
+			this._logger.error(err, `${errorMessage}: ${error}`);
+            const errorCode = QuotingErrorCodeNames.UNABLE_TO_GET_QUOTE;
+            const errorEvent = new QuoteBCUnableToGetQuoteFromDatabaseErrorEvent({
+				quoteId: message.payload.quoteId,
+				errorCode: errorCode
+			});
+
+            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            this._outputEvents.push(errorEvent);
+            return;
+		}
+
+		if(!quote) {
+			const errorMessage = `QuoteId: ${message.payload.quoteId} could not be found`;
+			this._logger.error(errorMessage);
+            const errorCode = QuotingErrorCodeNames.QUOTE_NOT_FOUND;
+            const errorEvent = new QuoteBCQuoteNotFoundErrorEvent({
+				quoteId: message.payload.quoteId,
+				errorCode: errorCode
+			});
+
+            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            this._outputEvents.push(errorEvent);
+            return;
+		}
+
         const payload: QuoteRejectedResponseEvtPayload = {
             quoteId,
             errorInformation: message.payload.errorInformation,
@@ -837,6 +925,7 @@ export class QuotingAggregate {
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`quoteRejected() - completed for quoteId: ${message.payload.quoteId}`);
     }
     //#endregion
@@ -852,6 +941,7 @@ export class QuotingAggregate {
 			callName: "_handleBulkQuoteRequest",
 		});
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`_handleBulkQuoteRequest() - Got _handleBulkQuoteRequest msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
 
         const bulkQuoteId = message.payload.bulkQuoteId;
@@ -975,7 +1065,7 @@ export class QuotingAggregate {
 
         if (!this._passThroughMode) {
             try {
-                this._bulkQuotesRepo.addBulkQuote(bulkQuote);
+                await this.addBulkQuote(bulkQuote);
             } catch (error: unknown) {
                 const errorMessage = `Error adding bulk quote ${bulkQuoteId} to database`;
                 this._logger.error(errorMessage, error);
@@ -1007,9 +1097,32 @@ export class QuotingAggregate {
         const event = new BulkQuoteReceivedEvt(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
 
+        try {
+            await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+        } catch(err: unknown) {
+			const error = (err as Error).message;
+			const errorMessage = `Unable to add bulkQuote record for bulkQuoteId: ${message.payload.bulkQuoteId} to repository`;
+			this._logger.error(err, `${errorMessage}: ${error}`);
+            const errorPayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
+            {
+                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
+                bulkQuoteId,
+            };
+            const errorEvent =
+            new QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent(
+                errorPayload
+            );
+
+            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            this._outputEvents.push(errorEvent);
+            timerEndFn({ success: "false" });
+            return;
+        }
+
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`bulkQuoteRequestReceived() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
     }
 
@@ -1024,6 +1137,7 @@ export class QuotingAggregate {
 			callName: "_handleBulkQuoteResponse",
 		});
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`_handleBulkQuoteResponse() - Got _handleBulkQuoteResponse msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
 
         let bulkQuote: IBulkQuote | null = null;
@@ -1135,6 +1249,31 @@ export class QuotingAggregate {
 
         //If there was any error during prior validation, return the error event
         if (bulkQuoteErrorEvent) {
+            try {
+                await this.updateBulkQuote(
+                    bulkQuoteId,
+                    requesterFspId,
+                    destinationFspId,
+                    quoteStatus,
+                    quotes
+                );
+                await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+            } catch(err: unknown) {
+                const error = (err as Error).message;
+                const errorMessage = `Unable to update bulkQuote record for bulkQuoteId: ${message.payload.bulkQuoteId} to repository`;
+                this._logger.error(err, `${errorMessage}: ${error}`);
+                const errorCode = QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE;
+                const errorEvent = new QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent({
+                    bulkQuoteId: message.payload.bulkQuoteId,
+                    errorCode: errorCode
+                });
+    
+                errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+                this._outputEvents.push(errorEvent);
+                timerEndFn({ success: "false" });
+                return;
+            }
+
             this._outputEvents.push(bulkQuoteErrorEvent);
             timerEndFn({ success: "false" });
             return;
@@ -1150,9 +1289,36 @@ export class QuotingAggregate {
         const event = new BulkQuoteAcceptedEvt(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
 
+        try {
+            await this.updateBulkQuote(
+                bulkQuoteId,
+                requesterFspId,
+                destinationFspId,
+                quoteStatus,
+                quotes
+            );
+            await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+        } catch(err: unknown) {
+			const error = (err as Error).message;
+			const errorMessage = `Unable to add bulkQuote record for bulkQuoteId: ${message.payload.bulkQuoteId} to repository`;
+			this._logger.error(err, `${errorMessage}: ${error}`);
+            const errorCode = QuotingErrorCodeNames.UNABLE_TO_ADD_BULK_QUOTE;
+            const errorEvent = new QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent({
+                bulkQuoteId: message.payload.bulkQuoteId,
+				errorCode: errorCode
+			});
+
+            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            this._outputEvents.push(errorEvent);
+            timerEndFn({ success: "false" });
+            return;
+        }
+        
+        this._bulkQuotesCache.clear();
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`bulkQuoteResponseReceived() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
     }
     //#endregion
@@ -1166,6 +1332,7 @@ export class QuotingAggregate {
 			callName: "_handleGetBulkQuoteQuery",
 		});
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`_handleGetBulkQuoteQuery() - Got _handleGetBulkQuoteQuery msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
 
         const bulkQuoteId = message.payload.bulkQuoteId;
@@ -1274,6 +1441,7 @@ export class QuotingAggregate {
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`bulkQuoteQueryReceived() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
     }
 
@@ -1289,6 +1457,7 @@ export class QuotingAggregate {
 			callName: "_handleBulkQuoteRejected",
 		});
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`_handleBulkQuoteRejected() - Got _handleBulkQuoteRejected msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
 
         const bulkQuoteId = message.payload.bulkQuoteId;
@@ -1337,9 +1506,9 @@ export class QuotingAggregate {
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
+        /* istanbul ignore next */
         if(this._logger.isDebugEnabled()) this._logger.debug(`bulkQuoteRejected() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
     }
-    //#endregion
     //#endregion
 
     //#region Get Cache
@@ -1375,6 +1544,31 @@ export class QuotingAggregate {
     //#endregion
 
     //#region Quotes database operations
+
+    private async addBulkQuote(bulkQuote: IBulkQuote): Promise<void> {
+        //Add bulkQuote to database and iterate through quotes to add them to database
+        try {
+            this._bulkQuotesCache.set(bulkQuote.bulkQuoteId, bulkQuote);
+        } catch (err) {
+            const errorMessage = `Error adding bulkQuote for bulkQuoteId: ${bulkQuote.bulkQuoteId}.`;
+            this._logger.error(errorMessage, err);
+            throw new UnableToAddBulkQuoteError(errorMessage);
+        }
+
+        const quotes = bulkQuote.individualQuotes;
+        const now = Date.now();
+
+        // change quote status to Pending for all
+        quotes.forEach((quote) => {
+            quote.createdAt = now;
+            quote.updatedAt = now;
+            quote.bulkQuoteId = bulkQuote.bulkQuoteId;
+            quote.status = QuoteState.PENDING;
+
+            this._quotesCache.set(quote.quoteId, quote);
+        });
+    }
+
     private async updateBulkQuote(
         bulkQuoteId: string,
         requesterFspId: string,
@@ -1382,15 +1576,7 @@ export class QuotingAggregate {
         status: QuoteState,
         quotesReceived: IQuote[]
     ): Promise<void> {
-        const bulkQuote = await this._bulkQuotesRepo
-            .getBulkQuoteById(bulkQuoteId)
-            .catch((error) => {
-                this._logger.error(
-                    `Error getting bulk quote:${bulkQuoteId}`,
-                    error
-                );
-                return null;
-            });
+        const bulkQuote = await this._getBulkQuote(bulkQuoteId);
 
         if (!bulkQuote) {
             const errorMessage = `Bulk Quote not found for bulkQuoteId: ${bulkQuoteId}`;
@@ -1398,18 +1584,15 @@ export class QuotingAggregate {
             throw new BulkQuoteNotFoundError(errorMessage);
         }
 
-        const quotesThatBelongToBulkQuote =
-            (await this._quotesRepo
-                .getQuotesByBulkQuoteId(bulkQuoteId)
-                .catch((error) => {
-                    this._logger.error(
-                        `Error getting quotes for bulk quote:${bulkQuoteId}`,
-                        error
-                    );
-                    throw new UnableToGetBatchQuotesError(
-                        "Unable to get quotes for bulk quote"
-                    );
-                })) ?? [];
+        const quotesThatBelongToBulkQuote:IQuote[] = [];
+
+        for(let i=0 ; i < bulkQuote.individualQuotes.length  ; i+=1) {
+            const quote = await this._getQuote(bulkQuote.individualQuotes[i].quoteId);
+
+            if(quote) {
+                quotesThatBelongToBulkQuote.push(quote);
+            }
+        }
 
         const now = Date.now();
 
@@ -1444,25 +1627,14 @@ export class QuotingAggregate {
         bulkQuote.updatedAt = now;
         bulkQuote.status = status;
 
-        try {
-            if (quotesThatBelongToBulkQuote.length > 0) {
-                await this._quotesRepo.updateQuotes(
-                    quotesThatBelongToBulkQuote
-                );
+        if (quotesThatBelongToBulkQuote.length > 0) {
+            for(let i=0 ; i < quotesThatBelongToBulkQuote.length ; i+=1) {
+                this._quotesCache.set(quotesThatBelongToBulkQuote[i].quoteId, quotesThatBelongToBulkQuote[i]);
             }
-        } catch (err) {
-            const errorMessage = `Error updating quotes for bulkQuoteId: ${bulkQuoteId}.`;
-            this._logger.error(errorMessage, err);
-            throw new UnableToUpdateBatchQuotesError(errorMessage);
         }
 
-        try {
-            await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
-        } catch (err) {
-            const errorMessage = `Error updating bulk quote for bulkQuoteId: ${bulkQuoteId}.`;
-            this._logger.error(errorMessage, err);
-            throw new UnableToUpdateBulkQuoteError(errorMessage);
-        }
+        bulkQuote.individualQuotes = quotesThatBelongToBulkQuote;
+        this._bulkQuotesCache.set(bulkQuote.bulkQuoteId, bulkQuote);
     }
 
     //#endregion
@@ -1564,48 +1736,6 @@ export class QuotingAggregate {
                 expirationDate,
             };
             const errorEvent = new QuoteBCQuoteExpiredErrorEvent(errorPayload);
-            return errorEvent;
-        }
-
-        return null;
-    }
-
-    private validateMessageOrGetErrorEvent(
-        message: IMessage
-    ): DomainEventMsg | null {
-        const requesterFspId =
-            message.fspiopOpaqueState?.requesterFspId ?? null;
-        const quoteId = message.payload?.quoteId ?? null;
-        const bulkQuoteId = message.payload?.bulkQuoteId ?? null;
-
-        if (!message.payload) {
-            const errorMessage = "Message payload is null or undefined";
-            this._logger.error(errorMessage);
-            const errorPayload: QuoteBCInvalidMessagePayloadErrorPayload = {
-                quoteId,
-                bulkQuoteId,
-                errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD,
-                requesterFspId,
-            };
-
-            const errorEvent = new QuoteBCInvalidMessagePayloadErrorEvent(
-                errorPayload
-            );
-            return errorEvent;
-        }
-
-        if (!message.msgName) {
-            const errorMessage = "Message name is null or undefined";
-            this._logger.error(errorMessage);
-            const errorPayload: QuoteBCInvalidMessageTypeErrorPayload = {
-                bulkQuoteId,
-                quoteId,
-                errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_TYPE,
-                requesterFspId,
-            };
-            const errorEvent = new QuoteBCInvalidMessageTypeErrorEvent(
-                errorPayload
-            );
             return errorEvent;
         }
 

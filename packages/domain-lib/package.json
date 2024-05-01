@@ -30,7 +30,7 @@
         "dep:update": "ncu -u",
         "lint": "eslint ./src",
         "lint:fix": "eslint ./src --fix",
-        "test:unit": "jest --passWithNoTests --testMatch **/test/unit/**/*.test.ts"
+        "test:unit": "jest --passWithNoTests --testMatch **/test/unit/**/*.test.ts --runInBand"
     },
     "dependencies": {
         "@mojaloop/logging-bc-public-types-lib": "~0.5.4",

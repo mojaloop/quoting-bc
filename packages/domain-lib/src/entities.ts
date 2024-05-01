@@ -32,9 +32,12 @@
 
 "use strict";
 
+/* istanbul ignore file */
+
 import { IQuote, IBulkQuote, IParty, IAmountType, IMoney, ITransactionType, IGeoCode, IExtensionList, IErrorInformation, QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
 
 /** Quote entity **/
+/* istanbul ignore next */
 export class Quote implements IQuote {
     createdAt: number;
 	updatedAt: number;
@@ -66,6 +69,7 @@ export class Quote implements IQuote {
 }
 
 /** BulkQuote entity **/
+/* istanbul ignore next */
 export class BulkQuote implements IBulkQuote {
     createdAt: number;
 	updatedAt: number;

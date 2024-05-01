@@ -44,6 +44,8 @@ type QuotingErrorCodeKeys = keyof typeof QuotingErrorCodes;
 export const QuotingErrorCodes = {
     COMMAND_TYPE_UNKNOWN: "Command type is unknown",
     INVALID_MESSAGE_PAYLOAD: "Invalid message payload",
+    INVALID_MESSAGE_NAME: "Invalid message name",
+    MESSAGE_TYPE_NOT_COMMAND: "Can't handle non command message",
     INVALID_MESSAGE_TYPE: "Invalid message type",
     INVALID_BULK_QUOTE_LENGTH: "Invalid bulk quote length",
     RULE_SCHEME_VIOLATED_RESPONSE: "Quote request scheme validation failed",
@@ -70,7 +72,8 @@ export const QuotingErrorCodes = {
     REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH: "Payee participant id mismatch",
     REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED: "Payee participant not approved",
     REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE: "Payee participant not approved",
-    INDIVIDUAL_QUOTES_NOT_FOUND: "Individual quotes for bulk quote not found"
+    INDIVIDUAL_QUOTES_NOT_FOUND: "Individual quotes for bulk quote not found",
+    UNABLE_TO_STORE_QUOTES: "Unable to store quotes in database"
 } as const;
 
 export const QuotingErrorCodeNames: {
@@ -78,6 +81,8 @@ export const QuotingErrorCodeNames: {
   } = {
     COMMAND_TYPE_UNKNOWN: "COMMAND_TYPE_UNKNOWN",
     INVALID_MESSAGE_PAYLOAD: "INVALID_MESSAGE_PAYLOAD",
+    INVALID_MESSAGE_NAME: "INVALID_MESSAGE_NAME",
+    MESSAGE_TYPE_NOT_COMMAND: "MESSAGE_TYPE_NOT_COMMAND",
     INVALID_MESSAGE_TYPE: "INVALID_MESSAGE_TYPE",
     INVALID_BULK_QUOTE_LENGTH: "INVALID_BULK_QUOTE_LENGTH",
     RULE_SCHEME_VIOLATED_RESPONSE: "RULE_SCHEME_VIOLATED_RESPONSE",
@@ -104,5 +109,6 @@ export const QuotingErrorCodeNames: {
     REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH: "REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH",
     REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED: "REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED",
     REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE: "REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE",
-    INDIVIDUAL_QUOTES_NOT_FOUND: "INDIVIDUAL_QUOTES_NOT_FOUND"
+    INDIVIDUAL_QUOTES_NOT_FOUND: "INDIVIDUAL_QUOTES_NOT_FOUND",
+    UNABLE_TO_STORE_QUOTES: "UNABLE_TO_STORE_QUOTES"
   };
