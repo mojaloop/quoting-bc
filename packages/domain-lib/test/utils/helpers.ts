@@ -204,6 +204,7 @@ export function createCommand(
         payload,
         aggregateId: "1",
         boundedContextName: "quoting",
+        tracingInfo: "123",
         validatePayload: () => { return; }
     };
 }
