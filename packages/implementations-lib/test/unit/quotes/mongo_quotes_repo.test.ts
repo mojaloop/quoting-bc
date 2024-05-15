@@ -35,7 +35,20 @@
 import { MongoClient } from "mongodb";
 import { MongoQuotesRepo } from "../../../src/quotes/mongo_quotes_repo";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
-import { QuoteAlreadyExistsError, QuoteNotFoundError, UnableToAddManyQuotesError, UnableToAddQuoteError, UnableToBulkInsertQuotesError, UnableToCloseDatabaseConnectionError, UnableToDeleteQuoteError, UnableToGetQuoteError, UnableToGetQuotesError, UnableToInitQuoteRegistryError, UnableToSearchQuotes, UnableToUpdateQuoteError } from "../../../src/errors";
+import { 
+    QuoteAlreadyExistsError,
+    QuoteNotFoundError,
+    UnableToAddManyQuotesError,
+    UnableToAddQuoteError,
+    UnableToBulkInsertQuotesError,
+    UnableToCloseDatabaseConnectionError,
+    UnableToDeleteQuoteError,
+    UnableToGetQuoteError,
+    UnableToGetQuotesError,
+    UnableToInitQuoteRegistryError,
+    UnableToSearchQuotes,
+    UnableToUpdateQuoteError 
+} from "../../../src/errors";
 import { IQuote, QuotingSearchResults } from "@mojaloop/quoting-bc-public-types-lib";
 import { mockedQuote1, mockedQuote2 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 
@@ -144,7 +157,7 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
         // Arrange
         const quote = mockedQuote1;
 
-        mongoFindOneSpy.mockResolvedValueOnce(null); // Simulate quote not already existing
+        mongoFindOneSpy.mockResolvedValueOnce(null);
         mongoInsertOneSpy.mockResolvedValueOnce({});
 
         // Act
@@ -160,7 +173,7 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
         // Arrange
         const quote: IQuote = mockedQuote1;
 
-        mongoFindOneSpy.mockResolvedValueOnce({}); // Simulate quote already existing
+        mongoFindOneSpy.mockResolvedValueOnce({});
 
         // Act
         await expect(mongoQuotesRepo.addQuote(quote)).rejects.toThrow(QuoteAlreadyExistsError);
@@ -661,7 +674,7 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
             [Symbol.asyncIterator]: jest.fn(() => ({
                 next: jest.fn()
                     .mockResolvedValueOnce({ value: amountTypeResult, done: false })
-                    .mockResolvedValueOnce({ done: true }), // End of result
+                    .mockResolvedValueOnce({ done: true }), 
             })),
         });
 
@@ -669,7 +682,7 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
             [Symbol.asyncIterator]: jest.fn(() => ({
                 next: jest.fn()
                     .mockResolvedValueOnce({ value: transactionTypeResult, done: false })
-                    .mockResolvedValueOnce({ done: true }), // End of result
+                    .mockResolvedValueOnce({ done: true }), 
             })),
         });
 

@@ -40,7 +40,6 @@ import { IAuthenticatedHttpRequester } from '@mojaloop/security-bc-public-types-
 import { GetAccountLookupAdapterError } from '../../src/errors';
 
 const BASE_URL_ACCOUNT_LOOKUP_CLIENT: string = "http://localhost:1234";
-const FAKE_TOKEN = "fakeToken";
 
 const participantLookUpSpy = jest.fn();
 const participantBulkLookUpSpy = jest.fn();

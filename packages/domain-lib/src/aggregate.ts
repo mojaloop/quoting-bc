@@ -30,6 +30,8 @@
  --------------
 **/
 
+"use strict"
+
 import {
     BulkQuoteAcceptedEvt,
     BulkQuoteAcceptedEvtPayload,
@@ -67,7 +69,6 @@ import {
     QuoteBCMissingMessageNameErrorEvent,
     QuoteBCInvalidMessagePayloadErrorPayload,
     QuoteBCInvalidMessageTypeErrorEvent,
-    QuoteBCInvalidMessageTypeErrorPayload,
     QuoteBCInvalidRequesterFspIdErrorEvent,
     QuoteBCInvalidRequesterFspIdErrorPayload,
     QuoteBCQuoteExpiredErrorEvent,
@@ -90,14 +91,8 @@ import {
     QuoteBCRequiredRequesterParticipantIsNotActiveErrorPayload,
     QuoteBCUnableToAddBulkQuoteToDatabaseErrorEvent,
     QuoteBCUnableToAddBulkQuoteToDatabaseErrorPayload,
-    QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
-    QuoteBCUnableToAddQuoteToDatabaseErrorPayload,
     QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent,
     QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload,
-    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
-    QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload,
-    QuoteBCUnknownErrorEvent,
-    QuoteBCUnknownErrorPayload,
     QuoteBCUnableToStoreQuotesInDatabasePayload,
     QuoteBCUnableToStoreQuotesInDatabaseEvent,
     QuoteQueryReceivedEvt,
@@ -105,22 +100,14 @@ import {
     QuoteQueryResponseEvtPayload,
     QuoteRequestAcceptedEvt,
     QuoteRequestAcceptedEvtPayload,
-    QuoteRequestReceivedEvt,
     QuoteResponseAccepted,
     QuoteResponseAcceptedEvtPayload,
-    QuoteResponseReceivedEvt,
     QuoteBCUnableToGetQuoteFromDatabaseErrorEvent,
     QuoteBCUnableToGetBulkQuoteFromDatabaseErrorEvent,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {
     BulkQuoteNotFoundError,
-    InvalidMessagePayloadError,
-    InvalidMessageTypeError,
-    UnableToAddBatchQuoteError,
     UnableToAddBulkQuoteError,
-    UnableToGetBatchQuotesError,
-    UnableToUpdateBatchQuotesError,
-    UnableToUpdateBulkQuoteError,
 } from "./errors";
 import {
     CommandMsg,
@@ -151,9 +138,17 @@ import {
 import { BulkQuote, Quote } from "./entities";
 import { Currency } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {ICounter, IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { QueryReceivedBulkQuoteCmd, QueryReceivedQuoteCmd, RejectedBulkQuoteCmd, RejectedQuoteCmd, RequestReceivedBulkQuoteCmd, RequestReceivedQuoteCmd, ResponseReceivedBulkQuoteCmd, ResponseReceivedQuoteCmd } from "./commands";
+import { 
+    QueryReceivedBulkQuoteCmd,
+    QueryReceivedQuoteCmd,
+    RejectedBulkQuoteCmd,
+    RejectedQuoteCmd,
+    RequestReceivedBulkQuoteCmd,
+    RequestReceivedQuoteCmd,
+    ResponseReceivedBulkQuoteCmd,
+    ResponseReceivedQuoteCmd 
+} from "./commands";
 
-("use strict");
 
 export class QuotingAggregate {
     private readonly _logger: ILogger;

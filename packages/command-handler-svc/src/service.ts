@@ -149,7 +149,7 @@ const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"]=== "true" )? true : 
 const ACCOUNT_LOOKUP_HTTP_CLIENT_TIMEOUT_MS = 10_000;
 
 // TODO: Replace this with the commented values once updated on security-bc
-const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-quoting-svc";
+const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-command-handler-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 export class Service {

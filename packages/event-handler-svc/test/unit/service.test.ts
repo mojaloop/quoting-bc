@@ -56,18 +56,18 @@ const metricsMock: IMetrics = new MetricsMock();
 
 jest.mock('@mojaloop/platform-configuration-bc-client-lib', () => {
     const mockGlobalConfigs = {
-        getCurrencies: jest.fn(() => ['USD', 'EUR', 'GBP']) // Mocking the getCurrencies method
+        getCurrencies: jest.fn(() => ['USD', 'EUR', 'GBP'])
     };
 
     return {
         DefaultConfigProvider: jest.fn().mockImplementation(() => ({
         })),
         ConfigurationClient: jest.fn().mockImplementation(() => ({
-            init: jest.fn().mockResolvedValue(true), // Mocking the init method
-            bootstrap: jest.fn().mockResolvedValue(true), // Mocking the bootstrap method
-            fetch: jest.fn().mockResolvedValue(true), // Mocking the fetch method
-            destroy: jest.fn().mockResolvedValue(true), // Mocking the fetch method
-            globalConfigs: mockGlobalConfigs // Assigning the mocked globalConfigs
+            init: jest.fn().mockResolvedValue(true), 
+            bootstrap: jest.fn().mockResolvedValue(true), 
+            fetch: jest.fn().mockResolvedValue(true), 
+            destroy: jest.fn().mockResolvedValue(true),
+            globalConfigs: mockGlobalConfigs
         }))
     };
 });

@@ -338,6 +338,14 @@ export class Service {
             this.logger.debug("Tearing down audit client");
             await this.auditClient.destroy();
         }
+        if (this.quotesRepo) {
+            this.logger.debug("Tearing down quotes repository");
+            await this.quotesRepo.destroy();
+        }
+        if (this.bulkQuotesRepo) {
+            this.logger.debug("Tearing down bulk quotes repository");
+            await this.bulkQuotesRepo.destroy();
+        }
         if (this.logger && this.logger instanceof KafkaLogger) {
             await (this.logger as KafkaLogger).destroy();
         }

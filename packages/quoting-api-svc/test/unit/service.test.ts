@@ -44,7 +44,6 @@ import { LocalAuditClientCryptoProvider } from "@mojaloop/auditing-bc-client-lib
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
 
-
 const mockedAuditService = new MemoryAuditService(logger);
 
 const mockedQuotesRepository: IQuoteRepo = new MemoryQuoteRepo(logger);
@@ -54,27 +53,6 @@ const mockedBulkQuotesRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logge
 const mockedConfigProvider: IConfigProvider = new MemoryConfigProvider(logger);
 
 const metricsMock: IMetrics = new MetricsMock();
-
-const expressListenSpy = jest.fn();
-
-const expressAppMock = {
-    listen: expressListenSpy,
-    use: jest.fn(),
-    get: jest.fn()
-}
-jest.doMock('express', () => {
-    return () => {
-      return expressAppMock
-    }
-})
-
-jest.mock('mongodb', () => ({
-    ...jest.requireActual('mongodb'),
-    insertOne: () => { 
-        debugger
-        throw Error(); 
-    }
-}));
 
 const configurationClientInitSpy = jest.fn();
 const configurationClientBootstrapSpy = jest.fn();
@@ -99,11 +77,74 @@ jest.mock('@mojaloop/platform-configuration-bc-client-lib', () => {
     };
 });
 
+const expressListenSpy = jest.fn();
 
-jest.mock('@mojaloop/security-bc-client-lib');
+const expressAppMock = {
+    listen: expressListenSpy,
+    use: jest.fn(),
+    get: jest.fn()
+}
+jest.doMock('express', () => {
+    return () => {
+      return expressAppMock
+    }
+})
+
+jest.doMock('express', () => {
+    return () => {
+      return expressAppMock
+    }
+})
+
+const mongoConnectSpy = jest.fn();
+const mongoCloseSpy = jest.fn();
+const mongoFindOneSpy = jest.fn();
+const mongoInsertOneSpy = jest.fn();
+const mongoInsertManySpy = jest.fn();
+const mongoBulkWriteSpy = jest.fn();
+const mongoUpdateOneSpy = jest.fn();
+const mongoDeleteOneSpy = jest.fn();
+const mongoToArraySpy = jest.fn();
+const mongoFindSpy = jest.fn().mockImplementation(() => ({
+    toArray: mongoToArraySpy,
+}))
+const mongoCountDocumentsSpy = jest.fn();
+const mongoAggregateSpy = jest.fn();
+
+const mongoCollectionSpy = jest.fn().mockImplementation(() => ({
+    findOne: mongoFindOneSpy,
+    insertOne: mongoInsertOneSpy,
+    insertMany: mongoInsertManySpy,
+    bulkWrite: mongoBulkWriteSpy,
+    updateOne: mongoUpdateOneSpy,
+    deleteOne: mongoDeleteOneSpy,
+    find: mongoFindSpy,
+    countDocuments: mongoCountDocumentsSpy,
+    aggregate: mongoAggregateSpy,
+}));
+
+jest.mock('mongodb', () => {
+    const mockCollection = jest.fn().mockImplementation(() => ({
+        findOne: mongoFindOneSpy
+    }));
+
+    return {
+        MongoClient: jest.fn().mockImplementation(() => ({
+            connect: mongoConnectSpy,
+            close: mongoCloseSpy,
+            db: jest.fn().mockImplementation(() => ({
+                collection: mongoCollectionSpy
+            })),
+        })),
+        Collection: mockCollection,
+    };
+});
+
+
 jest.mock('@mojaloop/auditing-bc-client-lib');
-
-jest.setTimeout(15000);
+jest.mock('@mojaloop/auditing-bc-client-lib');
+jest.mock('@mojaloop/platform-shared-lib-nodejs-kafka-client-lib');
+jest.mock('@mojaloop/security-bc-client-lib');
 
 describe('API Service - Unit Tests for QuotingBC API Service', () => {
 
@@ -136,26 +177,26 @@ describe('API Service - Unit Tests for QuotingBC API Service', () => {
 
     });
 
-    // test("should create instance on runtime and also teardown all of them", async()=>{
-    //     // Arrange
-    //     const loggerConstructorInitSpy = jest.spyOn(KafkaLogger.prototype, 'init');
-    //     const loggerConstructorDestroySpy = jest.spyOn(KafkaLogger.prototype, 'destroy');
+    test("should create instance on runtime and also teardown all of them", async()=>{
+        // Arrange
+        const loggerConstructorInitSpy = jest.spyOn(KafkaLogger.prototype, 'init');
+        const loggerConstructorDestroySpy = jest.spyOn(KafkaLogger.prototype, 'destroy');
 
-    //     const auditClientConstructorInitSpy = jest.spyOn(LocalAuditClientCryptoProvider, 'createRsaPrivateKeyFileSync');
+        const auditClientConstructorInitSpy = jest.spyOn(LocalAuditClientCryptoProvider, 'createRsaPrivateKeyFileSync');
 
-    //     // Act
-    //     await Service.start();
+        // Act
+        await Service.start();
 
-    //     // Assert Init
-    //     expect(loggerConstructorInitSpy).toHaveBeenCalledTimes(1);
-    //     expect(auditClientConstructorInitSpy).toHaveBeenCalledTimes(1);
+        // Assert Init
+        expect(loggerConstructorInitSpy).toHaveBeenCalledTimes(1);
+        expect(auditClientConstructorInitSpy).toHaveBeenCalledTimes(1);
 
-    //     // Cleanup
-    //     await Service.stop();
+        // Cleanup
+        await Service.stop();
 
-    //     // Assert Cleanup
-    //     expect(loggerConstructorDestroySpy).toHaveBeenCalledTimes(1);
+        // Assert Cleanup
+        expect(loggerConstructorDestroySpy).toHaveBeenCalledTimes(1);
 
-    // });
+    });
 });
 
