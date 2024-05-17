@@ -68,3 +68,15 @@ export class UnableToGetBatchQuotesError extends Error {
         super(message);
     }
 }
+
+// Message Producer
+export class InvalidMessagePayloadError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid message payload");
+    }
+}
+export class InvalidMessageTypeError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid message type");
+    }
+}

@@ -41,24 +41,23 @@ import {
     currencyList,
 } from "../utils/mocked_variables";
 import { QuotingAggregate } from "./../../src/aggregate";
-import { IMessage } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { CommandMsg, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
-    createMessage,
+    createCommand,
     createQuoteQueryReceivedEvtPayload,
     createQuoteQueryRejectedEvtPayload,
     createQuoteRequestReceivedEvtPayload,
     createQuoteResponseReceivedEvtPayload,
 } from "../utils/helpers";
 import {
-    QuoteRejectedEvt,
     QuoteBCDestinationParticipantNotFoundErrorEvent,
     QuoteBCDestinationParticipantNotFoundErrorPayload,
     QuoteBCInvalidDestinationFspIdErrorEvent,
     QuoteBCInvalidDestinationFspIdErrorPayload,
     QuoteBCInvalidMessagePayloadErrorEvent,
     QuoteBCInvalidMessagePayloadErrorPayload,
-    QuoteBCInvalidMessageTypeErrorEvent,
-    QuoteBCInvalidMessageTypeErrorPayload,
+    QuoteBCMissingMessageNameErrorEventPayload,
+    QuoteBCMissingMessageNameErrorEvent,
     QuoteBCInvalidRequesterFspIdErrorEvent,
     QuoteBCInvalidRequesterFspIdErrorPayload,
     QuoteBCQuoteExpiredErrorEvent,
@@ -83,20 +82,26 @@ import {
     QuoteBCRequiredRequesterParticipantIsNotActiveErrorPayload,
     QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent,
     QuoteBCRequiredRequesterParticipantIsNotApprovedErrorPayload,
-    QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
-    QuoteBCUnableToAddQuoteToDatabaseErrorPayload,
-    QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent,
-    QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload,
-    QuoteQueryReceivedEvt,
-    QuoteRequestReceivedEvt,
-    QuoteResponseReceivedEvt,
+    QuoteBCUnableToStoreQuotesInDatabasePayload,
+    QuoteBCUnableToStoreQuotesInDatabaseEvent,
+    QuoteRequestAcceptedEvt,
+    QuoteResponseAccepted,
+    QuoteBCUnableToGetQuoteFromDatabaseErrorEvent,
+    QuoteBCUnableToGetQuoteFromDatabaseErrorPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { IQuoteSchemeRules, QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
+import { QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
 import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
 import { Currency } from "@mojaloop/platform-configuration-bc-public-types-lib";
+import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { QueryReceivedQuoteCmd, RejectedQuoteCmd, RequestReceivedQuoteCmd, ResponseReceivedQuoteCmd } from "../../src/commands";
 
 let aggregate: QuotingAggregate;
+
+const metricsMock: IMetrics = new MetricsMock();
+
+const PASS_THROUGH_MODE = true;
+const PASS_THROUGH_MODE_FALSE = false;
 
 describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
     beforeAll(async () => {
@@ -107,8 +112,9 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            true,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE,
+            currencyList,
         );
     });
 
@@ -130,32 +136,31 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             requesterFspId,
             destinationFspId,
         };
-        const message: IMessage = createMessage(
-            payload,
-            QuoteRequestReceivedEvt.name,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            RequestReceivedQuoteCmd.name, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
         const responsePayload: QuoteBCInvalidMessagePayloadErrorPayload = {
-            quoteId: null,
-            bulkQuoteId: null,
             errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_PAYLOAD,
-            requesterFspId,
         };
 
         jest.spyOn(messageProducer, "send");
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidMessagePayloadErrorEvent.name,
-            })
+            })]
         );
     });
 
+   
     it("should publish error event if message validation fails for message name", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
@@ -166,31 +171,30 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             requesterFspId,
             destinationFspId,
         };
-        const message: IMessage = createMessage(
-            payload,
-            undefined as any,
-            fspiopOpaqueState
+        const command: CommandMsg = createCommand(
+            payload, 
+            undefined as any, 
+            fspiopOpaqueState, 
+            MessageTypes.COMMAND
         );
-        const responsePayload: QuoteBCInvalidMessageTypeErrorPayload = {
-            quoteId: mockedQuote.quoteId,
-            bulkQuoteId: null,
-            errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_TYPE,
-            requesterFspId,
+        const responsePayload: QuoteBCMissingMessageNameErrorEventPayload = {
+            errorCode: QuotingErrorCodeNames.INVALID_MESSAGE_NAME,
         };
 
         jest.spyOn(messageProducer, "send");
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
-                msgName: QuoteBCInvalidMessageTypeErrorEvent.name,
-            })
+                msgName: QuoteBCMissingMessageNameErrorEvent.name,
+            })]
         );
     });
+    
 
     //#region handleQuoteRequestReceivedEvt
     test("handleQuoteRequestReceivedEvent - should send error event if requesterFspId is null or undefined", async () => {
@@ -206,13 +210,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                 },
             },
         });
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId: null as any,
                 destinationFspId: mockedQuote.payee.partyIdInfo.fspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
@@ -225,14 +230,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         jest.spyOn(messageProducer, "send");
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -242,13 +247,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCRequesterParticipantNotFoundErrorPayload =
@@ -266,14 +272,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         ).mockRejectedValueOnce(new Error("Error"));
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCRequesterParticipantNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -283,14 +289,16 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
+
 
         const responsePayload: QuoteBCRequesterParticipantNotFoundErrorPayload =
             {
@@ -307,14 +315,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         ).mockRejectedValueOnce(null);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCRequesterParticipantNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -325,14 +333,16 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
         const fakeParticipantId = "some other fsp id";
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
+
 
         const responsePayload: QuoteBCRequiredRequesterParticipantIdMismatchErrorPayload =
             {
@@ -354,15 +364,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         } as IParticipant);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName:
                     QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -372,14 +382,16 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
+
 
         const responsePayload: QuoteBCRequiredRequesterParticipantIsNotActiveErrorPayload =
             {
@@ -401,15 +413,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         } as IParticipant);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName:
                     QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -419,13 +431,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCRequiredRequesterParticipantIsNotApprovedErrorPayload =
@@ -448,15 +461,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         } as IParticipant);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName:
                     QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -474,13 +487,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             },
         ]
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload =
@@ -507,19 +521,20 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            true,
-            newCurrencyList
+            metricsMock,
+            PASS_THROUGH_MODE,
+            newCurrencyList,
         );
 
         // Act
-        await aggregateWithDifferentSchema.handleQuotingEvent(message);
+        await aggregateWithDifferentSchema.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -538,13 +553,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             },
         });
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId: null,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -572,14 +588,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         ).mockRejectedValueOnce(new Error("Error"));
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -598,13 +614,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             },
         });
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId: mockedQuote.payer.partyIdInfo.fspId,
                 destinationFspId: null,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -632,17 +649,17 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         ).mockResolvedValueOnce(null);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
-            })
+            })]
         );
     });
-
+ 
     test("handleQuoteRequestReceivedEvent - should send error event if destination fspId not found on participant service due to an error", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
@@ -650,13 +667,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCDestinationParticipantNotFoundErrorPayload =
@@ -679,17 +697,17 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             .mockRejectedValueOnce(new Error("Error"));
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCDestinationParticipantNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
-
+   
     test("handleQuoteRequestReceivedEvent - should send error event if destination fspId not found on participant service", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
@@ -697,13 +715,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCDestinationParticipantNotFoundErrorPayload =
@@ -726,14 +745,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             .mockResolvedValueOnce(null);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCDestinationParticipantNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -745,13 +764,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
         const mismatchDestinationFspId = "some other fsp id";
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCRequiredDestinationParticipantIdMismatchErrorPayload =
@@ -779,15 +799,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             } as IParticipant);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName:
                     QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -798,13 +818,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCRequiredDestinationParticipantIsNotApprovedErrorPayload =
@@ -832,15 +853,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             } as IParticipant);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName:
                     QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -851,13 +872,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCRequiredDestinationParticipantIsNotActiveErrorPayload =
@@ -885,15 +907,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             } as IParticipant);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName:
                     QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -908,13 +930,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             expiration: surpassedExpiration,
         });
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCQuoteExpiredErrorPayload = {
@@ -940,14 +963,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             } as IParticipant);
 
         // Act
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCQuoteExpiredErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -958,18 +981,18 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRequestReceivedEvt.name,
+            RequestReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
-        const responsePayload: QuoteBCUnableToAddQuoteToDatabaseErrorPayload = {
-            errorCode: QuotingErrorCodeNames.UNABLE_TO_ADD_QUOTE,
-            quoteId: mockedQuote.quoteId,
+        const responsePayload: QuoteBCUnableToStoreQuotesInDatabasePayload = {
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_STORE_QUOTES,
         };
 
         jest.spyOn(messageProducer, "send");
@@ -988,7 +1011,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                 approved: true,
             } as IParticipant);
 
-        jest.spyOn(quoteRepo, "addQuote").mockRejectedValueOnce(
+        jest.spyOn(quoteRepo, "storeQuotes").mockRejectedValueOnce(
             new Error("Error")
         );
 
@@ -999,19 +1022,22 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
         );
 
         // Act
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
+                msgName: QuoteRequestAcceptedEvt.name,
+            }),expect.objectContaining({
                 payload: responsePayload,
-                msgName: QuoteBCUnableToAddQuoteToDatabaseErrorEvent.name,
-            })
+                msgName: QuoteBCUnableToStoreQuotesInDatabaseEvent.name,
+            })]
         );
     });
 
@@ -1032,13 +1058,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             },
         ];
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteResponseReceivedEvt.name,
+            ResponseReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload =
@@ -1055,31 +1082,31 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                 messageProducer,
                 participantService,
                 accountLookupService,
-                false,
-                invalidCurrencyList
+                metricsMock,
+                PASS_THROUGH_MODE_FALSE,
+                invalidCurrencyList,
             );
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
+            mockedQuote
+        );
 
         jest.spyOn(messageProducer, "send");
 
-        jest.spyOn(quoteRepo, "updateQuote").mockResolvedValueOnce();
+        jest.spyOn(quoteRepo, "storeQuotes");
 
         // Act
-
-        await aggregateWithDifferentSchemaAndPassthroughModeDisabled.handleQuotingEvent(
-            message
+        await aggregateWithDifferentSchemaAndPassthroughModeDisabled.processCommandBatch(
+            [command]
         );
 
         // Assert
-        expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
-            expect.objectContaining({
-                status: QuoteState.REJECTED,
-            })
-        );
+        expect(quoteRepo.storeQuotes).toHaveBeenCalled();
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1098,14 +1125,16 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             },
         });
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteResponseReceivedEvt.name,
+            ResponseReceivedQuoteCmd.name,
             {
                 requesterFspId: null as any,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
+
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
             errorCode: QuotingErrorCodeNames.INVALID_SOURCE_PARTICIPANT,
@@ -1121,29 +1150,31 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
         );
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(mockedQuote);
 
         jest.spyOn(messageProducer, "send");
 
-        jest.spyOn(quoteRepo, "updateQuote").mockResolvedValueOnce();
+        jest.spyOn(quoteRepo, "storeQuotes");
 
         // Act
-
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
+        expect(quoteRepo.storeQuotes).toHaveBeenCalledWith([
             expect.objectContaining({
                 status: QuoteState.REJECTED,
             })
-        );
+        ]);
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1162,13 +1193,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             },
         });
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteResponseReceivedEvt.name,
+            ResponseReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId: null as any,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -1185,13 +1217,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
         );
 
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(mockedQuote);
+        
         jest.spyOn(messageProducer, "send");
-
-        jest.spyOn(quoteRepo, "updateQuote").mockResolvedValueOnce();
 
         jest.spyOn(
             participantService,
@@ -1203,21 +1236,22 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             approved: true,
         } as IParticipant);
 
-        // Act
+        jest.spyOn(quoteRepo, "storeQuotes");
 
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        // Act
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
+        expect(quoteRepo.storeQuotes).toHaveBeenCalledWith([
             expect.objectContaining({
                 status: QuoteState.REJECTED,
             })
-        );
+        ]);
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1232,13 +1266,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             expiration: surpassedExpiration,
         });
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteResponseReceivedEvt.name,
+            ResponseReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCQuoteExpiredErrorPayload = {
@@ -1254,13 +1289,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
         );
 
-        jest.spyOn(messageProducer, "send");
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(mockedQuote);
 
-        jest.spyOn(quoteRepo, "updateQuote").mockResolvedValueOnce();
+        jest.spyOn(messageProducer, "send");
 
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
@@ -1276,24 +1312,26 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                 approved: true,
             } as IParticipant);
 
-        // Act
+        jest.spyOn(quoteRepo, "storeQuotes");
 
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        // Act
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(quoteRepo.updateQuote).toHaveBeenCalledWith(
+        expect(quoteRepo.storeQuotes).toHaveBeenCalledWith([
             expect.objectContaining({
                 status: QuoteState.EXPIRED,
             })
-        );
+        ]);
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCQuoteExpiredErrorEvent.name,
-            })
+            })]
         );
     });
 
+  
     test("handleQuoteResponseReceivedEvent - should send error event if cant update the quote status", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
@@ -1301,20 +1339,19 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteResponseReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteResponseReceivedEvt.name,
+            ResponseReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
-        const responsePayload: QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload =
-            {
-                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_QUOTE,
-                quoteId: mockedQuote.quoteId,
-            };
+        const responsePayload: QuoteBCUnableToStoreQuotesInDatabasePayload = {
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_STORE_QUOTES,
+        };
 
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
@@ -1323,10 +1360,13 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
         );
 
+        jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(mockedQuote);
+        
         jest.spyOn(messageProducer, "send");
 
         jest.spyOn(quoteRepo, "updateQuote").mockRejectedValueOnce(new Error());
@@ -1345,16 +1385,21 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                 approved: true,
             } as IParticipant);
 
+        jest.spyOn(quoteRepo, "storeQuotes").mockRejectedValueOnce(
+            new Error("Error")
+        );
+        
         // Act
-
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
+                msgName: QuoteResponseAccepted.name,
+            }),expect.objectContaining({
                 payload: responsePayload,
-                msgName: QuoteBCUnableToUpdateQuoteInDatabaseErrorEvent.name,
-            })
+                msgName: QuoteBCUnableToStoreQuotesInDatabaseEvent.name,
+            })]
         );
     });
 
@@ -1367,13 +1412,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteQueryReceivedEvt.name,
+            QueryReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
@@ -1389,14 +1435,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1406,13 +1452,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = null;
         const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteQueryReceivedEvt.name,
+            QueryReceivedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -1438,14 +1485,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1456,14 +1503,16 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteQueryReceivedEvt.name,
+            QueryReceivedQuoteCmd.name,
             {
                 requesterFspId: mockedQuote.payer.partyIdInfo.fspId,
                 destinationFspId: mockedQuote.payee.partyIdInfo.fspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
+
 
         const responsePayload: QuoteBCQuoteNotFoundErrorPayload = {
             errorCode: QuotingErrorCodeNames.QUOTE_NOT_FOUND,
@@ -1490,17 +1539,17 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCQuoteNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
-
+  
     test("handleQuoteQueryReceivedEvent - should send error event if quote is not found on database and passthrough mode is disabled", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
@@ -1508,13 +1557,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteQueryReceivedEvt.name,
+            QueryReceivedQuoteCmd.name,
             {
                 requesterFspId: mockedQuote.payer.partyIdInfo.fspId,
                 destinationFspId: mockedQuote.payee.partyIdInfo.fspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCQuoteNotFoundErrorPayload = {
@@ -1529,8 +1579,9 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
         );
 
         jest.spyOn(messageProducer, "send");
@@ -1553,14 +1604,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCQuoteNotFoundErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1571,17 +1622,18 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteQueryReceivedEvt.name,
+            QueryReceivedQuoteCmd.name,
             {
                 requesterFspId: mockedQuote.payer.partyIdInfo.fspId,
                 destinationFspId: mockedQuote.payee.partyIdInfo.fspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
-        const responsePayload: QuoteBCQuoteNotFoundErrorPayload = {
-            errorCode: QuotingErrorCodeNames.QUOTE_NOT_FOUND,
+        const responsePayload: QuoteBCUnableToGetQuoteFromDatabaseErrorPayload = {
+            errorCode: QuotingErrorCodeNames.UNABLE_TO_GET_QUOTE,
             quoteId: mockedQuote.quoteId,
         };
 
@@ -1592,8 +1644,9 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             messageProducer,
             participantService,
             accountLookupService,
-            false,
-            currencyList
+            metricsMock,
+            PASS_THROUGH_MODE_FALSE,
+            currencyList,
         );
 
         jest.spyOn(messageProducer, "send");
@@ -1618,14 +1671,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregateWithoutPassthroughMode.handleQuotingEvent(message);
+        await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
-                msgName: QuoteBCQuoteNotFoundErrorEvent.name,
-            })
+                msgName: QuoteBCUnableToGetQuoteFromDatabaseErrorEvent.name,
+            })]
         );
     });
 
@@ -1638,13 +1691,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteQueryRejectedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRejectedEvt.name,
+            RejectedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
@@ -1658,14 +1712,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidRequesterFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 
@@ -1675,13 +1729,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const destinationFspId = null;
         const payload = createQuoteQueryRejectedEvtPayload(mockedQuote);
 
-        const message: IMessage = createMessage(
+        const command: CommandMsg = createCommand(
             payload,
-            QuoteRejectedEvt.name,
+            RejectedQuoteCmd.name,
             {
                 requesterFspId,
                 destinationFspId,
-            }
+            },
+            MessageTypes.COMMAND
         );
 
         const responsePayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
@@ -1705,14 +1760,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         // Act
 
-        await aggregate.handleQuotingEvent(message);
+        await aggregate.processCommandBatch([command]);
 
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
-            expect.objectContaining({
+            [expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
-            })
+            })]
         );
     });
 

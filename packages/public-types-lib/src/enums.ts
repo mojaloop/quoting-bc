@@ -44,6 +44,8 @@ type QuotingErrorCodeKeys = keyof typeof QuotingErrorCodes;
 export const QuotingErrorCodes = {
     COMMAND_TYPE_UNKNOWN: "Command type is unknown",
     INVALID_MESSAGE_PAYLOAD: "Invalid message payload",
+    INVALID_MESSAGE_NAME: "Invalid message name",
+    MESSAGE_TYPE_NOT_COMMAND: "Can't handle non command message",
     INVALID_MESSAGE_TYPE: "Invalid message type",
     INVALID_BULK_QUOTE_LENGTH: "Invalid bulk quote length",
     RULE_SCHEME_VIOLATED_RESPONSE: "Quote request scheme validation failed",
@@ -51,7 +53,9 @@ export const QuotingErrorCodes = {
     DUPLICATE_QUOTE: "Duplicate quote",
     DUPLICATE_BULK_QUOTE: "Duplicate bulk quote",
     UNABLE_TO_ADD_QUOTE: "Unable to add quote",
+    UNABLE_TO_GET_QUOTE: "Unable to get quote",
     UNABLE_TO_ADD_BULK_QUOTE: "Unable to add bulk quote",
+    UNABLE_TO_GET_BULK_QUOTE: "Unable to get bulk quote",
     UNABLE_TO_UPDATE_QUOTE: "Unable to update quote",
     UNABLE_TO_UPDATE_BULK_QUOTE: "Unable to update bulk quote",
     QUOTE_NOT_FOUND: "Quote not found",
@@ -68,7 +72,8 @@ export const QuotingErrorCodes = {
     REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH: "Payee participant id mismatch",
     REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED: "Payee participant not approved",
     REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE: "Payee participant not approved",
-    INDIVIDUAL_QUOTES_NOT_FOUND: "Individual quotes for bulk quote not found"
+    INDIVIDUAL_QUOTES_NOT_FOUND: "Individual quotes for bulk quote not found",
+    UNABLE_TO_STORE_QUOTES: "Unable to store quotes in database"
 } as const;
 
 export const QuotingErrorCodeNames: {
@@ -76,6 +81,8 @@ export const QuotingErrorCodeNames: {
   } = {
     COMMAND_TYPE_UNKNOWN: "COMMAND_TYPE_UNKNOWN",
     INVALID_MESSAGE_PAYLOAD: "INVALID_MESSAGE_PAYLOAD",
+    INVALID_MESSAGE_NAME: "INVALID_MESSAGE_NAME",
+    MESSAGE_TYPE_NOT_COMMAND: "MESSAGE_TYPE_NOT_COMMAND",
     INVALID_MESSAGE_TYPE: "INVALID_MESSAGE_TYPE",
     INVALID_BULK_QUOTE_LENGTH: "INVALID_BULK_QUOTE_LENGTH",
     RULE_SCHEME_VIOLATED_RESPONSE: "RULE_SCHEME_VIOLATED_RESPONSE",
@@ -83,7 +90,9 @@ export const QuotingErrorCodeNames: {
     DUPLICATE_QUOTE: "DUPLICATE_QUOTE",
     DUPLICATE_BULK_QUOTE: "DUPLICATE_BULK_QUOTE",
     UNABLE_TO_ADD_QUOTE: "UNABLE_TO_ADD_QUOTE",
+    UNABLE_TO_GET_QUOTE: "UNABLE_TO_GET_QUOTE",
     UNABLE_TO_ADD_BULK_QUOTE: "UNABLE_TO_ADD_BULK_QUOTE",
+    UNABLE_TO_GET_BULK_QUOTE: "UNABLE_TO_GET_BULK_QUOTE",
     UNABLE_TO_UPDATE_QUOTE: "UNABLE_TO_UPDATE_QUOTE",
     UNABLE_TO_UPDATE_BULK_QUOTE: "UNABLE_TO_UPDATE_BULK_QUOTE",
     QUOTE_NOT_FOUND: "QUOTE_NOT_FOUND",
@@ -100,5 +109,6 @@ export const QuotingErrorCodeNames: {
     REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH: "REQUIRED_DESTINATION_PARTICIPANT_ID_MISMATCH",
     REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED: "REQUIRED_DESTINATION_PARTICIPANT_NOT_APPROVED",
     REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE: "REQUIRED_DESTINATION_PARTICIPANT_NOT_ACTIVE",
-    INDIVIDUAL_QUOTES_NOT_FOUND: "INDIVIDUAL_QUOTES_NOT_FOUND"
+    INDIVIDUAL_QUOTES_NOT_FOUND: "INDIVIDUAL_QUOTES_NOT_FOUND",
+    UNABLE_TO_STORE_QUOTES: "UNABLE_TO_STORE_QUOTES"
   };

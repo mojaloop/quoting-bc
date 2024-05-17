@@ -31,6 +31,8 @@
 
 "use strict";
 
+/* istanbul ignore file */
+
 export enum QuotingPrivileges {
     VIEW_ALL_QUOTES = "QUOTING_VIEW_ALL_QUOTES",
 }

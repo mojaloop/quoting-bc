@@ -45,6 +45,10 @@ import {
     UnableToAddManyQuotesError,
     UnableToGetQuotesError,
     QuoteNotFoundError,
+    BulkInsertMismatchBetweenRequestAndResponseLength,
+    UnableToBulkInsertQuotesError,
+    UnableToSearchQuotes,
+    UnableToGetQuoteSearchKeywords
 } from "../errors";
 import { IQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
 import { randomUUID } from "crypto";
@@ -74,9 +78,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
                 .db(this._dbName)
                 .collection(this._collectionName);
         } catch (e: unknown) {
-            this._logger.error(
-                `Unable to connect to the database: ${(e as Error).message}`
-            );
+
             throw new UnableToInitQuoteRegistryError(
                 "Unable to connect to quote DB"
             );
@@ -133,6 +135,38 @@ export class MongoQuotesRepo implements IQuoteRepo {
             );
         });
     }
+
+    async storeQuotes(quotes: IQuote[]): Promise<void> {
+		const operations = quotes.map(value => {
+			return {
+				replaceOne: {
+					filter: { quoteId: value.quoteId },
+					replacement: value,
+					upsert: true
+				}
+			};
+		});
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		let updateResult: any;
+		try {
+			updateResult = await this.quotes.bulkWrite(operations);
+
+			if ((updateResult.upsertedCount + updateResult.modifiedCount) !== quotes.length) {
+				this._logger.error("Could not storeQuotes - mismatch between requests length and MongoDb response length");
+                throw new BulkInsertMismatchBetweenRequestAndResponseLength(
+                    "Could not storeQuotes - mismatch between requests length and MongoDb response length"
+                );
+			}
+		} catch (e: unknown) {
+            this._logger.error(
+                `Unable to bulk insert quotes: ${(e as Error).message}`
+            );
+            throw new UnableToBulkInsertQuotesError(
+                "Unable to bulk insert quotes"
+            );
+		}
+	}
 
     async updateQuote(quote: IQuote): Promise<void> {
         const existingQuote = await this.getQuoteById(quote.quoteId);
@@ -363,6 +397,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
             
         } catch (err) {
             this._logger.error(err);
+            throw new UnableToSearchQuotes("Unable to return quotes search");
         }
 
         return Promise.resolve(searchResults);
@@ -401,6 +436,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			}
         } catch (err) {
             this._logger.error(err);
+            throw new UnableToGetQuoteSearchKeywords("Unable to get search quote keywords");
         }
 
         return Promise.resolve(retObj);

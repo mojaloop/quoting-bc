@@ -41,11 +41,6 @@
  "use strict";
 
 // Quotes
-export class QuoteTypeNotSupportedError extends Error {
-  constructor(message: string) {
-    super(message);
-  }
-}
 export class UnableToAddQuoteError extends Error {
     constructor(message: string) {
         super(message);
@@ -95,11 +90,6 @@ export class UnableToAddManyQuotesError extends Error {
 }
 
 // Bulk Quotes
-export class BulkQuoteTypeNotSupportedError extends Error {
-constructor(message: string) {
-    super(message);
-}
-}
 export class UnableToAddBulkQuoteError extends Error {
     constructor(message: string) {
         super(message);
@@ -133,11 +123,6 @@ export class UnableToDeleteBulkQuoteError extends Error {
 }
 
 // Cache
-export class LocalCacheError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
 
 // Database
 export class UnableToCloseDatabaseConnectionError extends Error{
@@ -165,7 +150,25 @@ export class GetAccountLookupAdapterError extends Error {
     }
 }
 
-export class GetBulkAccountLookupAdapterError extends Error {
+export class BulkInsertMismatchBetweenRequestAndResponseLength extends Error{
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class UnableToBulkInsertQuotesError extends Error{
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class UnableToSearchQuotes extends Error{
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class UnableToGetQuoteSearchKeywords extends Error{
     constructor(message: string) {
         super(message);
     }

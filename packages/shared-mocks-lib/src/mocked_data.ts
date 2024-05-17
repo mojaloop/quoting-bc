@@ -702,3 +702,320 @@ export const mockedBulkQuote3: IBulkQuote = {
     status: QuoteState.REJECTED,
     quotesNotProcessedIds: ["3"],
 };
+
+export const mockedQuoteRequestPayload = {
+    quoteId: "quote123",
+    transactionId: "trans123",
+    transactionRequestId: "req123",
+    payee: {
+        partyIdInfo: {
+            partyIdType: "type1",
+            partyIdentifier: "party1",
+            partySubIdOrType: "subType1",
+            fspId: "fsp1",
+        },
+        merchantClassificationCode: "merchant123",
+        name: "payeeName123",
+        personalInfo: {
+            complexName: {
+                firstName: "firstName123",
+                middleName: "middleName123",
+                lastName: "lastName123",
+            },
+            dateOfBirth: "1990-01-01",
+            kycInformation: "kycInfo123",
+        },
+        supportedCurrencies: ["USD", "EUR"],
+    },
+    payer: {
+        partyIdInfo: {
+            partyIdType: "type2",
+            partyIdentifier: "party2",
+            partySubIdOrType: "subType2",
+            fspId: "fsp2",
+        },
+        merchantClassificationCode: "merchant456",
+        name: "payerName123",
+        personalInfo: {
+            complexName: {
+                firstName: "firstName456",
+                middleName: "middleName456",
+                lastName: "lastName456",
+            },
+            dateOfBirth: "1995-01-01",
+            kycInformation: "kycInfo456",
+        },
+        supportedCurrencies: ["USD", "EUR"],
+    },
+    amountType: "SEND",
+    amount: {
+        currency: "USD",
+        amount: "100",
+    },
+    transactionType: {
+        scenario: "scenario123",
+        subScenario: "subScenario123",
+        initiator: "initiator123",
+        initiatorType: "initiatorType123",
+        refundInfo: {
+            originalTransactionId: "originalTransId123",
+            refundReason: "refundReason123",
+        },
+        balanceOfPayments: "balanceOfPayments123",
+    },
+    converter: "converter123",
+    currencyConversion: {
+        sourceAmount: {
+            currency: "USD",
+            amount: "100",
+        },
+        targetAmount: {
+            currency: "EUR",
+            amount: "80",
+        },
+    },
+    fees: {
+        currency: "USD",
+        amount: "5",
+    },
+    geoCode: {
+        latitude: "123.456",
+        longitude: "456.789",
+    },
+    note: "note123",
+    expiration: "2024-05-01",
+    extensionList: {
+        extension: [
+            { key: "key1", value: "value1" },
+            { key: "key2", value: "value2" },
+        ],
+    },
+};
+
+export const mockedQuoteResponsePayload = {
+    quoteId: "quote123",
+    transferAmount: {
+        currency: "USD",
+        amount: "100",
+    },
+    expiration: "2024-05-01",
+    ilpPacket: "ilpPacket123",
+    condition: "condition123",
+    payeeReceiveAmount: {
+        currency: "USD",
+        amount: "95",
+    },
+    payeeFspFee: {
+        currency: "USD",
+        amount: "5",
+    },
+    payeeFspCommission: {
+        currency: "USD",
+        amount: "2",
+    },
+    geoCode: {
+        latitude: "123.456",
+        longitude: "456.789",
+    },
+    extensionList: {
+        extension: [
+            { key: "key1", value: "value1" },
+            { key: "key2", value: "value2" },
+        ],
+    },
+};
+
+export const mockedQuoteQueryPayload = {
+    quoteId: "quote123"
+};
+
+export const quoteRejectedPayload = {
+    quoteId: "quote123",
+    errorInformation: {
+        errorCode: "ERR123",
+        errorDescription: "Quote rejected due to insufficient funds",
+        extensionList: {
+            extension: [
+                { key: "key1", value: "value1" },
+                { key: "key2", value: "value2" },
+            ],
+        },
+    },
+};
+
+export const bulkQuoteRequestedPayload = {
+    bulkQuoteId: "bulkQuote123",
+    payer: {
+        partyIdInfo: {
+            partyIdType: "type1",
+            partyIdentifier: "party1",
+            partySubIdOrType: "subType1",
+            fspId: "fsp1",
+        },
+        merchantClassificationCode: "merchant123",
+        name: "payerName123",
+        personalInfo: {
+            complexName: {
+                firstName: "firstName123",
+                middleName: "middleName123",
+                lastName: "lastName123",
+            },
+            dateOfBirth: "1990-01-01",
+            kycInformation: "kycInfo123",
+        },
+        supportedCurrencies: ["USD", "EUR"],
+    },
+    geoCode: {
+        latitude: "123.456",
+        longitude: "456.789",
+    },
+    expiration: "2024-05-01",
+    individualQuotes: [
+        {
+            quoteId: "quote1",
+            transactionId: "trans1",
+            transactionRequestId: "req1",
+            payee: {
+                partyIdInfo: {
+                    partyIdType: "type2",
+                    partyIdentifier: "party2",
+                    partySubIdOrType: "subType2",
+                    fspId: "fsp2",
+                },
+                merchantClassificationCode: "merchant456",
+                name: "payeeName123",
+                personalInfo: {
+                    complexName: {
+                        firstName: "firstName456",
+                        middleName: "middleName456",
+                        lastName: "lastName456",
+                    },
+                    dateOfBirth: "1995-01-01",
+                    kycInformation: "kycInfo456",
+                },
+                supportedCurrencies: ["USD", "EUR"],
+            },
+            amountType: "SEND",
+            amount: {
+                currency: "USD",
+                amount: "100",
+            },
+            fees: {
+                currency: "USD",
+                amount: "5",
+            },
+            transactionType: {
+                scenario: "scenario123",
+                subScenario: "subScenario123",
+                initiator: "initiator123",
+                initiatorType: "initiatorType123",
+                refundInfo: {
+                    originalTransactionId: "originalTransId123",
+                    refundReason: "refundReason123",
+                },
+                balanceOfPayments: "balanceOfPayments123",
+            },
+            note: "note123",
+            extensionList: {
+                extension: [
+                    { key: "key1", value: "value1" },
+                    { key: "key2", value: "value2" },
+                ],
+            },
+        },
+    ],
+    extensionList: {
+        extension: [
+            { key: "key1", value: "value1" },
+            { key: "key2", value: "value2" },
+        ],
+    },
+};
+
+export const bulkQuotePendingPayload = {
+    bulkQuoteId: "bulkQuote123",
+    individualQuoteResults: [
+        {
+            quoteId: "quote1",
+            payee: {
+                partyIdInfo: {
+                    partyIdType: "type1",
+                    partyIdentifier: "party1",
+                    partySubIdOrType: "subType1",
+                    fspId: "fsp1",
+                },
+                merchantClassificationCode: "merchant123",
+                name: "payeeName123",
+                personalInfo: {
+                    complexName: {
+                        firstName: "firstName123",
+                        middleName: "middleName123",
+                        lastName: "lastName123",
+                    },
+                    dateOfBirth: "1990-01-01",
+                    kycInformation: "kycInfo123",
+                },
+                supportedCurrencies: ["USD", "EUR"],
+            },
+            transferAmount: {
+                currency: "USD",
+                amount: "100",
+            },
+            payeeReceiveAmount: {
+                currency: "USD",
+                amount: "95",
+            },
+            payeeFspFee: {
+                currency: "USD",
+                amount: "5",
+            },
+            payeeFspCommission: {
+                currency: "USD",
+                amount: "2",
+            },
+            ilpPacket: "ilpPacket123",
+            condition: "condition123",
+            errorInformation: {
+                errorCode: "ERR123",
+                errorDescription: "Error occurred during quote processing",
+                extensionList: {
+                    extension: [
+                        { key: "key1", value: "value1" },
+                        { key: "key2", value: "value2" },
+                    ],
+                },
+            },
+            extensionList: {
+                extension: [
+                    { key: "key1", value: "value1" },
+                    { key: "key2", value: "value2" },
+                ],
+            },
+        },
+    ],
+    expiration: "2024-05-01",
+    extensionList: {
+        extension: [
+            { key: "key1", value: "value1" },
+            { key: "key2", value: "value2" },
+        ],
+    },
+};
+
+export const mockedBulkQuoteQueryPayload = {
+    bulkQuoteId: "bulkQuote123"
+};
+
+export const bulkQuoteRejectedPayload = {
+    bulkQuoteId: "bulkQuote123",
+    errorInformation: {
+        errorCode: "ERR123",
+        errorDescription: "Bulk quote rejected due to invalid request",
+        extensionList: {
+            extension: [
+                { key: "key1", value: "value1" },
+                { key: "key2", value: "value2" },
+            ],
+        },
+    },
+};

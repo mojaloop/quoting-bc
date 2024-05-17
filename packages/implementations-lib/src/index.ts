@@ -40,6 +40,8 @@
 
 "use strict";
 
+/* istanbul ignore file */
+
 export * from "./quotes/mongo_quotes_repo";
 export * from "./quotes/mongo_bulk_quotes_repo";
 export * from "./external_adapters/account_lookup_adapter";

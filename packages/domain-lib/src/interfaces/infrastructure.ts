@@ -48,6 +48,9 @@ export interface IQuoteRepo {
   getQuotesByBulkQuoteId(
     id: string
   ): Promise<IQuote[]>;
+
+  storeQuotes(quotes:IQuote[]):Promise<void>;
+
   searchQuotes(
     amountType:string|null,
     transactionType:string|null,
