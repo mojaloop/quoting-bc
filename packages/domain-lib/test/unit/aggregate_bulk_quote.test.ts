@@ -68,14 +68,11 @@ import {
 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { QuotingAggregate } from "../../src/aggregate";
 import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { BulkQuotesCache, QuotesCache } from "@mojaloop/quoting-bc-implementations-lib";
 import { QueryReceivedBulkQuoteCmd, RejectedBulkQuoteCmd, RequestReceivedBulkQuoteCmd, ResponseReceivedBulkQuoteCmd } from "../../src/commands";
 
 let aggregate: QuotingAggregate;
 
 const metricsMock: IMetrics = new MetricsMock();
-const quotesCache = new QuotesCache<IQuote>();
-const bulkQuotesCache = new BulkQuotesCache<IBulkQuote>();
 
 const PASS_THROUGH_MODE = true;
 const PASS_THROUGH_MODE_FALSE = false;
@@ -92,19 +89,10 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
-    });
-
-    beforeEach(async () => {
-        quotesCache.clear();
-        bulkQuotesCache.clear();
     });
     
     afterEach(async () => {
-        quotesCache.clear();
-        bulkQuotesCache.clear();
         jest.restoreAllMocks();
     });
 
@@ -243,7 +231,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 approved: true,
             } as IParticipant);
 
-        jest.spyOn(bulkQuotesCache, "set");
+        jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValueOnce();
 
         jest.spyOn(messageProducer, "send");
 
@@ -251,13 +239,12 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         await aggregate.processCommandBatch([command]);
 
         // Assert
-        expect(bulkQuotesCache.set).toHaveBeenCalled();
-        expect(bulkQuotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.bulkQuoteId,
-            expect.objectContaining({
-                bulkQuoteId: mockedQuote.bulkQuoteId,
-                status: QuoteState.PENDING,
-            })
+        expect(bulkQuoteRepo.updateBulkQuote).toHaveBeenCalled();
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            [expect.objectContaining({
+                msgName: BulkQuoteReceivedEvt.name,
+                payload: payload
+            })]
         );
     });
 
@@ -300,40 +287,20 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             mockedQuote.bulkQuoteId
         );
 
-        jest.spyOn(bulkQuotesCache, "set");
-
-        jest.spyOn(quotesCache, "set");
-
+        jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValue();
+        
         jest.spyOn(messageProducer, "send");
 
         // Act
         await aggregate.processCommandBatch([command]);
 
         // Assert
-        expect(bulkQuotesCache.set).toHaveBeenCalled();
-        expect(bulkQuotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.bulkQuoteId,
-            expect.objectContaining({
-                bulkQuoteId: mockedQuote.bulkQuoteId,
-                status: QuoteState.PENDING,
-            })
-        );
-        expect(quotesCache.set).toHaveBeenCalledTimes(mockedQuote.individualQuotes.length);
-        expect(quotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.individualQuotes[0].quoteId,
-            expect.objectContaining({
-                quoteId: mockedQuote.individualQuotes[0].quoteId,
-                bulkQuoteId: mockedQuote.bulkQuoteId,
-                status: QuoteState.PENDING,
-            }),
-        );
-        expect(quotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.individualQuotes[1].quoteId,
-            expect.objectContaining({
-                quoteId: mockedQuote.individualQuotes[1].quoteId,
-                bulkQuoteId: mockedQuote.bulkQuoteId,
-                status: QuoteState.PENDING,
-            }),
+        expect(bulkQuoteRepo.updateBulkQuote).toHaveBeenCalled();
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            [expect.objectContaining({
+                msgName: BulkQuoteReceivedEvt.name,
+                payload: payload
+            })]
         );
     });
    
@@ -371,10 +338,10 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 approved: true,
             } as IParticipant);
 
-        jest.spyOn(bulkQuotesCache, "set");
-
         jest.spyOn(messageProducer, "send");
 
+        jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValueOnce();
+        
         const aggregateWithPassThrough = new QuotingAggregate(
             logger,
             quoteRepo,
@@ -385,15 +352,19 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             metricsMock,
             PASS_THROUGH_MODE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         // Act
         await aggregateWithPassThrough.processCommandBatch([command]);
 
         // Assert
-        expect(bulkQuotesCache.set).toHaveBeenCalledTimes(0);
+        expect(bulkQuoteRepo.updateBulkQuote).toHaveBeenCalledTimes(0);
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            [expect.objectContaining({
+                msgName: BulkQuoteReceivedEvt.name,
+                payload: payload
+            })]
+        );
     });
 
     test("handleBulkQuoteRequestedEvent - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
@@ -429,8 +400,6 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             accountLookupService,
             "getAccountLookup"
         ).mockResolvedValueOnce("payee");
-
-        jest.spyOn(bulkQuotesCache, "set");
 
         jest.spyOn(quoteRepo, "addQuote").mockResolvedValueOnce(
             "inserted quote id"
@@ -486,8 +455,6 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             MessageTypes.COMMAND
         );
 
-        jest.spyOn(bulkQuotesCache, "set");
-
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
                 id: "payer",
@@ -506,23 +473,24 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             mockedBulkQuote1
         );
 
+        jest.spyOn(bulkQuoteRepo, "addBulkQuote").mockResolvedValueOnce(
+            mockedQuote.bulkQuoteId
+        );
+
+        jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValueOnce();
+
         jest.spyOn(messageProducer, "send");
 
         // Act
         await aggregate.processCommandBatch([command]);
 
         // Assert
-        expect(bulkQuotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.bulkQuoteId,
-            expect.objectContaining({
-                expiration: mockedQuote.expiration,
-                geoCode: mockedQuote.geoCode,
-                bulkQuoteId: mockedQuote.bulkQuoteId,
-                individualQuotes: mockedQuote.individualQuotes,
-                extensionList: mockedQuote.extensionList,
-                quotesNotProcessedIds: ["3", "4"],
-                status: QuoteState.ACCEPTED,
-            })
+        expect(bulkQuoteRepo.updateBulkQuote).toHaveBeenCalled();
+        expect(messageProducer.send).toHaveBeenCalledWith(
+            [expect.objectContaining({
+                msgName: BulkQuoteAcceptedEvt.name,
+                payload: payload
+            })]
         );
     });
      
@@ -552,8 +520,6 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             MessageTypes.COMMAND
         );
 
-        jest.spyOn(bulkQuotesCache, "set");
-
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
                 id: requesterFspId,
@@ -578,8 +544,6 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
             responseQuotes[1]
         );
-
-        jest.spyOn(quotesCache, "set");
 
         jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValue();
 

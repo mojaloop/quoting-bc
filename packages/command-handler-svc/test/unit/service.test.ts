@@ -40,13 +40,8 @@ import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observabili
 import { IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 import { Service } from "../../src/service";
 import { currencyList } from "@mojaloop/quoting-bc-domain-lib/test/utils/mocked_variables";
-import { IBulkQuote, IQuote } from "@mojaloop/quoting-bc-public-types-lib";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { LocalAuditClientCryptoProvider } from "@mojaloop/auditing-bc-client-lib";
-import {
-    QuotesCache,
-    BulkQuotesCache
-} from "@mojaloop/quoting-bc-implementations-lib";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
@@ -69,9 +64,6 @@ const mockedConfigProvider: IConfigProvider = new MemoryConfigProvider(logger);
 
 const metricsMock: IMetrics = new MetricsMock();
 
-const mockedQuotesCache = new QuotesCache<IQuote>();
-const mockedBulkQuotesCache = new BulkQuotesCache<IBulkQuote>();
-
 const PASS_THROUGH_MODE = true;
 
 
@@ -85,8 +77,6 @@ const mockedAggregate: QuotingAggregate = new QuotingAggregate(
     metricsMock,
     PASS_THROUGH_MODE,
     currencyList,
-    mockedQuotesCache,
-    mockedBulkQuotesCache
 );
 
 
@@ -129,7 +119,7 @@ describe('Command Handler - Unit Tests for QuotingBC Command Handler Service', (
 
         // Act
         await Service.start(logger, mockedAuditService, mockedMessageConsumer, mockedMessageProducer, mockedParticipantService, mockedAccountLookupService, mockedQuotesRepository, mockedBulkQuotesRepository,
-            metricsMock, mockedConfigProvider, mockedAggregate, mockedQuotesCache, mockedBulkQuotesCache);
+            metricsMock, mockedConfigProvider, mockedAggregate);
 
         // Assert
         expect(spyConsumerSetTopics).toHaveBeenCalledTimes(1);
@@ -149,7 +139,7 @@ describe('Command Handler - Unit Tests for QuotingBC Command Handler Service', (
 
         // Act
         await Service.start(logger, mockedAuditService, mockedMessageConsumer, mockedMessageProducer, mockedParticipantService, mockedAccountLookupService, mockedQuotesRepository, mockedBulkQuotesRepository,
-            metricsMock, mockedConfigProvider, mockedAggregate, mockedQuotesCache, mockedBulkQuotesCache);
+            metricsMock, mockedConfigProvider, mockedAggregate);
 
         await Service.stop();
 

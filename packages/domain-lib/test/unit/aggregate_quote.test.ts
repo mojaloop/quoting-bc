@@ -45,7 +45,7 @@ import {
     QuoteResponseAcceptedEvtPayload,
     QuoteResponseReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { IMoney, QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
+import { IMoney } from "@mojaloop/quoting-bc-public-types-lib";
 import {
     createCommand,
     createQuoteQueryRejectedEvtPayload,
@@ -68,18 +68,10 @@ import {
 import { QuotingAggregate } from "../../src/aggregate";
 import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { QueryReceivedQuoteCmd, RejectedQuoteCmd, RequestReceivedQuoteCmd, ResponseReceivedQuoteCmd } from "../../src/commands";
-import {
-    QuotesCache,
-    BulkQuotesCache
-} from "@mojaloop/quoting-bc-implementations-lib";
-import { IQuote } from "@mojaloop/quoting-bc-public-types-lib";
-import { IBulkQuote } from "@mojaloop/quoting-bc-public-types-lib";
 
 let aggregate: QuotingAggregate;
 
 const metricsMock: IMetrics = new MetricsMock();
-const quotesCache = new QuotesCache<IQuote>();
-const bulkQuotesCache = new BulkQuotesCache<IBulkQuote>();
 
 const PASS_THROUGH_MODE = true;
 const PASS_THROUGH_MODE_FALSE = false;
@@ -96,8 +88,6 @@ describe("Domain - Unit Tests for Quote Events", () => {
             metricsMock,
             PASS_THROUGH_MODE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
     });
 
@@ -114,7 +104,6 @@ describe("Domain - Unit Tests for Quote Events", () => {
     });
 
     //#region handleQuoteRequestReceivedEvt
-
     test("handleQuoteRequestReceivedEvent - should call getAccountLookup if destination fspId is not provided in opaque state and in quote", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
@@ -278,8 +267,6 @@ describe("Domain - Unit Tests for Quote Events", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -298,20 +285,16 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
         jest.spyOn(messageProducer, "send");
 
-        jest.spyOn(quotesCache, "set");
-
         // Act
         await aggregateWithPassThrough.processCommandBatch([command]);
 
         // Assert
-        expect(quotesCache.set).toHaveBeenCalled();
-        expect(quotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.quoteId,
+        expect(messageProducer.send).toHaveBeenCalledWith([
             expect.objectContaining({
-                quoteId: mockedQuote.quoteId,
-                status: QuoteState.PENDING,
-            })
-        );
+                "msgName": QuoteRequestAcceptedEvt.name,
+                "payload": payload
+            }),
+        ]);
     });
  
     test("handleQuoteRequestReceivedEvent - should not add quote to quote repo with passthrough mode", async () => {
@@ -349,7 +332,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
                 approved: true,
             } as IParticipant);
 
-        jest.spyOn(quotesCache, "set");
+        jest.spyOn(quoteRepo, "storeQuotes");
 
         jest.spyOn(messageProducer, "send");
 
@@ -357,10 +340,11 @@ describe("Domain - Unit Tests for Quote Events", () => {
         await aggregate.processCommandBatch([command]);
 
         // Assert
-        expect(quotesCache.set).toHaveBeenCalledTimes(0);
+        expect(quoteRepo.storeQuotes).toHaveBeenCalledTimes(0);
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
                 msgName: QuoteRequestAcceptedEvt.name,
+                payload: payload
             })]
         );
     });
@@ -466,16 +450,12 @@ describe("Domain - Unit Tests for Quote Events", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
             mockedQuote
         );
         
-        jest.spyOn(quotesCache, "set");
-
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
                 id: requesterFspId,
@@ -496,16 +476,12 @@ describe("Domain - Unit Tests for Quote Events", () => {
         await aggregateWithPassThrough.processCommandBatch([command]);
 
         // Assert
-        expect(quotesCache.set).toHaveBeenCalled();
-        expect(quotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.quoteId,
+        expect(messageProducer.send).toHaveBeenCalledWith([
             expect.objectContaining({
-                expiration: mockedQuote.expiration,
-                geoCode: mockedQuote.geoCode,
-                quoteId: mockedQuote.quoteId,
-                status: QuoteState.ACCEPTED,
-            })
-        );
+                "msgName": QuoteResponseAccepted.name,
+                "payload": payload
+            }),
+        ]);
     });
 
     test("handleQuoteResponseReceivedEvent - should not update quote on quote repository with passthrough", async () => {
@@ -543,8 +519,6 @@ describe("Domain - Unit Tests for Quote Events", () => {
                 isActive: true,
                 approved: true,
             } as IParticipant);
-
-        jest.spyOn(quotesCache, "set");
 
         jest.spyOn(messageProducer, "send");
 

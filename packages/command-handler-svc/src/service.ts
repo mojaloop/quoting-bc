@@ -37,15 +37,12 @@ import {
 	IQuoteRepo,
     IBulkQuoteRepo,
     IAccountLookupService,
-    ICache
 } from "@mojaloop/quoting-bc-domain-lib";
 import {
     ParticipantAdapter,
     MongoQuotesRepo,
     MongoBulkQuotesRepo,
     AccountLookupAdapter,
-    QuotesCache,
-    BulkQuotesCache
 } from "@mojaloop/quoting-bc-implementations-lib";
 import {existsSync} from "fs";
 import express, {Express} from "express";
@@ -168,8 +165,6 @@ export class Service {
     static metrics: IMetrics;
     static configClient: IConfigurationClient;
     static startupTimer: NodeJS.Timeout;
-	static quotesCache: ICache<IQuote>;
-	static bulkQuotesCache : ICache<IBulkQuote>; 
 
     static async start(
         logger?: ILogger,
@@ -183,8 +178,6 @@ export class Service {
         metrics?:IMetrics,
         configProvider?: IConfigProvider,
         aggregate?: QuotingAggregate,
-        quotesCache?: ICache<IQuote>,
-        bulkQuotesCache?: ICache<IBulkQuote>,
     ): Promise<void> {
         console.log(`Service starting with PID: ${process.pid}`);
 
@@ -297,16 +290,6 @@ export class Service {
         }
         this.metrics = metrics;
 
-        if (!quotesCache) {
-            quotesCache = new QuotesCache<IQuote>();
-        }
-        this.quotesCache = quotesCache;
-
-        if (!bulkQuotesCache) {
-            bulkQuotesCache = new BulkQuotesCache<IBulkQuote>();
-        }
-        this.bulkQuotesCache = bulkQuotesCache;
-
         // Configs:
 		const currencyList = this.configClient.globalConfigs.getCurrencies();
 
@@ -321,8 +304,6 @@ export class Service {
                 this.metrics,
                 PASS_THROUGH_MODE,
                 currencyList,
-                this.quotesCache,
-                this.bulkQuotesCache,
             );
         }
         this.aggregate = aggregate;

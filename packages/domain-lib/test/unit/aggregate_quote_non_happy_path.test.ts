@@ -90,19 +90,15 @@ import {
     QuoteBCUnableToGetQuoteFromDatabaseErrorPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
-import { IBulkQuote, IQuote, QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
+import { QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
 import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
 import { Currency } from "@mojaloop/platform-configuration-bc-public-types-lib";
 import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { BulkQuotesCache, QuotesCache } from "@mojaloop/quoting-bc-implementations-lib";
 import { QueryReceivedQuoteCmd, RejectedQuoteCmd, RequestReceivedQuoteCmd, ResponseReceivedQuoteCmd } from "../../src/commands";
 
 let aggregate: QuotingAggregate;
 
 const metricsMock: IMetrics = new MetricsMock();
-
-const quotesCache = new QuotesCache<IQuote>();
-const bulkQuotesCache = new BulkQuotesCache<IBulkQuote>();
 
 const PASS_THROUGH_MODE = true;
 const PASS_THROUGH_MODE_FALSE = false;
@@ -119,8 +115,6 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
     });
 
@@ -530,8 +524,6 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE,
             newCurrencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         // Act
@@ -1033,8 +1025,6 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         // Act
@@ -1095,8 +1085,6 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                 metricsMock,
                 PASS_THROUGH_MODE_FALSE,
                 invalidCurrencyList,
-                quotesCache,
-                bulkQuotesCache
             );
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
@@ -1105,7 +1093,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
 
         jest.spyOn(messageProducer, "send");
 
-        jest.spyOn(quotesCache, "set");
+        jest.spyOn(quoteRepo, "storeQuotes");
 
         // Act
         await aggregateWithDifferentSchemaAndPassthroughModeDisabled.processCommandBatch(
@@ -1113,12 +1101,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         // Assert
-        expect(quotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.quoteId,
-            expect.objectContaining({
-                status: QuoteState.REJECTED,
-            })
-        );
+        expect(quoteRepo.storeQuotes).toHaveBeenCalled();
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
                 payload: responsePayload,
@@ -1170,26 +1153,23 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(mockedQuote);
 
         jest.spyOn(messageProducer, "send");
 
-        jest.spyOn(quotesCache, "set");
+        jest.spyOn(quoteRepo, "storeQuotes");
 
         // Act
-
         await aggregateWithoutPassthroughMode.processCommandBatch([command]);
+
         // Assert
-        expect(quotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.quoteId,
+        expect(quoteRepo.storeQuotes).toHaveBeenCalledWith([
             expect.objectContaining({
                 status: QuoteState.REJECTED,
             })
-        );
+        ]);
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
                 payload: responsePayload,
@@ -1240,15 +1220,11 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(mockedQuote);
         
         jest.spyOn(messageProducer, "send");
-
-        jest.spyOn(quotesCache, "set");
 
         jest.spyOn(
             participantService,
@@ -1260,17 +1236,17 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             approved: true,
         } as IParticipant);
 
-        // Act
+        jest.spyOn(quoteRepo, "storeQuotes");
 
+        // Act
         await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(quotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.quoteId,
+        expect(quoteRepo.storeQuotes).toHaveBeenCalledWith([
             expect.objectContaining({
                 status: QuoteState.REJECTED,
             })
-        );
+        ]);
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
                 payload: responsePayload,
@@ -1316,15 +1292,11 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(mockedQuote);
 
         jest.spyOn(messageProducer, "send");
-
-        jest.spyOn(quotesCache, "set");
 
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
@@ -1340,17 +1312,17 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                 approved: true,
             } as IParticipant);
 
-        // Act
+        jest.spyOn(quoteRepo, "storeQuotes");
 
+        // Act
         await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
         // Assert
-        expect(quotesCache.set).toHaveBeenCalledWith(
-            mockedQuote.quoteId,
+        expect(quoteRepo.storeQuotes).toHaveBeenCalledWith([
             expect.objectContaining({
                 status: QuoteState.EXPIRED,
             })
-        );
+        ]);
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
                 payload: responsePayload,
@@ -1391,8 +1363,6 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(mockedQuote);
@@ -1612,8 +1582,6 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         jest.spyOn(messageProducer, "send");
@@ -1679,8 +1647,6 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
-            quotesCache,
-            bulkQuotesCache
         );
 
         jest.spyOn(messageProducer, "send");

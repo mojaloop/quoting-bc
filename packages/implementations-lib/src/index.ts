@@ -46,7 +46,5 @@ export * from "./quotes/mongo_quotes_repo";
 export * from "./quotes/mongo_bulk_quotes_repo";
 export * from "./external_adapters/account_lookup_adapter";
 export * from "./external_adapters/participant_adapter";
-export * from "./quotes/quotes_cache";
-export * from "./quotes/bulk_quotes_cache";
 export * from "./errors";
 

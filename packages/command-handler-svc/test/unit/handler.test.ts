@@ -40,8 +40,6 @@ import { QuotingCommandHandler } from "../../src/handler";
 import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo, QuotingAggregate } from "@mojaloop/quoting-bc-domain-lib";
-import { BulkQuotesCache, QuotesCache } from "@mojaloop/quoting-bc-implementations-lib";
-import { IBulkQuote, IQuote } from "@mojaloop/quoting-bc-public-types-lib";
 import { currencyList } from "@mojaloop/quoting-bc-domain-lib/test/utils/mocked_variables";
 
 
@@ -74,9 +72,6 @@ const mockedBulkQuotesRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logge
 
 const metricsMock: IMetrics = new MetricsMock();
 
-const mockedQuotesCache = new QuotesCache<IQuote>();
-const mockedBulkQuotesCache = new BulkQuotesCache<IBulkQuote>();
-
 const PASS_THROUGH_MODE = true;
 
 const mockedAggregate: QuotingAggregate = new QuotingAggregate(
@@ -89,8 +84,6 @@ const mockedAggregate: QuotingAggregate = new QuotingAggregate(
     metricsMock,
     PASS_THROUGH_MODE,
     currencyList,
-    mockedQuotesCache,
-    mockedBulkQuotesCache
 );
 
 describe('Command Handler - Unit Tests for QuotingBC Command Handler', () => {

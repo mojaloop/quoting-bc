@@ -120,7 +120,6 @@ import {
 import {
     IAccountLookupService,
     IBulkQuoteRepo,
-    ICache,
     IParticipantService,
     IQuoteRepo,
 } from "./interfaces/infrastructure";
@@ -164,10 +163,11 @@ export class QuotingAggregate {
     private _histo: IHistogram;
     private _commandsCounter:ICounter;
 
-    private _quotesCache: ICache<IQuote>;
-    private _bulkQuotesCache: ICache<IBulkQuote>;
+    private _quotesCache: Map<string, IQuote> = new Map<string, IQuote>();
+    private _bulkQuotesCache: Map<string, IBulkQuote> = new Map<string, IBulkQuote>();
     private _batchCommands: Map<string, IDomainMessage> = new Map<string, IDomainMessage>();
     private _outputEvents: DomainEventMsg[] = [];
+
     constructor(
         logger: ILogger,
         quoteRepo: IQuoteRepo,
@@ -178,8 +178,6 @@ export class QuotingAggregate {
         metrics: IMetrics,
         passThroughMode: boolean,
         currencyList: Currency[],
-        quotesCache: ICache<IQuote>, 
-        bulkQuotesCache: ICache<IBulkQuote>,
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._quotesRepo = quoteRepo;
@@ -189,8 +187,6 @@ export class QuotingAggregate {
         this._accountLookupService = accountLookupService;
         this._passThroughMode = passThroughMode ?? false;
         this._currencyList = currencyList;
-        this._quotesCache = quotesCache;
-        this._bulkQuotesCache = bulkQuotesCache;
 
         this._histo = metrics.getHistogram("QuotingAggregate", "QuotingAggregate calls", ["callName", "success"]);
         this._commandsCounter = metrics.getCounter("QuotingAggregate_CommandsProcessed", "Commands processed by the Quoting Aggregate", ["commandName"]);
@@ -1092,26 +1088,28 @@ export class QuotingAggregate {
         const event = new BulkQuoteReceivedEvt(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
 
-        try {
-            await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
-        } catch(err: unknown) {
-			const error = (err as Error).message;
-			const errorMessage = `Unable to add bulkQuote record for bulkQuoteId: ${message.payload.bulkQuoteId} to repository`;
-			this._logger.error(err, `${errorMessage}: ${error}`);
-            const errorPayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
-            {
-                errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
-                bulkQuoteId,
-            };
-            const errorEvent =
-            new QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent(
-                errorPayload
-            );
+        if (!this._passThroughMode) {
+            try {
+                await this._bulkQuotesRepo.updateBulkQuote(bulkQuote);
+            } catch(err: unknown) {
+                const error = (err as Error).message;
+                const errorMessage = `Unable to add bulkQuote record for bulkQuoteId: ${message.payload.bulkQuoteId} to repository`;
+                this._logger.error(err, `${errorMessage}: ${error}`);
+                const errorPayload: QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorPayload =
+                {
+                    errorCode: QuotingErrorCodeNames.UNABLE_TO_UPDATE_BULK_QUOTE,
+                    bulkQuoteId,
+                };
+                const errorEvent =
+                new QuoteBCUnableToUpdateBulkQuoteInDatabaseErrorEvent(
+                    errorPayload
+                );
 
-            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
-            this._outputEvents.push(errorEvent);
-            timerEndFn({ success: "false" });
-            return;
+                errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+                this._outputEvents.push(errorEvent);
+                timerEndFn({ success: "false" });
+                return;
+            }
         }
 
         this._outputEvents.push(event);
