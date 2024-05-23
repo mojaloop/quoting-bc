@@ -34,62 +34,28 @@
 // NOTE types/enums here are kept as simple string type unions
 // If changes are made in the master participant entities and enums, these should be updated
 
-/**
- License
- --------------
- Copyright © 2021 Mojaloop Foundation
-
- The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License.
-
- You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-
- Contributors
- --------------
- This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
- Names of the original copyright holders (individuals or organizations)
- should be listed with a '' in the first column. People who have
- contributed from an organization can be listed under the organization
- that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
- their names indented and be marked with a '-'. Email address can be added
- optionally within square brackets <email>.
-
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
-
- * Arg Software
- - José Antunes <jose.antunes@arg.software>
- - Rui Rocha <rui.rocha@arg.software>
-
- --------------
- **/
-
- "use strict";
-
 import { QuoteState } from "./enums";
 
- 
+
  export interface IPartyComplexName {
      firstName: string | null;
      middleName: string | null;
      lastName: string | null;
  }
- 
+
  export interface IPartyPersonalInfo {
      complexName: IPartyComplexName | null;
      dateOfBirth: string | null;
      kycInformation: string | null;
  }
- 
+
  export interface IPartyIdInfo {
      partyIdType: string
      partyIdentifier: string
      partySubIdOrType: string | null
      fspId: string | null
  }
- 
+
  export interface IParty {
      partyIdInfo: IPartyIdInfo;
      merchantClassificationCode: string | null;
@@ -97,17 +63,17 @@ import { QuoteState } from "./enums";
      personalInfo: IPartyPersonalInfo | null;
      supportedCurrencies: string[] | null;
  }
- 
+
  export interface IMoney {
      currency: string;
      amount: string
  }
- 
+
  export interface IRefund {
      originalTransactionId: string;
      refundReason: string | null;
  }
- 
+
  export interface ITransactionType {
      scenario: string
      subScenario: string | null
@@ -116,9 +82,9 @@ import { QuoteState } from "./enums";
      refundInfo: IRefund | null,
      balanceOfPayments: string | null
  }
- 
+
  export type IAmountType = "SEND" | "RECEIVE";
- 
+
  export interface IGeoCode {
      latitude: string;
      longitude: string;
@@ -126,20 +92,20 @@ import { QuoteState } from "./enums";
  export interface IExtensionList {
      extension: { key: string; value: string;}[];
  }
- 
+
  export interface IErrorInformation {
      errorCode: string;
      errorDescription: string;
      extensionList: IExtensionList
  }
- 
+
  export interface IParticipant {
      id: string;
      type: string;
      subId: string | null;
      isActive: boolean;
  }
- 
+
  export interface IQuote {
      createdAt: number;
      updatedAt: number;
@@ -181,11 +147,11 @@ import { QuoteState } from "./enums";
      extensionList: IExtensionList | null;
      status: QuoteState | null;
  }
- 
+
  export interface IQuoteSchemeRules {
      currencies: string[];
  }
- 
+
  export declare type QuotingSearchResults = {
      pageSize: number;
      totalPages: number;
