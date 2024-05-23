@@ -1,6 +1,6 @@
 {
     "name": "@mojaloop/quoting-bc-quoting-api-svc",
-    "version": "0.5.1",
+    "version": "0.5.2",
     "description": "Mojaloop vNext Quoting BC - Quoting REST API Service",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/quoting-bc/quoting-api-svc",
