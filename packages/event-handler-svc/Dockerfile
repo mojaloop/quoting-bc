@@ -57,5 +57,7 @@ RUN apk add librdkafka
 
 COPY --from=builder /app .
 
+EXPOSE 3034
 
-CMD [ "npm", "run", "start:event-handler-svc" ]
+ENV NODE_ENV=production
+CMD [ "node", "packages/event-handler-svc/dist/index.js" ]

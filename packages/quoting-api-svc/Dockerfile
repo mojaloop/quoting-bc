@@ -57,6 +57,6 @@ RUN apk add librdkafka
 
 COPY --from=builder /app .
 
-EXPOSE 3500
-
-CMD [ "npm", "run", "start:quoting-api-svc" ]
+EXPOSE 3033
+ENV NODE_ENV=production
+CMD [ "node", "packages/quoting-api-svc/dist/index.js" ]

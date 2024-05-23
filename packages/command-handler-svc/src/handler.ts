@@ -66,34 +66,29 @@ export class QuotingCommandHandler{
 	}
 
     private async _batchMsgHandler(receivedMessages: IMessage[]): Promise<void>{
-		// eslint-disable-next-line no-async-promise-executor
-        return await new Promise<void>(async (resolve) => {
-            // filter out non-commands
-            receivedMessages = receivedMessages.filter(msg => msg.msgType===MessageTypes.COMMAND);
-            if(!receivedMessages || receivedMessages.length<=0)
-                return resolve();
+        // filter out non-commands
+        receivedMessages = receivedMessages.filter(msg => msg.msgType===MessageTypes.COMMAND);
+        if(!receivedMessages || receivedMessages.length<=0) return;
 
-            const startTime = Date.now();
-            const timerEndFn = this._histo.startTimer({ callName: "batchMsgHandler"});
+        const startTime = Date.now();
+        const timerEndFn = this._histo.startTimer({ callName: "batchMsgHandler"});
 
-            console.log(`Got message batch in QuotingCommandHandler batch size: ${receivedMessages.length}`);
-            this._batchSizeGauge.set(receivedMessages.length);
+        this._logger.isDebugEnabled() && this._logger.debug(`Got message batch in QuotingCommandHandler batch size: ${receivedMessages.length}`);
+        this._batchSizeGauge.set(receivedMessages.length);
 
-            try{
-                await this._quotingAgg.processCommandBatch(receivedMessages as CommandMsg[]);
-            }catch(err: unknown){
-				const error = (err as Error);
-                this._logger.error(err, `QuotingCommandHandler - failed processing batch - Error: ${error.message || error.toString()}`);
-                // TODO Don't suppress the exception - find proper exception but make sure the app dies
-                throw err;
-            }finally {
-                timerEndFn({ success: "true" });
-                console.log(`  Completed batch in QuotingCommandHandler batch size: ${receivedMessages.length}`);
-                console.log(`  Took: ${Date.now()-startTime}`);
-                console.log("\n\n");
-                resolve();
-            }
-        });
+        try{
+            await this._quotingAgg.processCommandBatch(receivedMessages as CommandMsg[]);
+            timerEndFn({ success: "true" });
+        }catch(err: unknown){
+            timerEndFn({ success: "false" });
+            const error = (err as Error);
+            this._logger.error(err, `QuotingCommandHandler - failed processing batch - Error: ${error.message || error.toString()}`);
+            // TODO Don't suppress the exception - find proper exception but make sure the app dies
+            throw err;
+        }finally {
+            this._logger.isDebugEnabled() && this._logger.debug(`  Completed batch in QuotingCommandHandler batch size: ${receivedMessages.length}`);
+            this._logger.isDebugEnabled() && this._logger.debug(`  Took: ${Date.now()-startTime} ms \n\n`);
+        }
     }
 
 	async stop():Promise<void>{

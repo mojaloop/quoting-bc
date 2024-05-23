@@ -72,7 +72,7 @@ export class QuotingEventHandler{
 		this._messageProducer = messageProducer;
 
         this._quoteDurationHisto = metrics.getHistogram("QuotingDuration", "Quoting duration by leg", ["leg"]);
-        this._histo = metrics.getHistogram("QuotingEventHandler_Calls", "Events funcion calls processed the Quoting Event Handler", ["callName", "success"]);
+        this._histo = metrics.getHistogram("QuotingEventHandler_Calls", "Events function calls processed the Quoting Event Handler", ["callName", "success"]);
         this._eventsCounter = metrics.getCounter("QuotingEventHandler_EventsProcessed", "Events processed by the Quoting Event Handler", ["eventName"]);
         this._batchSizeGauge = metrics.getGauge("QuotingEventHandler_batchSize");
 	}
@@ -90,54 +90,49 @@ export class QuotingEventHandler{
     }
 
     private async _batchMsgHandler(receivedMessages: IMessage[]): Promise<void>{
-        // eslint-disable-next-line no-async-promise-executor
-        return await new Promise<void>(async (resolve) => {
-            console.log(`Got message batch in QuotingEventHandler batch size: ${receivedMessages.length}`);
-            this._batchSizeGauge.set(receivedMessages.length);
+        const startTime = Date.now();
+        this._logger.isDebugEnabled() && this._logger.debug(`Got message batch in QuotingEventHandler batch size: ${receivedMessages.length}`);
 
-            const startTime = Date.now();
-            const timerEndFn = this._histo.startTimer({ callName: "batchMsgHandler"});
+        this._batchSizeGauge.set(receivedMessages.length);
+        const timerEndFn = this._histo.startTimer({ callName: "batchMsgHandler"});
 
-            try{
-                const outputCommands:CommandMsg[] = [];
-                for(const message of receivedMessages){
-                    if(message.msgType!=MessageTypes.DOMAIN_EVENT) continue;
 
-                    const quoteCmd: CommandMsg | null = this._getCmdFromEvent(message);
-                    if(quoteCmd) {
-                        outputCommands.push(quoteCmd);
-                        this._eventsCounter.inc({eventName: message.msgName}, 1);
-                    }
+        try{
+            const outputCommands:CommandMsg[] = [];
+            for(const message of receivedMessages){
+                if(message.msgType!=MessageTypes.DOMAIN_EVENT) continue;
 
-                    // metrics
-                    if(!message.fspiopOpaqueState) continue;
-                    const now = Date.now();
-                    if(message.msgName === QuoteRequestReceivedEvt.name && message.fspiopOpaqueState.prepareSendTimestamp){
-                        this._quoteDurationHisto.observe({"leg": "prepare"}, now - message.fspiopOpaqueState.prepareSendTimestamp);
-                    }else if(message.msgName === QuoteResponseReceivedEvt.name && message.fspiopOpaqueState.committedSendTimestamp ){
-                        this._quoteDurationHisto.observe({"leg": "fulfil"}, now - message.fspiopOpaqueState.committedSendTimestamp);
-                        if(message.fspiopOpaqueState.prepareSendTimestamp){
-                            this._quoteDurationHisto.observe({"leg": "total"}, now - message.fspiopOpaqueState.prepareSendTimestamp);
-                        }
-                    }
+                this._histo.observe({callName:"msgDelay"}, (startTime - message.msgTimestamp)/1000);
+
+                const quoteCmd: CommandMsg | null = this._getCmdFromEvent(message);
+                if(quoteCmd) {
+                    outputCommands.push(quoteCmd);
+                    this._eventsCounter.inc({eventName: message.msgName}, 1);
                 }
 
-                console.log("before messageProducer.send()...");
-                await this._messageProducer.send(outputCommands);
-                console.log("after messageProducer.send()");
-                timerEndFn({ success: "true" });
-            }catch(err: unknown){
-                const error = (err as Error);
-                this._logger.error(err, `QuotingEventHandler - failed processing batch - Error: ${error.message || error.toString()}`);
-                timerEndFn({ success: "false" });
-            }finally {
-                console.log(`  Completed batch in QuotingEventHandler batch size: ${receivedMessages.length}`);
-                console.log(`  Took: ${Date.now()-startTime}`);
-                console.log("\n\n");
-
-                resolve();
+                // metrics
+                if(!message.fspiopOpaqueState) continue;
+                const now = Date.now();
+                if(message.msgName === QuoteRequestReceivedEvt.name && message.fspiopOpaqueState.prepareSendTimestamp){
+                    this._quoteDurationHisto.observe({"leg": "prepare"}, now - message.fspiopOpaqueState.prepareSendTimestamp);
+                }else if(message.msgName === QuoteResponseReceivedEvt.name && message.fspiopOpaqueState.committedSendTimestamp ){
+                    this._quoteDurationHisto.observe({"leg": "fulfil"}, now - message.fspiopOpaqueState.committedSendTimestamp);
+                    if(message.fspiopOpaqueState.prepareSendTimestamp){
+                        this._quoteDurationHisto.observe({"leg": "total"}, now - message.fspiopOpaqueState.prepareSendTimestamp);
+                    }
+                }
             }
-        });
+
+            await this._messageProducer.send(outputCommands);
+            timerEndFn({ success: "true" });
+        }catch(err: unknown){
+            const error = (err as Error);
+            this._logger.error(err, `QuotingEventHandler - failed processing batch - Error: ${error.message || error.toString()}`);
+            timerEndFn({ success: "false" });
+        }finally {
+            this._logger.isDebugEnabled() && this._logger.debug(`  Completed batch in QuotingEventHandler batch size: ${receivedMessages.length}`);
+            this._logger.isDebugEnabled() && this._logger.debug(`  Took: ${Date.now()-startTime} ms \n\n`);
+        }
     }
 
     private _getCmdFromEvent(message: IMessage):CommandMsg | null{
@@ -215,7 +210,7 @@ export class QuotingEventHandler{
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
 		return cmd;
 	}
-    
+
 	private _prepareEventToQueryReceiveQuoteCommand(evt: QuoteQueryReceivedEvt): QueryReceivedQuoteCmd {
 		const cmdPayload: QueryReceivedQuoteCmdPayload = {
             quoteId: evt.payload.quoteId,

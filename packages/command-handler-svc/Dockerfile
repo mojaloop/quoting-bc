@@ -57,5 +57,5 @@ RUN apk add librdkafka
 
 COPY --from=builder /app .
 
-
-CMD [ "npm", "run", "start:command-handler-svc" ]
+ENV NODE_ENV=production
+CMD [ "node", "packages/command-handler-svc/dist/index.js" ]
