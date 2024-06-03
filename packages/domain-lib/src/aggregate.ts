@@ -151,9 +151,15 @@ import {
 } from "@mojaloop/quoting-bc-public-types-lib";
 import { BulkQuote, Quote } from "./entities";
 import { Currency } from "@mojaloop/platform-configuration-bc-public-types-lib";
-import {ICounter, IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {
+    ICounter,
+    IHistogram,
+    IMetrics,
+    ITracing,
+    SpanStatusCode,
+    Tracer
+} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { QueryReceivedBulkQuoteCmd, QueryReceivedQuoteCmd, RejectedBulkQuoteCmd, RejectedQuoteCmd, RequestReceivedBulkQuoteCmd, RequestReceivedQuoteCmd, ResponseReceivedBulkQuoteCmd, ResponseReceivedQuoteCmd } from "./commands";
-
 
 export class QuotingAggregate {
     private readonly _logger: ILogger;
@@ -168,6 +174,8 @@ export class QuotingAggregate {
     private _metrics: IMetrics;
     private _histo: IHistogram;
     private _commandsCounter:ICounter;
+    protected readonly _tracingClient:ITracing;
+    protected readonly _tracer: Tracer;
 
     private _quotesCache: Map<string, IQuote> = new Map<string, IQuote>();
     private _bulkQuotesCache: Map<string, IBulkQuote> = new Map<string, IBulkQuote>();
@@ -184,6 +192,7 @@ export class QuotingAggregate {
         metrics: IMetrics,
         passThroughMode: boolean,
         currencyList: Currency[],
+        tracingClient:ITracing
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._quotesRepo = quoteRepo;
@@ -193,6 +202,9 @@ export class QuotingAggregate {
         this._accountLookupService = accountLookupService;
         this._passThroughMode = passThroughMode ?? false;
         this._currencyList = currencyList;
+
+        this._tracingClient = tracingClient;
+        this._tracer = tracingClient.trace.getTracer(this.constructor.name);
 
         this._histo = metrics.getHistogram("QuotingAggregate", "QuotingAggregate calls", ["callName", "success"]);
         this._commandsCounter = metrics.getCounter("QuotingAggregate_CommandsProcessed", "Commands processed by the Quoting Aggregate", ["commandName"]);
@@ -205,13 +217,14 @@ export class QuotingAggregate {
 
         try {
             // execute starts
-            const execStarts_timerEndFn = this._histo.startTimer({ callName: "executeStarts"});
+            const execStarts_timerEndFn = this._histo.startTimer({ callName: "processCommandBatch"});
             for (const cmd of cmdMessages) {
                 if(cmd.msgType !== MessageTypes.COMMAND) continue;
 
                 this._histo.observe({callName:"msgDelay"}, (startTime - cmd.msgTimestamp)/1000);
 
                 await this._processCommand(cmd);
+
                 if(cmd.payload && cmd.payload.bulkQuoteId) {
                     if(cmd.msgName === RequestReceivedBulkQuoteCmd.name) {
                         this._commandsCounter.inc({commandName: cmd.msgName}, cmd.payload.individualQuotes.length);
@@ -275,6 +288,7 @@ export class QuotingAggregate {
         const invalidMessageErrorEvent = this._ensureValidMessage(cmd);
 
         if (invalidMessageErrorEvent) {
+            invalidMessageErrorEvent.tracingInfo = cmd.tracingInfo;
             this._outputEvents.push(invalidMessageErrorEvent);
             return;
         }
@@ -296,25 +310,31 @@ export class QuotingAggregate {
             this._batchCommands.set(cmd.payload.quoteId, cmd);
         }
 
-
+        const context = this._tracingClient.propagationExtract(cmd.tracingInfo);
+        const parentSpan = this._tracer.startSpan("processCommand", {}, context);
+        parentSpan.setAttributes({
+            "msgName": cmd.msgName,
+            "quoteId": cmd.payload.quoteId
+        });
 
         if (cmd.msgName === RequestReceivedQuoteCmd.name) {
-            return this._handleQuoteRequest(cmd as RequestReceivedQuoteCmd);
+            await this._handleQuoteRequest(cmd as RequestReceivedQuoteCmd);
         } else if (cmd.msgName === ResponseReceivedQuoteCmd.name) {
-            return this._handleQuoteResponse(cmd as ResponseReceivedQuoteCmd);
+            await this._handleQuoteResponse(cmd as ResponseReceivedQuoteCmd);
         } else if (cmd.msgName === QueryReceivedQuoteCmd.name) {
-            return this._handleQuoteQuery(cmd as QueryReceivedQuoteCmd);
+            await this._handleQuoteQuery(cmd as QueryReceivedQuoteCmd);
         } else if (cmd.msgName === RejectedQuoteCmd.name) {
-            return this._handleQuoteRejected(cmd as RejectedQuoteCmd);
+            await this._handleQuoteRejected(cmd as RejectedQuoteCmd);
         } else if (cmd.msgName === RequestReceivedBulkQuoteCmd.name) {
-            return this._handleBulkQuoteRequest(cmd as RequestReceivedBulkQuoteCmd);
+            await this._handleBulkQuoteRequest(cmd as RequestReceivedBulkQuoteCmd);
         } else if (cmd.msgName === ResponseReceivedBulkQuoteCmd.name) {
-            return this._handleBulkQuoteResponse(cmd as ResponseReceivedBulkQuoteCmd);
+            await this._handleBulkQuoteResponse(cmd as ResponseReceivedBulkQuoteCmd);
         } else if (cmd.msgName === QueryReceivedBulkQuoteCmd.name) {
-            return this._handleGetBulkQuoteQuery(cmd as QueryReceivedBulkQuoteCmd);
+            await this._handleGetBulkQuoteQuery(cmd as QueryReceivedBulkQuoteCmd);
         } else if (cmd.msgName === RejectedBulkQuoteCmd.name) {
-            return this._handleBulkQuoteRejected(cmd as RejectedBulkQuoteCmd);
+            await this._handleBulkQuoteRejected(cmd as RejectedBulkQuoteCmd);
         } else {
+            parentSpan.setStatus({ code: SpanStatusCode.ERROR });
 			const errorMessage = `Command type is unknown: ${cmd.msgName}`;
             this._logger.error(errorMessage);
 
@@ -325,6 +345,8 @@ export class QuotingAggregate {
             errorEvent.fspiopOpaqueState = cmd.fspiopOpaqueState;
             this._outputEvents.push(errorEvent);
         }
+
+        parentSpan.end();
     }
 
     private _ensureValidMessage(message: CommandMsg): null | DomainEventMsg {
@@ -372,10 +394,10 @@ export class QuotingAggregate {
     //#region _handleQuoteRequest
     private async _handleQuoteRequest(message: RequestReceivedQuoteCmd): Promise<void> {
         /* istanbul ignore next */
-		const timerEndFn = this._histo.startTimer({callName: "_handleQuoteRequest"});
+		const timerEndFn = this._histo.startTimer({callName: "handleQuoteRequest"});
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`_handleQuoteRequest() - Got _handleQuoteRequest msg for quoteId: ${message.payload.quoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`_handleQuoteRequest() - Got _handleQuoteRequest msg for quoteId: ${message.payload.quoteId}`);
 
         const quoteId = message.payload.quoteId;
 
@@ -418,17 +440,19 @@ export class QuotingAggregate {
             this._logger.debug(
                 `Get destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`
             );
+            const timerEndFn_getAccountLookup = this._histo.startTimer({callName: "_handleQuoteRequest.getAccountLookup"});
             try {
-                destinationFspId =
-                    await this._accountLookupService.getAccountLookup(
-                        payeePartyType,
-                        payeePartyId,
-                        currency
-                    );
-                this._logger.debug(
+                destinationFspId = await this._accountLookupService.getAccountLookup(
+                    payeePartyType,
+                    payeePartyId,
+                    currency
+                );
+                this._logger.isDebugEnabled() && this._logger.debug(
                     `Got destinationFspId: ${destinationFspId} from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`
                 );
+                timerEndFn_getAccountLookup({success: "true"});
             } catch (error: unknown) {
+                timerEndFn_getAccountLookup({success: "false"});
                 destinationFspId = null;
                 this._logger.error(
                     `Error while getting destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`,
@@ -525,13 +549,14 @@ export class QuotingAggregate {
 
         const event = new QuoteRequestAcceptedEvt(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.tracingInfo = message.tracingInfo;
 
 
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`quoteRequestReceived() - completed for quoteId: ${quote.quoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`quoteRequestReceived() - completed for quoteId: ${quote.quoteId}`);
     }
     //#endregion
 
@@ -539,11 +564,11 @@ export class QuotingAggregate {
     private async _handleQuoteResponse(message: ResponseReceivedQuoteCmd): Promise<void> {
         /* istanbul ignore next */
 		const timerEndFn = this._histo.startTimer({
-			callName: "_handleQuoteResponse",
+			callName: "handleQuoteResponse",
 		});
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`_handleQuoteResponse() - Got _handleQuoteResponse msg for quoteId: ${message.payload.quoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`_handleQuoteResponse() - Got _handleQuoteResponse msg for quoteId: ${message.payload.quoteId}`);
 
         let quote: IQuote | null = null;
         try {
@@ -559,6 +584,7 @@ export class QuotingAggregate {
 			});
 
             errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             return;
 		}
@@ -570,6 +596,7 @@ export class QuotingAggregate {
             };
             const errorEvent = new QuoteBCQuoteNotFoundErrorEvent(errorPayload);
             errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             timerEndFn({ success: "false" });
             return;
@@ -712,15 +739,16 @@ export class QuotingAggregate {
         //TODO: add evt to name
         const event = new QuoteResponseAccepted(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.tracingInfo = message.tracingInfo;
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`quoteResponseReceived() - completed for quoteId: ${message.payload.quoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`quoteResponseReceived() - completed for quoteId: ${message.payload.quoteId}`);
 
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug("_handleQuoteResponse() - complete");
+        this._logger.isDebugEnabled() && this._logger.debug("_handleQuoteResponse() - complete");
     }
     //#endregion
 
@@ -732,7 +760,7 @@ export class QuotingAggregate {
 		});
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`_handleQuoteQuery() - Got _handleQuoteQuery msg for quoteId: ${message.payload.quoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`_handleQuoteQuery() - Got _handleQuoteQuery msg for quoteId: ${message.payload.quoteId}`);
 
         const quoteId = message.payload.quoteId;
 
@@ -779,6 +807,7 @@ export class QuotingAggregate {
 			});
 
             errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             return;
 		}
@@ -809,13 +838,13 @@ export class QuotingAggregate {
 
         const event = new QuoteQueryResponseEvt(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
-
+        event.tracingInfo = message.tracingInfo;
 
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`quoteQueryReceived() - completed for quoteId: ${message.payload.quoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`quoteQueryReceived() - completed for quoteId: ${message.payload.quoteId}`);
     }
     //#endregion
 
@@ -823,11 +852,11 @@ export class QuotingAggregate {
     private async _handleQuoteRejected(message: QuoteRejectedEvt): Promise<void> {
         /* istanbul ignore next */
 		const timerEndFn = this._histo.startTimer({
-			callName: "_handleQuoteRejected",
+			callName: "handleQuoteRejected",
 		});
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`_handleQuoteRejected() - Got _handleQuoteRejected msg for quoteId: ${message.payload.quoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`_handleQuoteRejected() - Got _handleQuoteRejected msg for quoteId: ${message.payload.quoteId}`);
 
         const quoteId = message.payload.quoteId;
         const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
@@ -879,6 +908,7 @@ export class QuotingAggregate {
 			});
 
             errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             return;
 		}
@@ -893,6 +923,7 @@ export class QuotingAggregate {
 			});
 
             errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             return;
 		}
@@ -904,12 +935,13 @@ export class QuotingAggregate {
 
         const event = new QuoteRejectedResponseEvt(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.tracingInfo = message.tracingInfo;
 
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`quoteRejected() - completed for quoteId: ${message.payload.quoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`quoteRejected() - completed for quoteId: ${message.payload.quoteId}`);
     }
     //#endregion
     //#endregion
@@ -919,11 +951,11 @@ export class QuotingAggregate {
     private async _handleBulkQuoteRequest(message: BulkQuoteRequestedEvt): Promise<void> {
         /* istanbul ignore next */
 		const timerEndFn = this._histo.startTimer({
-			callName: "_handleBulkQuoteRequest",
+			callName: "handleBulkQuoteRequest",
 		});
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`_handleBulkQuoteRequest() - Got _handleBulkQuoteRequest msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`_handleBulkQuoteRequest() - Got _handleBulkQuoteRequest msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
 
         const bulkQuoteId = message.payload.bulkQuoteId;
 
@@ -1077,6 +1109,7 @@ export class QuotingAggregate {
 
         const event = new BulkQuoteReceivedEvt(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.tracingInfo = message.tracingInfo;
 
         if (!this._passThroughMode) {
             try {
@@ -1096,6 +1129,7 @@ export class QuotingAggregate {
                 );
 
                 errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+                errorEvent.tracingInfo = message.tracingInfo;
                 this._outputEvents.push(errorEvent);
                 timerEndFn({ success: "false" });
                 return;
@@ -1106,7 +1140,7 @@ export class QuotingAggregate {
         timerEndFn({ success: "true" });
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`bulkQuoteRequestReceived() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`bulkQuoteRequestReceived() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
     }
 
     //#endregion
@@ -1115,11 +1149,11 @@ export class QuotingAggregate {
     private async _handleBulkQuoteResponse(message: BulkQuotePendingReceivedEvt): Promise<void> {
         /* istanbul ignore next */
 		const timerEndFn = this._histo.startTimer({
-			callName: "_handleBulkQuoteResponse",
+			callName: "handleBulkQuoteResponse",
 		});
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`_handleBulkQuoteResponse() - Got _handleBulkQuoteResponse msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`_handleBulkQuoteResponse() - Got _handleBulkQuoteResponse msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
 
         let bulkQuote: IBulkQuote | null = null;
         try {
@@ -1135,6 +1169,7 @@ export class QuotingAggregate {
 			});
 
             errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             return;
 		}
@@ -1146,6 +1181,7 @@ export class QuotingAggregate {
             };
             const errorEvent = new QuoteBCBulkQuoteNotFoundErrorEvent(errorPayload);
             errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             timerEndFn({ success: "false" });
             return;
@@ -1250,6 +1286,7 @@ export class QuotingAggregate {
                 });
 
                 errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+                errorEvent.tracingInfo = message.tracingInfo;
                 this._outputEvents.push(errorEvent);
                 timerEndFn({ success: "false" });
                 return;
@@ -1269,6 +1306,7 @@ export class QuotingAggregate {
 
         const event = new BulkQuoteAcceptedEvt(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.tracingInfo = message.tracingInfo;
 
         try {
             await this._updateBulkQuote(
@@ -1290,6 +1328,7 @@ export class QuotingAggregate {
 			});
 
             errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             timerEndFn({ success: "false" });
             return;
@@ -1300,7 +1339,7 @@ export class QuotingAggregate {
         timerEndFn({ success: "true" });
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`bulkQuoteResponseReceived() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`bulkQuoteResponseReceived() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
     }
     //#endregion
 
@@ -1308,11 +1347,11 @@ export class QuotingAggregate {
     private async _handleGetBulkQuoteQuery(message: BulkQuoteQueryReceivedEvt): Promise<void> {
         /* istanbul ignore next */
 		const timerEndFn = this._histo.startTimer({
-			callName: "_handleGetBulkQuoteQuery",
+			callName: "handleGetBulkQuoteQuery",
 		});
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`_handleGetBulkQuoteQuery() - Got _handleGetBulkQuoteQuery msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`_handleGetBulkQuoteQuery() - Got _handleGetBulkQuoteQuery msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
 
         const bulkQuoteId = message.payload.bulkQuoteId;
 
@@ -1361,6 +1400,7 @@ export class QuotingAggregate {
                 });
 
                 errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+                errorEvent.tracingInfo = message.tracingInfo;
                 this._outputEvents.push(errorEvent);
                 return;
             }
@@ -1416,12 +1456,13 @@ export class QuotingAggregate {
 
         const event = new BulkQuoteQueryResponseEvt(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.tracingInfo = message.tracingInfo;
 
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`bulkQuoteQueryReceived() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`bulkQuoteQueryReceived() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
     }
 
     //#endregion
@@ -1431,11 +1472,11 @@ export class QuotingAggregate {
     private async _handleBulkQuoteRejected(message: BulkQuoteRejectedEvt): Promise<void> {
         /* istanbul ignore next */
 		const timerEndFn = this._histo.startTimer({
-			callName: "_handleBulkQuoteRejected",
+			callName: "handleBulkQuoteRejected",
 		});
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`_handleBulkQuoteRejected() - Got _handleBulkQuoteRejected msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`_handleBulkQuoteRejected() - Got _handleBulkQuoteRejected msg for bulkQuoteId: ${message.payload.bulkQuoteId}`);
 
         const bulkQuoteId = message.payload.bulkQuoteId;
         const requesterFspId = message.fspiopOpaqueState.requesterFspId ?? null;
@@ -1479,28 +1520,33 @@ export class QuotingAggregate {
 
         const event = new BulkQuoteRejectedResponseEvt(payload);
         event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.tracingInfo = message.tracingInfo;
 
         this._outputEvents.push(event);
         timerEndFn({ success: "true" });
 
         /* istanbul ignore next */
-        if(this._logger.isDebugEnabled()) this._logger.debug(`bulkQuoteRejected() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
+        this._logger.isDebugEnabled() && this._logger.debug(`bulkQuoteRejected() - completed for bulkQuoteId: ${message.payload.bulkQuoteId}`);
     }
     //#endregion
 
     //#region Get Cache
     private async _getQuote(id:string):Promise<IQuote | null>{
+        const timerEndFn = this._histo.startTimer({callName: "getQuote"});
         let quote: IQuote | null = this._quotesCache.get(id) || null;
         if(quote){
+            timerEndFn({ success: "true" });
             return quote;
         }
 
         quote = await this._quotesRepo.getQuoteById(id);
         if(quote){
             this._quotesCache.set(id, quote);
+            timerEndFn({ success: "true" });
             return quote;
         }
 
+        timerEndFn({ success: "true" });
         return null;
     }
 
@@ -1724,6 +1770,7 @@ export class QuotingAggregate {
         quoteId: string | null,
         bulkQuoteId: string | null
     ): Promise<DomainEventMsg | null> {
+        const timerEndFn = this._histo.startTimer({callName: "validateDestinationParticipantInfoOrGetErrorEvent"});
         let participant: IParticipant | null = null;
 
         if (!participantId) {
@@ -1738,19 +1785,20 @@ export class QuotingAggregate {
             const errorEvent = new QuoteBCInvalidDestinationFspIdErrorEvent(
                 errorPayload
             );
+            timerEndFn({ success: "false" });
             return errorEvent;
         }
 
+        const timerEndFn_getParticipant = this._histo.startTimer({callName: "validateDestinationParticipantInfoOrGetErrorEvent.getParticipantInfo"});
         participant = await this._participantService
             .getParticipantInfo(participantId)
             .catch((err: unknown) => {
+                timerEndFn({ success: "false" });
                 const error = (err as Error).message;
-                this._logger.error(
-                    `Error getting payee info for id: ${participantId}`,
-                    error
-                );
+                this._logger.error(`Error getting payee info for id: ${participantId}`,error);
                 return null;
             });
+        timerEndFn_getParticipant({ success: "true" });
 
         if (!participant) {
             const errorMessage = `Payee participant not found for participantId: ${participantId}`;
@@ -1766,6 +1814,7 @@ export class QuotingAggregate {
                 new QuoteBCDestinationParticipantNotFoundErrorEvent(
                     errorPayload
                 );
+            timerEndFn({ success: "false" });
             return errorEvent;
         }
 
@@ -1783,6 +1832,7 @@ export class QuotingAggregate {
                 new QuoteBCRequiredDestinationParticipantIdMismatchErrorEvent(
                     errorPayload
                 );
+            timerEndFn({ success: "false" });
             return errorEvent;
         }
 
@@ -1800,6 +1850,7 @@ export class QuotingAggregate {
                 new QuoteBCRequiredDestinationParticipantIsNotApprovedErrorEvent(
                     errorPayload
                 );
+            timerEndFn({ success: "false" });
             return errorEvent;
         }
 
@@ -1817,8 +1868,10 @@ export class QuotingAggregate {
                 new QuoteBCRequiredDestinationParticipantIsNotActiveErrorEvent(
                     errorPayload
                 );
+            timerEndFn({ success: "false" });
             return errorEvent;
         }
+        timerEndFn({ success: "true" });
         return null;
     }
 
@@ -1827,6 +1880,7 @@ export class QuotingAggregate {
         quoteId: string | null,
         bulkQuoteId: string | null
     ): Promise<DomainEventMsg | null> {
+        const timerEndFn = this._histo.startTimer({callName: "validateRequesterParticipantInfoOrGetErrorEvent"});
         let participant: IParticipant | null = null;
 
         if (!participantId) {
@@ -1844,15 +1898,16 @@ export class QuotingAggregate {
             return errorEvent;
         }
 
+
+        const timerEndFn_getParticipant = this._histo.startTimer({callName: "validateRequesterParticipantInfoOrGetErrorEvent.getParticipantInfo"});
         participant = await this._participantService
             .getParticipantInfo(participantId)
             .catch((error: Error) => {
-                this._logger.error(
-                    `Error getting payer info for fspId: ${participantId}`,
-                    error
-                );
+                timerEndFn({ success: "false" });
+                this._logger.error(`Error getting payer info for fspId: ${participantId}`,error);
                 return null;
             });
+        timerEndFn_getParticipant({ success: "true" });
 
         if (!participant) {
             const errorMessage = `Payer participant not found for fspId: ${participantId}`;
@@ -1867,6 +1922,7 @@ export class QuotingAggregate {
                 };
             const errorEvent =
                 new QuoteBCRequesterParticipantNotFoundErrorEvent(errorPayload);
+            timerEndFn({ success: "false" });
             return errorEvent;
         }
 
@@ -1884,6 +1940,7 @@ export class QuotingAggregate {
                 new QuoteBCRequiredRequesterParticipantIdMismatchErrorEvent(
                     errorPayload
                 );
+            timerEndFn({ success: "false" });
             return errorEvent;
         }
 
@@ -1901,6 +1958,7 @@ export class QuotingAggregate {
                 new QuoteBCRequiredRequesterParticipantIsNotApprovedErrorEvent(
                     errorPayload
                 );
+            timerEndFn({ success: "false" });
             return errorEvent;
         }
 
@@ -1918,8 +1976,10 @@ export class QuotingAggregate {
                 new QuoteBCRequiredRequesterParticipantIsNotActiveErrorEvent(
                     errorPayload
                 );
+            timerEndFn({ success: "false" });
             return errorEvent;
         }
+        timerEndFn({ success: "true" });
         return null;
     }
     //#endregion

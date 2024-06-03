@@ -30,7 +30,7 @@
  --------------
 **/
 
-import { MemoryAuditService, mockedQuoteRequestPayload, mockedQuoteResponsePayload, mockedQuoteQueryPayload, quoteRejectedPayload, bulkQuoteRequestedPayload, bulkQuotePendingPayload, mockedBulkQuoteQueryPayload, bulkQuoteRejectedPayload } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { mockedQuoteRequestPayload, mockedQuoteResponsePayload, mockedQuoteQueryPayload, quoteRejectedPayload, bulkQuoteRequestedPayload, bulkQuotePendingPayload, mockedBulkQuoteQueryPayload, bulkQuoteRejectedPayload } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { QuotingEventHandler } from "../../src/handler";
@@ -41,8 +41,6 @@ import { QueryReceivedBulkQuoteCmd, QueryReceivedQuoteCmd, RejectedBulkQuoteCmd,
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
-
-const mockedAuditService = new MemoryAuditService(logger);
 
 const messageConsumerMock = {
     setTopics: jest.fn(),
@@ -61,7 +59,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
     let quotingEventHandler:any;
 
     beforeEach(() => {
-        quotingEventHandler = new QuotingEventHandler(logger, mockedAuditService, messageConsumerMock as any, messageProducerMock as any, metricsMock);
+        quotingEventHandler = new QuotingEventHandler(logger, messageConsumerMock as any, messageProducerMock as any, metricsMock);
     });
 
     it('should connect message producer and start message consumer', async () => {
@@ -79,7 +77,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         expect(messageConsumerMock.connect).toHaveBeenCalled();
         expect(messageConsumerMock.startAndWaitForRebalance).toHaveBeenCalled();
     });
- 
+
     it('should process QuoteRequestReceivedEvt successfully', async () => {
         // Arrange
         const payload = {
@@ -180,7 +178,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             })
         ]);
     });
-    
+
     it('should process BulkQuoteRequestedEvt successfully', async () => {
         // Arrange
         const payload = {
@@ -205,7 +203,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             })
         ]);
     });
-    
+
     it('should process BulkQuotePendingReceivedEvt successfully', async () => {
         // Arrange
         const payload = {
@@ -256,7 +254,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         ]);
     });
 
-    
+
     it('should process BulkQuoteRejectedEvt successfully', async () => {
         // Arrange
         const payload = {

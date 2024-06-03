@@ -1,6 +1,6 @@
 {
     "name": "@mojaloop/quoting-bc-command-handler-svc",
-    "version": "0.5.2",
+    "version": "0.5.5",
     "description": "Mojaloop vNext Quoting BC - Command Handler Service",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/quoting-bc/command-handler-svc",
@@ -48,9 +48,9 @@
         "@mojaloop/platform-configuration-bc-client-lib": "~0.5.7",
         "@mojaloop/platform-configuration-bc-public-types-lib": "~0.5.2",
         "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.5.18",
-        "@mojaloop/platform-shared-lib-observability-client-lib": "~0.5.7",
-        "@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.5",
-        "@mojaloop/platform-shared-lib-public-messages-lib": "~0.5.20",
+        "@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.6",
+        "@mojaloop/platform-shared-lib-observability-client-lib": "~0.5.8",
+        "@mojaloop/platform-shared-lib-public-messages-lib": "~0.5.21",
         "@mojaloop/security-bc-client-lib": "~0.5.12",
         "express": "^4.18.3"
     },

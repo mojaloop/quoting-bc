@@ -135,7 +135,7 @@ export class RequestReceivedQuoteCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = QUOTING_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = QuotingBCTopics.DomainRequests;
+	msgTopic: string = QuotingBCTopics.DomainCommands;
 	payload: RequestReceivedQuoteCmdPayload;
 
 	constructor(payload: RequestReceivedQuoteCmdPayload) {
@@ -193,7 +193,7 @@ export class ResponseReceivedQuoteCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = QUOTING_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = QuotingBCTopics.DomainRequests;
+	msgTopic: string = QuotingBCTopics.DomainCommands;
 	payload: ResponseReceivedQuoteCmdPayload;
 
 	constructor(payload: ResponseReceivedQuoteCmdPayload) {
@@ -221,7 +221,7 @@ export class QueryReceivedQuoteCmd extends CommandMsg {
     aggregateId: string;
     aggregateName: string = QUOTING_AGGREGATE_NAME;
     msgKey: string;
-    msgTopic: string = QuotingBCTopics.DomainRequests;
+    msgTopic: string = QuotingBCTopics.DomainCommands;
 
     payload: QueryReceivedQuoteCmdPayload;
 
@@ -265,7 +265,7 @@ export class RejectedQuoteCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = QUOTING_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = QuotingBCTopics.DomainRequests;
+	msgTopic: string = QuotingBCTopics.DomainCommands;
 	payload: RejectedQuoteCmdPayload;
 
 	constructor(payload: RejectedQuoteCmdPayload) {
@@ -376,7 +376,7 @@ export class RequestReceivedBulkQuoteCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = QUOTING_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = QuotingBCTopics.DomainRequests;
+	msgTopic: string = QuotingBCTopics.DomainCommands;
 	payload: RequestReceivedBulkQuoteCmdPayload;
 
 	constructor(payload: RequestReceivedBulkQuoteCmdPayload) {
@@ -469,7 +469,7 @@ export class ResponseReceivedBulkQuoteCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = QUOTING_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = QuotingBCTopics.DomainRequests;
+	msgTopic: string = QuotingBCTopics.DomainCommands;
 	payload: ResponseReceivedBulkQuoteCmdPayload;
 
 	constructor(payload: ResponseReceivedBulkQuoteCmdPayload) {
@@ -497,7 +497,7 @@ export class QueryReceivedBulkQuoteCmd extends CommandMsg {
     aggregateId: string;
     aggregateName: string = QUOTING_AGGREGATE_NAME;
     msgKey: string;
-    msgTopic: string = QuotingBCTopics.DomainRequests;
+    msgTopic: string = QuotingBCTopics.DomainCommands;
 
     payload: QueryReceivedBulkQuoteCmdPayload;
 
@@ -541,7 +541,7 @@ export class RejectedBulkQuoteCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = QUOTING_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = QuotingBCTopics.DomainRequests;
+	msgTopic: string = QuotingBCTopics.DomainCommands;
 	payload: RejectedBulkQuoteCmdPayload;
 
 	constructor(payload: RejectedBulkQuoteCmdPayload) {

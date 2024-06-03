@@ -53,13 +53,13 @@ export class QuotingCommandHandler{
 		this._messageConsumer = messageConsumer;
 		this._quotingAgg = quotingAgg;
 
-        this._histo = metrics.getHistogram("QuotingCommandHandler_Calls", "QuotingCommandHandler calls", ["callName", "success"]);
+        this._histo = metrics.getHistogram("QuotingCommandHandler", "QuotingCommandHandler calls", ["callName", "success"]);
         this._batchSizeGauge = metrics.getGauge("QuotingCommandHandler_batchSize");
 	}
 
 	async start():Promise<void>{
 		// create and start the consumer handler
-        this._messageConsumer.setTopics([QuotingBCTopics.DomainRequests]);
+        this._messageConsumer.setTopics([QuotingBCTopics.DomainCommands]);
         this._messageConsumer.setBatchCallbackFn(this._batchMsgHandler.bind(this));
         await this._messageConsumer.connect();
         await this._messageConsumer.startAndWaitForRebalance();

@@ -32,17 +32,8 @@
 
 "use strict";
 
-import {existsSync} from "fs";
-import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
+
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
-import {
-	AuditClient,
-	KafkaAuditClientDispatcher,
-	LocalAuditClientCryptoProvider
-} from "@mojaloop/auditing-bc-client-lib";
-import {
-    AuthenticatedHttpRequester,
-} from "@mojaloop/security-bc-client-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {
 	MLKafkaJsonConsumer,
@@ -56,10 +47,9 @@ import express, {Express} from "express";
 import {Server} from "net";
 import {QuotingEventHandler} from "./handler";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {OpenTelemetryClient, PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
-import {DefaultConfigProvider, IConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
 import {GetQuotingConfigSet} from "@mojaloop/quoting-bc-config-lib";
 import crypto from "crypto";
 
@@ -82,15 +72,7 @@ const KAFKA_AUTH_MECHANISM = process.env["KAFKA_AUTH_MECHANISM"] || "plain";
 const KAFKA_AUTH_USERNAME = process.env["KAFKA_AUTH_USERNAME"] || "user";
 const KAFKA_AUTH_PASSWORD = process.env["KAFKA_AUTH_PASSWORD"] || "password";
 
-const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
-
-const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
-const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
-
-// const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-event-handler-svc";
-// const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const CONSUMER_BATCH_SIZE = (process.env["CONSUMER_BATCH_SIZE"] && parseInt(process.env["CONSUMER_BATCH_SIZE"])) || 100;
 const CONSUMER_BATCH_TIMEOUT_MS = (process.env["CONSUMER_BATCH_TIMEOUT_MS"] && parseInt(process.env["CONSUMER_BATCH_TIMEOUT_MS"])) || 5;
@@ -127,15 +109,10 @@ let globalLogger: ILogger;
 // Express Server
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3034;
 
-// TODO: Replace this with the commented values once updated on security-bc
-const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-quoting-svc";
-const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
-
 export class Service {
 	static logger: ILogger;
     static app: Express;
     static expressServer: Server;
-	static auditClient: IAuditClient;
 	static messageConsumer: IMessageConsumer;
 	static messageProducer: IMessageProducer;
 	static handler: QuotingEventHandler;
@@ -145,11 +122,9 @@ export class Service {
 
 	static async start(
 		logger?: ILogger,
-		auditClient?: IAuditClient,
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
-        metrics?:IMetrics,
-        configProvider?: IConfigProvider,
+        metrics?:IMetrics
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -171,41 +146,11 @@ export class Service {
 		}
 		globalLogger = this.logger = logger;
 
-        /// start config client - this is not mockable (can use STANDALONE MODE if desired)
-        if(!configProvider) {
-            // create the instance of IAuthenticatedHttpRequester
-            const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+        await Service.setupTracing();
 
-            const messageConsumer = new MLKafkaJsonConsumer({
-                ...kafkaConsumerCommonOptions,
-                kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
-            }, this.logger.createChild("configClient.consumer"));
-            configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
-        }
-
-        this.configClient = GetQuotingConfigSet(configProvider, BC_NAME, APP_NAME, APP_VERSION);
+        // We only need the minimum, no configProvider required
+        this.configClient = GetQuotingConfigSet(BC_NAME, APP_NAME, APP_VERSION);
         await this.configClient.init();
-        await this.configClient.bootstrap(true);
-        await this.configClient.fetch();
-
-		/// start auditClient
-		if (!auditClient) {
-			if (!existsSync(AUDIT_KEY_FILE_PATH)) {
-				if (PRODUCTION_MODE) process.exit(9);
-				// create e tmp file
-				LocalAuditClientCryptoProvider.createRsaPrivateKeyFileSync(AUDIT_KEY_FILE_PATH, 2048);
-			}
-			const auditLogger = logger.createChild("auditDispatcher");
-			auditLogger.setLogLevel(LogLevel.INFO);
-
-			const cryptoProvider = new LocalAuditClientCryptoProvider(AUDIT_KEY_FILE_PATH);
-			const auditDispatcher = new KafkaAuditClientDispatcher(kafkaProducerCommonOptions, KAFKA_AUDITS_TOPIC, auditLogger);
-			// NOTE: to pass the same kafka logger to the audit client, make sure the logger is started/initialised already
-			auditClient = new AuditClient(BC_NAME, APP_NAME, APP_VERSION, cryptoProvider, auditDispatcher);
-			await auditClient.init();
-		}
-		this.auditClient = auditClient;
 
 		if(!messageConsumer){
 			const consumerHandlerLogger = logger.createChild("handlerConsumer");
@@ -232,7 +177,7 @@ export class Service {
         this.metrics = metrics;
 
 		// create handler and start it
-		this.handler = new QuotingEventHandler(this.logger, this.auditClient, this.messageConsumer, this.messageProducer, this.metrics);
+		this.handler = new QuotingEventHandler(this.logger, this.messageConsumer, this.messageProducer, this.metrics);
 		await this.handler.start();
 
         await this.setupExpress();
@@ -240,6 +185,10 @@ export class Service {
         // remove startup timeout
         clearTimeout(this.startupTimer);
 	}
+
+    static async setupTracing():Promise<void>{
+        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger);
+    }
 
     static setupExpress(): Promise<void> {
         return new Promise<void>(resolve => {
@@ -294,10 +243,6 @@ export class Service {
 			if (this.configClient) {
 				this.logger.debug("Tearing down config client");
 				await this.configClient.destroy();
-			}
-			if (this.auditClient) {
-				this.logger.debug("Tearing down audit client");
-				await this.auditClient.destroy();
 			}
 			if (this.logger && this.logger instanceof KafkaLogger) {
 				await (this.logger as KafkaLogger).destroy();

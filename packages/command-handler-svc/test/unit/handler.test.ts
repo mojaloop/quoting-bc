@@ -98,7 +98,7 @@ describe('Command Handler - Unit Tests for QuotingBC Command Handler', () => {
         await quotingCommandHandler.start();
 
         // Assert
-        expect(messageConsumerMock.setTopics).toHaveBeenCalledWith([QuotingBCTopics.DomainRequests]);
+        expect(messageConsumerMock.setTopics).toHaveBeenCalledWith([QuotingBCTopics.DomainCommands]);
         expect(messageConsumerMock.setBatchCallbackFn).toHaveBeenCalled();
         expect(messageConsumerMock.connect).toHaveBeenCalled();
         expect(messageConsumerMock.startAndWaitForRebalance).toHaveBeenCalled();

@@ -32,7 +32,7 @@
 
 "use strict";
 
-import { Collection, Document, MongoClient, WithId } from "mongodb";
+import {Collection, Db, Document, MongoClient, WithId} from "mongodb";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {
     BulkQuoteAlreadyExistsError,
@@ -42,45 +42,57 @@ import {
     UnableToAddBulkQuoteError,
     UnableToUpdateBulkQuoteError,
     UnableToDeleteBulkQuoteError,
-    BulkQuoteNotFoundError,
+    BulkQuoteNotFoundError, UnableToInitQuoteRegistryError,
 } from "../errors";
 import { IBulkQuoteRepo } from "@mojaloop/quoting-bc-domain-lib";
 import { IBulkQuote } from "@mojaloop/quoting-bc-public-types-lib";
 
+const DB_NAME: string = "quoting";
+const COLLECTION_NAME: string = "bulk_quotes";
+
 export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
     private readonly _logger: ILogger;
     private readonly _connectionString: string;
-    private readonly _dbName;
-    private readonly _collectionName = "bulk_quotes";
-    private mongoClient: MongoClient;
-    private bulkQuotes: Collection;
+    private _mongoClient: MongoClient;
+    private _collection: Collection;
 
-    constructor(logger: ILogger, connectionString: string, dbName: string) {
+    constructor(logger: ILogger, connectionString: string) {
         this._logger = logger.createChild(this.constructor.name);
         this._connectionString = connectionString;
-        this._dbName = dbName;
     }
 
     async init(): Promise<void> {
+        this._logger.info("Initializing MongoBulkQuotesRepo...");
         try {
-            this.mongoClient = new MongoClient(this._connectionString);
-            this.mongoClient.connect();
-            this.bulkQuotes = this.mongoClient
-                .db(this._dbName)
-                .collection(this._collectionName);
+            this._mongoClient = new MongoClient(this._connectionString);
+            await this._mongoClient.connect();
+
+            const db: Db = this._mongoClient.db(DB_NAME);
+
+            // Check if the collection already exists.
+            const collections: any[] = await db.listCollections().toArray();
+            const collectionExists: boolean = collections.some((collection) => {
+                return collection.name === COLLECTION_NAME;
+            });
+
+            // collection() creates the collection if it doesn't already exist, however, it doesn't allow for a schema
+            // to be passed as an argument.
+            if (collectionExists) {
+                this._collection = db.collection(COLLECTION_NAME);
+            }else{
+                this._collection = await db.createCollection(COLLECTION_NAME );
+                await this._collection.createIndex({"quoteId": 1}, {unique: true});
+            }
+            this._logger.info("MongoBulkQuotesRepo initialized");
         } catch (e: unknown) {
-            this._logger.error(
-                `Unable to connect to the database: ${(e as Error).message}`
-            );
-            throw new UnableToInitBulkQuoteRegistryError(
-                "Unable to connect to the database"
-            );
+            this._logger.error(e, "Error initializing MongoBulkQuotesRepo");
+            throw new UnableToInitQuoteRegistryError( "Error initializing MongoBulkQuotesRepo");
         }
     }
 
     async destroy(): Promise<void> {
         try {
-            await this.mongoClient.close();
+            await this._mongoClient.close();
         } catch (e: unknown) {
             this._logger.error(
                 `Unable to close the database connection: ${
@@ -94,7 +106,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
     }
 
     async getBulkQuoteById(bulkQuoteId: string): Promise<IBulkQuote | null> {
-        const bulkQuote = await this.bulkQuotes
+        const bulkQuote = await this._collection
             .findOne({ bulkQuoteId: bulkQuoteId })
             .catch((e: unknown) => {
                 this._logger.error(
@@ -111,7 +123,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
     }
 
     async getBulkQuotes(): Promise<IBulkQuote[]> {
-        const bulkQuotes = await this.bulkQuotes
+        const bulkQuotes = await this._collection
             .find({})
             .toArray()
             .catch((e: unknown) => {
@@ -136,7 +148,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
             await this.checkIfBulkQuoteExists(bulkQuoteToAdd);
         }
 
-        await this.bulkQuotes.insertOne(bulkQuoteToAdd).catch((e: unknown) => {
+        await this._collection.insertOne(bulkQuoteToAdd).catch((e: unknown) => {
             this._logger.error(
                 `Unable to insert bulkQuote: ${(e as Error).message}`
             );
@@ -160,7 +172,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
         const updatedQuote: IBulkQuote = { ...existingBulkQuote, ...bulkQuote };
         updatedQuote.bulkQuoteId = existingBulkQuote.bulkQuoteId;
 
-        await this.bulkQuotes
+        await this._collection
             .updateOne(
                 { bulkQuoteId: bulkQuote.bulkQuoteId },
                 { $set: updatedQuote }
@@ -176,7 +188,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
     }
 
     async removeBulkQuote(bulkQuoteId: string): Promise<void> {
-        const deleteResult = await this.bulkQuotes
+        const deleteResult = await this._collection
             .deleteOne({ bulkQuoteId })
             .catch((e: unknown) => {
                 this._logger.error(
@@ -197,7 +209,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
 
     private async checkIfBulkQuoteExists(bulkQuote: IBulkQuote) {
         const quoteAlreadyPresent: WithId<Document> | null =
-            await this.bulkQuotes
+            await this._collection
                 .findOne({
                     bulkQuoteId: bulkQuote.bulkQuoteId,
                 })

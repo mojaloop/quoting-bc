@@ -38,13 +38,13 @@ import { IQuote, IBulkQuote, QuotingSearchResults } from "@mojaloop/quoting-bc-p
 export interface IQuoteRepo {
   init(): Promise<void>;
   destroy(): Promise<void>;
-  addQuote(quote: IQuote): Promise<string>;
-  addQuotes(quotes: IQuote[]): Promise<void>;
-  updateQuote(quote: IQuote): Promise<void>;
-  updateQuotes(quote: IQuote[]): Promise<void>;
-  removeQuote(id: string): Promise<void>;
+  // addQuote(quote: IQuote): Promise<string>;
+  // addQuotes(quotes: IQuote[]): Promise<void>;
+  // updateQuote(quote: IQuote): Promise<void>;
+  // updateQuotes(quote: IQuote[]): Promise<void>;
+  // removeQuote(id: string): Promise<void>;
   getQuoteById(id: string): Promise<IQuote | null>;
-  getQuotes(): Promise<IQuote[]>;
+  // getQuotes(): Promise<IQuote[]>;
   getQuotesByBulkQuoteId(
     id: string
   ): Promise<IQuote[]>;

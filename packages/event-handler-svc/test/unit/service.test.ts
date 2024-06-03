@@ -32,11 +32,10 @@
 
 "use strict";
 
-import { MemoryMessageProducer, MemoryMessageConsumer, MemoryAuditService, MemoryConfigProvider } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { MemoryMessageProducer, MemoryMessageConsumer } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 import { Service } from "../../src/service";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { LocalAuditClientCryptoProvider } from "@mojaloop/auditing-bc-client-lib";
@@ -47,10 +46,6 @@ logger.setLogLevel(LogLevel.FATAL);
 const mockedMessageProducer: IMessageProducer = new MemoryMessageProducer(logger);
 
 const mockedMessageConsumer : IMessageConsumer = new MemoryMessageConsumer();
-
-const mockedAuditService = new MemoryAuditService(logger);
-
-const mockedConfigProvider: IConfigProvider = new MemoryConfigProvider(logger);
 
 const metricsMock: IMetrics = new MetricsMock();
 
@@ -63,9 +58,9 @@ jest.mock('@mojaloop/platform-configuration-bc-client-lib', () => {
         DefaultConfigProvider: jest.fn().mockImplementation(() => ({
         })),
         ConfigurationClient: jest.fn().mockImplementation(() => ({
-            init: jest.fn().mockResolvedValue(true), 
-            bootstrap: jest.fn().mockResolvedValue(true), 
-            fetch: jest.fn().mockResolvedValue(true), 
+            init: jest.fn().mockResolvedValue(true),
+            bootstrap: jest.fn().mockResolvedValue(true),
+            fetch: jest.fn().mockResolvedValue(true),
             destroy: jest.fn().mockResolvedValue(true),
             globalConfigs: mockGlobalConfigs
         }))
@@ -90,7 +85,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler Service', () =>
         const spyConsumerBackCallback = jest.spyOn(mockedMessageConsumer, "setBatchCallbackFn");
 
         // Act
-        await Service.start(logger, mockedAuditService, mockedMessageConsumer, mockedMessageProducer, metricsMock, mockedConfigProvider)
+        await Service.start(logger, mockedMessageConsumer, mockedMessageProducer, metricsMock)
 
         // Assert
         expect(spyConsumerSetTopics).toHaveBeenCalledTimes(1);
@@ -109,7 +104,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler Service', () =>
         const spyMockedProducer = jest.spyOn(mockedMessageProducer, "destroy");
 
         // Act
-        await Service.start(logger, mockedAuditService, mockedMessageConsumer, mockedMessageProducer, metricsMock, mockedConfigProvider)
+        await Service.start(logger, mockedMessageConsumer, mockedMessageProducer, metricsMock)
 
         await Service.stop();
 

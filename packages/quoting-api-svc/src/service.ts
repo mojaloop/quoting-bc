@@ -83,10 +83,12 @@ const KAFKA_AUTH_MECHANISM = process.env["KAFKA_AUTH_MECHANISM"] || "plain";
 const KAFKA_AUTH_USERNAME = process.env["KAFKA_AUTH_USERNAME"] || "user";
 const KAFKA_AUTH_PASSWORD = process.env["KAFKA_AUTH_PASSWORD"] || "password";
 
-
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
+
+const REDIS_HOST = process.env["REDIS_HOST"] || "localhost";
+const REDIS_PORT = (process.env["REDIS_PORT"] && parseInt(process.env["REDIS_PORT"])) || 6379;
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
@@ -97,8 +99,8 @@ const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_
 
 const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
 
-// const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-api-svc";
-// const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
+const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-api-svc";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 // Express Server
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3033;
@@ -123,10 +125,6 @@ if(KAFKA_AUTH_ENABLED){
 }
 
 let globalLogger: ILogger;
-
-// TODO: Replace this with the commented values once updated on security-bc
-const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-quoting-svc";
-const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 export class Service {
 	static logger: ILogger;
@@ -178,12 +176,12 @@ export class Service {
 
             const messageConsumer = new MLKafkaJsonConsumer({
                 ...kafkaConsumerCommonOptions,
-                kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
+                kafkaGroupId: `${INSTANCE_ID}_config_client` // unique consumer group per instance
             }, this.logger.createChild("configClient.consumer"));
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
 
-        this.configClient = GetQuotingConfigSet(configProvider, BC_NAME, APP_NAME, APP_VERSION);
+        this.configClient = GetQuotingConfigSet(BC_NAME, APP_NAME, APP_VERSION, configProvider);
         await this.configClient.init();
         await this.configClient.bootstrap(true);
         await this.configClient.fetch();
@@ -224,11 +222,7 @@ export class Service {
 		if (!quotesRepo) {
 			const DB_NAME_QUOTES = process.env.QUOTES_DB_NAME ?? "quoting";
 
-			quotesRepo = new MongoQuotesRepo(
-				logger,
-				MONGO_URL,
-				DB_NAME_QUOTES
-			);
+			quotesRepo = new MongoQuotesRepo(logger, MONGO_URL, REDIS_HOST, REDIS_PORT);
 
 			await quotesRepo.init();
 			logger.info("Quote Registry Repo Initialized");
@@ -238,11 +232,7 @@ export class Service {
         if (!bulkQuotesRepo) {
 			const DB_NAME_BULK_QUOTES = process.env.BULK_QUOTES_DB_NAME ?? "quoting";
 
-			bulkQuotesRepo = new MongoBulkQuotesRepo(
-				logger,
-				MONGO_URL,
-				DB_NAME_BULK_QUOTES
-			);
+			bulkQuotesRepo = new MongoBulkQuotesRepo(logger, MONGO_URL);
 
 			await bulkQuotesRepo.init();
 			logger.info("Bulk Quote Registry Repo Initialized");
@@ -258,7 +248,7 @@ export class Service {
             const messageConsumer = new MLKafkaJsonConsumer(
                 {
                     ...kafkaConsumerCommonOptions,
-                    kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
+                    kafkaGroupId: `${INSTANCE_ID}_authz_client` // unique consumer group per instance
                 }, logger.createChild("authorizationClientConsumer")
             );
 
@@ -278,14 +268,16 @@ export class Service {
        }
         this.authorizationClient = authorizationClient;
 
-
         // token helper
         this.tokenHelper = new TokenHelper(
             AUTH_N_SVC_JWKS_URL,
             logger,
             AUTH_N_TOKEN_ISSUER_NAME,
             AUTH_N_TOKEN_AUDIENCE,
-            new MLKafkaJsonConsumer({...kafkaConsumerCommonOptions, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID}, logger) // for jwt list - no groupId
+            new MLKafkaJsonConsumer({
+                ...kafkaConsumerCommonOptions, autoOffsetReset: "earliest",
+                kafkaGroupId: `${INSTANCE_ID}_tokenHelper` // unique consumer group per instance
+            }, logger) // for jwt list - no groupId
         );
         await this.tokenHelper.init();
 
