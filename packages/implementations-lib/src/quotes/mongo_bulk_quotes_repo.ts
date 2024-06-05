@@ -86,7 +86,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
             this._logger.info("MongoBulkQuotesRepo initialized");
         } catch (e: unknown) {
             this._logger.error(e, "Error initializing MongoBulkQuotesRepo");
-            throw new UnableToInitQuoteRegistryError( "Error initializing MongoBulkQuotesRepo");
+            throw new UnableToInitBulkQuoteRegistryError( "Error initializing MongoBulkQuotesRepo");
         }
     }
 

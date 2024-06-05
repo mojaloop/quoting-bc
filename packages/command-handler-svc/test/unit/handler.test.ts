@@ -30,14 +30,14 @@
  --------------
 **/
 
-import { MemoryMessageProducer, MemoryAuditService, MemoryParticipantService, MemoryAccountLookupService, MemoryQuoteRepo, MemoryBulkQuoteRepo } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { MemoryMessageProducer, MemoryAuditService, MemoryParticipantService, MemoryAccountLookupService, MemoryQuoteRepo, MemoryBulkQuoteRepo, MemoryTracing } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {
     IMessageProducer,
     MessageTypes,
 } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { QuotingCommandHandler } from "../../src/handler";
-import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { IMetrics, ITracing, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IAccountLookupService, IBulkQuoteRepo, IParticipantService, IQuoteRepo, QuotingAggregate } from "@mojaloop/quoting-bc-domain-lib";
 import { currencyList } from "@mojaloop/quoting-bc-domain-lib/test/utils/mocked_variables";
@@ -72,6 +72,8 @@ const mockedBulkQuotesRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logge
 
 const metricsMock: IMetrics = new MetricsMock();
 
+const tracingMock: ITracing = new MemoryTracing();
+
 const PASS_THROUGH_MODE = true;
 
 const mockedAggregate: QuotingAggregate = new QuotingAggregate(
@@ -84,6 +86,7 @@ const mockedAggregate: QuotingAggregate = new QuotingAggregate(
     metricsMock,
     PASS_THROUGH_MODE,
     currencyList,
+    tracingMock
 );
 
 describe('Command Handler - Unit Tests for QuotingBC Command Handler', () => {

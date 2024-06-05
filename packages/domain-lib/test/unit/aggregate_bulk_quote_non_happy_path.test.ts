@@ -65,15 +65,16 @@ import {
     currencyList,
 } from "../utils/mocked_variables";
 import { QuotingAggregate } from "./../../src/aggregate";
-import { mockedBulkQuote1 } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { MemoryTracing, mockedBulkQuote1 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { CommandMsg, MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import { IQuote } from "@mojaloop/quoting-bc-public-types-lib";
 import { QuotingErrorCodeNames } from "@mojaloop/quoting-bc-public-types-lib";
-import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { IMetrics, ITracing, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { QueryReceivedBulkQuoteCmd, RejectedBulkQuoteCmd, RequestReceivedBulkQuoteCmd, ResponseReceivedBulkQuoteCmd } from "../../src/commands";
 
 const metricsMock: IMetrics = new MetricsMock();
+const tracingMock: ITracing = new MemoryTracing();
 
 const PASS_THROUGH_MODE = true;
 const PASS_THROUGH_MODE_FALSE = false;
@@ -92,6 +93,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE,
             currencyList,
+            tracingMock
         );
     });
 
@@ -441,6 +443,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -497,9 +500,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(bulkQuoteRepo, "addBulkQuote").mockResolvedValueOnce(
             "inserted bulk quote"
         );
-        jest.spyOn(quoteRepo, "addQuotes").mockRejectedValue(
-            new Error("Error adding quotes to database")
-        );
+  
         jest.spyOn(messageProducer, "send");
 
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
@@ -512,6 +513,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -622,7 +624,6 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
             responseQuotes[1]
         );
-        jest.spyOn(quoteRepo, "updateQuotes").mockResolvedValue();
 
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
@@ -634,6 +635,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -712,6 +714,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -772,6 +775,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -835,6 +839,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -892,9 +897,6 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             responseQuotes
         );
 
-        const error = new Error("Error updating quotes in database");
-        jest.spyOn(quoteRepo, "updateQuotes").mockRejectedValue(error);
-
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
@@ -905,6 +907,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -962,8 +965,6 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             responseQuotes
         );
 
-        jest.spyOn(quoteRepo, "updateQuotes").mockResolvedValueOnce();
-
         const error = new Error("Error updating bulk quote in database");
 
         jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockRejectedValue(error);
@@ -978,6 +979,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -1050,7 +1052,6 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
             responseQuotes[1]
         );
-        jest.spyOn(quoteRepo, "updateQuotes").mockResolvedValue();
 
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
@@ -1062,6 +1063,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -1160,8 +1162,6 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             responseQuotes[1]
         );
         
-        jest.spyOn(quoteRepo, "updateQuotes").mockResolvedValue();
-
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
@@ -1172,6 +1172,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -1443,6 +1444,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -1506,6 +1508,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -1576,6 +1579,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -1647,6 +1651,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         // Act

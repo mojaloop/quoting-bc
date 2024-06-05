@@ -220,8 +220,6 @@ export class Service {
 		this.auditClient = auditClient;
 
 		if (!quotesRepo) {
-			const DB_NAME_QUOTES = process.env.QUOTES_DB_NAME ?? "quoting";
-
 			quotesRepo = new MongoQuotesRepo(logger, MONGO_URL, REDIS_HOST, REDIS_PORT);
 
 			await quotesRepo.init();
@@ -230,8 +228,6 @@ export class Service {
 		this.quotesRepo = quotesRepo;
 
         if (!bulkQuotesRepo) {
-			const DB_NAME_BULK_QUOTES = process.env.BULK_QUOTES_DB_NAME ?? "quoting";
-
 			bulkQuotesRepo = new MongoBulkQuotesRepo(logger, MONGO_URL);
 
 			await bulkQuotesRepo.init();

@@ -105,8 +105,14 @@ const mongoBulkWriteSpy = jest.fn();
 const mongoUpdateOneSpy = jest.fn();
 const mongoDeleteOneSpy = jest.fn();
 const mongoToArraySpy = jest.fn();
+const mongoToArrayListCollectionsSpy = jest.fn().mockImplementation(() => {
+    return []
+})
 const mongoFindSpy = jest.fn().mockImplementation(() => ({
     toArray: mongoToArraySpy,
+}));
+const mongoToArraListCollectionSpy = jest.fn().mockImplementation(() => ({
+    toArray: mongoToArrayListCollectionsSpy,
 }))
 const mongoCountDocumentsSpy = jest.fn();
 const mongoAggregateSpy = jest.fn();
@@ -123,6 +129,19 @@ const mongoCollectionSpy = jest.fn().mockImplementation(() => ({
     aggregate: mongoAggregateSpy,
 }));
 
+const mongoListCollectionsSpy = jest.fn().mockImplementation(() => ({
+    findOne: mongoFindOneSpy,
+    insertOne: mongoInsertOneSpy,
+    insertMany: mongoInsertManySpy,
+    bulkWrite: mongoBulkWriteSpy,
+    updateOne: mongoUpdateOneSpy,
+    deleteOne: mongoDeleteOneSpy,
+    find: mongoFindSpy,
+    toArray: mongoToArrayListCollectionsSpy,
+    countDocuments: mongoCountDocumentsSpy,
+    aggregate: mongoAggregateSpy,
+}));
+
 jest.mock('mongodb', () => {
     const mockCollection = jest.fn().mockImplementation(() => ({
         findOne: mongoFindOneSpy
@@ -133,7 +152,8 @@ jest.mock('mongodb', () => {
             connect: mongoConnectSpy,
             close: mongoCloseSpy,
             db: jest.fn().mockImplementation(() => ({
-                collection: mongoCollectionSpy
+                collection: mongoCollectionSpy,
+                listCollections: mongoListCollectionsSpy
             })),
         })),
         Collection: mockCollection,
@@ -145,6 +165,7 @@ jest.mock('@mojaloop/auditing-bc-client-lib');
 jest.mock('@mojaloop/auditing-bc-client-lib');
 jest.mock('@mojaloop/platform-shared-lib-nodejs-kafka-client-lib');
 jest.mock('@mojaloop/security-bc-client-lib');
+jest.mock('ioredis');
 
 describe('API Service - Unit Tests for QuotingBC API Service', () => {
 
@@ -183,6 +204,11 @@ describe('API Service - Unit Tests for QuotingBC API Service', () => {
         const loggerConstructorDestroySpy = jest.spyOn(KafkaLogger.prototype, 'destroy');
 
         const auditClientConstructorInitSpy = jest.spyOn(LocalAuditClientCryptoProvider, 'createRsaPrivateKeyFileSync');
+
+        mongoToArrayListCollectionsSpy.mockResolvedValue([
+            { name: "quotes" },
+            { name: "bulk_quotes" }
+        ]);
 
         // Act
         await Service.start();

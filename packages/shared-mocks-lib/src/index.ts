@@ -43,3 +43,4 @@ export * from "./memory_audit_service";
 export * from "./memory_config_provider";
 export * from "./memory_token_helper";
 export * from "./memory_authorization_client";
+export * from "./memory_tracing";

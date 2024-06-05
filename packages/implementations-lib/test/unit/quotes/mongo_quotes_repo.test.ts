@@ -84,6 +84,25 @@ const mongoCollectionSpy = jest.fn().mockImplementation(() => ({
     aggregate: mongoAggregateSpy,
 }));
 
+const mongoToArrayListCollectionsSpy = jest.fn().mockImplementation(() => {
+    return []
+})
+
+const mongoListCollectionsSpy = jest.fn().mockImplementation(() => ({
+    findOne: mongoFindOneSpy,
+    insertOne: mongoInsertOneSpy,
+    insertMany: mongoInsertManySpy,
+    bulkWrite: mongoBulkWriteSpy,
+    updateOne: mongoUpdateOneSpy,
+    deleteOne: mongoDeleteOneSpy,
+    find: mongoFindSpy,
+    toArray: mongoToArrayListCollectionsSpy,
+    countDocuments: mongoCountDocumentsSpy,
+    aggregate: mongoAggregateSpy,
+}));
+
+
+
 jest.mock('mongodb', () => {
     const mockCollection = jest.fn().mockImplementation(() => ({
         findOne: mongoFindOneSpy
@@ -94,16 +113,39 @@ jest.mock('mongodb', () => {
             connect: mongoConnectSpy,
             close: mongoCloseSpy,
             db: jest.fn().mockImplementation(() => ({
-                collection: mongoCollectionSpy
+                collection: mongoCollectionSpy,
+                listCollections: mongoListCollectionsSpy
             })),
         })),
         Collection: mockCollection,
     };
 });
- 
+
+const redisSetSpy = jest.fn();
+const redisSetExSpy = jest.fn();
+const redisMultiExecSpy = jest.fn();
+const redisGetSpy = jest.fn();
+
+jest.mock('ioredis', () => {
+    return jest.fn().mockImplementation(() => {
+        return {
+            connect: jest.fn(),
+            set: redisSetSpy,
+            setex: redisSetExSpy,
+            multi: jest.fn().mockImplementation(() => {
+                return {
+                    exec: redisMultiExecSpy
+                }
+            }),
+            get: redisGetSpy,
+        };
+    });
+});
   
 const connectionString = 'mongodb://localhost:27017';
-const dbName = 'testDB';
+const redisHost = "redishost";
+const redisPort = 1234;
+const dbName = "quotes";
 
 describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
     let mongoQuotesRepo: MongoQuotesRepo;
@@ -111,7 +153,11 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
     beforeEach(async () => {
         jest.clearAllMocks();
 
-        mongoQuotesRepo = new MongoQuotesRepo(logger, connectionString, dbName);
+        mongoToArrayListCollectionsSpy.mockResolvedValue([
+            { name: dbName },
+        ]);
+
+        mongoQuotesRepo = new MongoQuotesRepo(logger, connectionString, redisHost, redisPort);
 
         await mongoQuotesRepo.init();
 
@@ -151,139 +197,6 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
 
         // Act & Assert
         await expect(mongoQuotesRepo.init()).rejects.toThrow(UnableToInitQuoteRegistryError);
-    });
-
-    it('should add a new quote successfully', async () => {
-        // Arrange
-        const quote = mockedQuote1;
-
-        mongoFindOneSpy.mockResolvedValueOnce(null);
-        mongoInsertOneSpy.mockResolvedValueOnce({});
-
-        // Act
-        const addedQuoteId = await mongoQuotesRepo.addQuote(quote);
-
-        // Assert
-        expect(mongoFindOneSpy).toHaveBeenCalledWith({ quoteId: mockedQuote1.quoteId });
-        expect(mongoInsertOneSpy).toHaveBeenCalledWith(quote);
-        expect(addedQuoteId).toBe(mockedQuote1.quoteId);
-    });
-
-    it('should throw QuoteAlreadyExistsError when attempting to add an existing quote', async () => {
-        // Arrange
-        const quote: IQuote = mockedQuote1;
-
-        mongoFindOneSpy.mockResolvedValueOnce({});
-
-        // Act
-        await expect(mongoQuotesRepo.addQuote(quote)).rejects.toThrow(QuoteAlreadyExistsError);
-
-        // Assert
-        expect(mongoFindOneSpy).toHaveBeenCalledWith({ quoteId: quote.quoteId });
-        expect(mongoInsertOneSpy).not.toHaveBeenCalled();
-    });
-
-    it('should throw UnableToAddQuoteError when encountering an error during insertion', async () => {
-        // Arrange
-        const quote: IQuote = mockedQuote1;
-
-        const errorMessage = 'Insertion error';
-        mongoFindOneSpy.mockResolvedValueOnce(null);
-        mongoInsertOneSpy.mockRejectedValueOnce(new Error(errorMessage));
-
-        // Act & Assert
-        await expect(mongoQuotesRepo.addQuote(quote)).rejects.toThrow(UnableToAddQuoteError);
-
-        expect(mongoFindOneSpy).toHaveBeenCalledWith({ quoteId: quote.quoteId });
-        expect(mongoInsertOneSpy).toHaveBeenCalledWith(quote);
-    });
-
-    it('should throw UnableToGetQuoteError when encountering an error while checking if quote exists', async () => {
-        // Arrange
-        const quote: IQuote = mockedQuote1;
-
-        const errorMessage = 'Find error';
-        mongoFindOneSpy.mockRejectedValueOnce(new Error(errorMessage));
-
-        // Act & Assert
-        await expect(mongoQuotesRepo.addQuote(quote)).rejects.toThrow(UnableToGetQuoteError);
-
-        expect(mongoFindOneSpy).toHaveBeenCalledWith({ quoteId: quote.quoteId });
-        expect(mongoInsertOneSpy).not.toHaveBeenCalled();
-    });
-
-    it('should add multiple quotes successfully', async () => {
-        // Arrange
-        const quotes: IQuote[] = [
-            mockedQuote1,
-            mockedQuote2,
-        ];
-
-        mongoFindOneSpy.mockResolvedValue(null);
-        mongoInsertManySpy.mockResolvedValueOnce({});
-
-        // Act
-        await mongoQuotesRepo.addQuotes(quotes);
-
-        // Assert
-        expect(mongoFindOneSpy).toHaveBeenCalledTimes(quotes.length);
-        expect(mongoInsertManySpy).toHaveBeenCalledWith(quotes);
-    });
-
-    it('should throw QuoteAlreadyExistsError when attempting to add quotes with existing IDs', async () => {
-        // Arrange
-        const quotes: IQuote[] = [
-            mockedQuote1,
-            mockedQuote2,
-        ];
-
-        mongoFindOneSpy.mockResolvedValueOnce({}); 
-
-        // Act & Assert
-        await expect(mongoQuotesRepo.addQuotes(quotes)).rejects.toThrow(QuoteAlreadyExistsError);
-
-        expect(mongoFindOneSpy).toHaveBeenCalledTimes(1);
-        expect(mongoInsertManySpy).not.toHaveBeenCalled();
-    });
-
-    it('should add quotes with generated IDs for quotes without quoteId', async () => {
-        // Arrange
-        const quotes: IQuote[] = [
-            { } as IQuote,
-            { } as IQuote,
-        ];
-
-        mongoFindOneSpy.mockResolvedValue(null); 
-        mongoInsertManySpy.mockResolvedValueOnce({});
-
-        // Act
-        await mongoQuotesRepo.addQuotes(quotes);
-
-        // Assert
-        expect(mongoFindOneSpy).toHaveBeenCalledTimes(quotes.length);
-        expect(mongoInsertManySpy).toHaveBeenCalledWith(
-            quotes.map((quote) => ({
-                ...quote,
-                quoteId: expect.any(String),
-            }))
-        );
-    });
-
-    it('should throw UnableToAddManyQuotesError when encountering an error during insertion', async () => {
-        // Arrange
-        const quotes: IQuote[] = [
-            mockedQuote1
-        ];
-
-        const errorMessage = 'Insertion error';
-        mongoFindOneSpy.mockResolvedValueOnce(null);
-        mongoInsertManySpy.mockRejectedValueOnce(new Error(errorMessage));
-
-        // Act & Assert
-        await expect(mongoQuotesRepo.addQuotes(quotes)).rejects.toThrow(UnableToAddManyQuotesError);
-
-        expect(mongoFindOneSpy).toHaveBeenCalledTimes(quotes.length);
-        expect(mongoInsertManySpy).toHaveBeenCalledWith(quotes);
     });
 
     it('should store quotes successfully', async () => {
@@ -349,136 +262,6 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
         expect(mongoBulkWriteSpy).toHaveBeenCalledWith(expect.any(Array));
     });
 
-    it('should update an existing quote successfully', async () => {
-        // Arrange
-        const quote: IQuote = mockedQuote1;
-
-        const existingQuote: IQuote = mockedQuote1;
-
-        mongoUpdateOneSpy.mockResolvedValueOnce({});
-
-        mongoQuotesRepo.getQuoteById = jest.fn().mockResolvedValueOnce(existingQuote);
-
-        // Act
-        await mongoQuotesRepo.updateQuote(quote);
-
-        // Assert
-        expect(mongoQuotesRepo.getQuoteById).toHaveBeenCalledWith(quote.quoteId);
-        expect(mongoUpdateOneSpy).toHaveBeenCalledWith({ quoteId: quote.quoteId }, { $set: quote });
-    });
-
-    it('should throw QuoteNotFoundError when the quote does not exist', async () => {
-        // Arrange
-        const quote: IQuote = mockedQuote1;
-
-        mongoQuotesRepo.getQuoteById = jest.fn().mockResolvedValueOnce(null);
-
-        // Act
-        await expect(mongoQuotesRepo.updateQuote(quote)).rejects.toThrow(QuoteNotFoundError);
-
-        // Assert
-        expect(mongoQuotesRepo.getQuoteById).toHaveBeenCalledWith(quote.quoteId);
-        expect(mongoUpdateOneSpy).not.toHaveBeenCalled();
-    });
-
-    it('should throw UnableToUpdateQuoteError when encountering an error during update', async () => {
-        // Arrange
-        const quote: IQuote = mockedQuote1;
-
-        const errorMessage = 'Update error';
-        mongoUpdateOneSpy.mockRejectedValueOnce(new Error(errorMessage));
-
-        mongoQuotesRepo.getQuoteById = jest.fn().mockResolvedValueOnce(quote);
-
-        // Act & Assert
-        await expect(mongoQuotesRepo.updateQuote(quote)).rejects.toThrow(UnableToUpdateQuoteError);
-
-        expect(mongoQuotesRepo.getQuoteById).toHaveBeenCalledWith(quote.quoteId);
-        expect(mongoUpdateOneSpy).toHaveBeenCalledWith({ quoteId: quote.quoteId }, { $set: quote });
-    });
-
-    it('should perform bulk update operation for quotes', async () => {
-        // Arrange
-        const quotes: IQuote[] = [
-            mockedQuote1,
-            mockedQuote2
-        ];
-
-        const bulkOps = quotes.map((quote) => ({
-            updateOne: {
-                filter: { quoteId: quote.quoteId },
-                update: { $set: quote },
-            },
-        }));
-        mongoBulkWriteSpy.mockResolvedValueOnce({});
-
-        // Act
-        await mongoQuotesRepo.updateQuotes(quotes);
-
-        // Assert
-        expect(mongoBulkWriteSpy).toHaveBeenCalledWith(bulkOps, { ordered: false });
-    });
-
-    it('should throw UnableToUpdateQuoteError when encountering an error during bulk update', async () => {
-        // Arrange
-        const quotes: IQuote[] = [
-            mockedQuote1,
-            mockedQuote2
-        ];
-
-        const errorMessage = 'Bulk update error';
-        mongoBulkWriteSpy.mockRejectedValueOnce(new Error(errorMessage));
-
-        // Act & Assert
-        await expect(mongoQuotesRepo.updateQuotes(quotes)).rejects.toThrow(UnableToUpdateQuoteError);
-    });
-
-    it('should remove an existing quote successfully', async () => {
-        // Arrange
-        const quoteId = '123';
-
-        const deleteResult = {
-            deletedCount: 1,
-        };
-
-        mongoDeleteOneSpy.mockResolvedValueOnce(deleteResult);
-
-        // Act
-        await mongoQuotesRepo.removeQuote(quoteId);
-
-        // Assert
-        expect(mongoDeleteOneSpy).toHaveBeenCalledWith({ quoteId });
-    });
-
-    it('should throw QuoteNotFoundError when the quote does not exist', async () => {
-        // Arrange
-        const quoteId = '123';
-
-        const deleteResult = {
-            deletedCount: 0,
-        };
-
-        mongoDeleteOneSpy.mockResolvedValueOnce(deleteResult);
-
-        // Act & Assert
-        await expect(mongoQuotesRepo.removeQuote(quoteId)).rejects.toThrow(QuoteNotFoundError);
-
-        expect(mongoDeleteOneSpy).toHaveBeenCalledWith({ quoteId });
-    });
-
-    it('should throw UnableToDeleteQuoteError when encountering an error during deletion', async () => {
-        // Arrange
-        const quoteId = '123';
-
-        const errorMessage = 'Deletion error';
-        mongoDeleteOneSpy.mockRejectedValueOnce(new Error(errorMessage));
-
-        // Act & Assert
-        await expect(mongoQuotesRepo.removeQuote(quoteId)).rejects.toThrow(UnableToDeleteQuoteError);
-
-        expect(mongoDeleteOneSpy).toHaveBeenCalledWith({ quoteId });
-    });
-
     it('should return the quote when it exists', async () => {
         // Arrange
         const quoteId = '123';
@@ -520,36 +303,6 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
         await expect(mongoQuotesRepo.getQuoteById(quoteId)).rejects.toThrow(UnableToGetQuoteError);
 
         expect(mongoFindOneSpy).toHaveBeenCalledWith({ quoteId });
-    });
-
-    it('should return quotes when they exist', async () => {
-        // Arrange
-        const quote1 = mockedQuote1;
-
-        const quote2 = mockedQuote2;
-
-        const quotesData = [quote1, quote2];
-
-        mongoToArraySpy.mockResolvedValueOnce(quotesData);
-
-        // Act
-        const quotes = await mongoQuotesRepo.getQuotes();
-
-        // Assert
-        expect(mongoFindSpy).toHaveBeenCalledTimes(1);
-        expect(quotes).toEqual(quotesData);
-    });
-
-    it('should throw UnableToGetQuotesError when encountering an error during retrieval', async () => {
-        // Arrange
-        const errorMessage = 'Retrieval error';
-
-        mongoToArraySpy.mockRejectedValueOnce(new Error(errorMessage));
-
-        // Act & Assert
-        await expect(mongoQuotesRepo.getQuotes()).rejects.toThrow(UnableToGetQuotesError);
-
-        expect(mongoFindSpy).toHaveBeenCalledTimes(1);
     });
 
     it('should return quotes when they exist for a given bulk quote ID', async () => {

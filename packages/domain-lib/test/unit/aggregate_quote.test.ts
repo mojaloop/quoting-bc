@@ -62,16 +62,18 @@ import {
     currencyList,
 } from "../utils/mocked_variables";
 import {
+    MemoryTracing,
     mockedQuote1,
     mockedQuote4,
 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { QuotingAggregate } from "../../src/aggregate";
-import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { IMetrics, ITracing, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { QueryReceivedQuoteCmd, RejectedQuoteCmd, RequestReceivedQuoteCmd, ResponseReceivedQuoteCmd } from "../../src/commands";
 
 let aggregate: QuotingAggregate;
 
 const metricsMock: IMetrics = new MetricsMock();
+const tracingMock: ITracing = new MemoryTracing();
 
 const PASS_THROUGH_MODE = true;
 const PASS_THROUGH_MODE_FALSE = false;
@@ -88,6 +90,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             metricsMock,
             PASS_THROUGH_MODE,
             currencyList,
+            tracingMock
         );
     });
 
@@ -267,6 +270,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -450,6 +454,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
@@ -504,7 +509,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             MessageTypes.COMMAND
         );
 
-        const repositorySpy = jest.spyOn(quoteRepo, "updateQuote");
+        const repositorySpy = jest.spyOn(quoteRepo, "storeQuotes");
 
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({

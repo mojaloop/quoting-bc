@@ -30,11 +30,11 @@
  --------------
 **/
 
-import { mockedQuoteRequestPayload, mockedQuoteResponsePayload, mockedQuoteQueryPayload, quoteRejectedPayload, bulkQuoteRequestedPayload, bulkQuotePendingPayload, mockedBulkQuoteQueryPayload, bulkQuoteRejectedPayload } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { mockedQuoteRequestPayload, mockedQuoteResponsePayload, mockedQuoteQueryPayload, quoteRejectedPayload, bulkQuoteRequestedPayload, bulkQuotePendingPayload, mockedBulkQuoteQueryPayload, bulkQuoteRejectedPayload, MemoryTracing } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { MessageTypes } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { QuotingEventHandler } from "../../src/handler";
-import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { IMetrics, ITracing, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { BulkQuotePendingReceivedEvt, BulkQuoteQueryReceivedEvt, BulkQuoteRejectedEvt, BulkQuoteRequestedEvt, QuoteQueryReceivedEvt, QuoteRejectedEvt, QuoteRequestReceivedEvt, QuoteResponseReceivedEvt, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { QueryReceivedBulkQuoteCmd, QueryReceivedQuoteCmd, RejectedBulkQuoteCmd, RejectedQuoteCmd, RequestReceivedBulkQuoteCmd, RequestReceivedQuoteCmd, ResponseReceivedBulkQuoteCmd, ResponseReceivedQuoteCmd } from "../../../domain-lib/src/commands";
 
@@ -54,6 +54,83 @@ const messageProducerMock = {
 };
 const metricsMock: IMetrics = new MetricsMock();
 
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            getInstance: jest.fn(() => ({
+                trace: {
+                    getTracer: jest.fn(() => ({
+                        startActiveSpan: jest.fn((spanName, spanOptions, context, callback) => {
+                            const mockSpan = {
+                              end: jest.fn(),
+                            };
+                            return callback(mockSpan);
+                    })})),
+                },
+                startSpanWithPropagationInput: jest.fn((tracer, spanName, input) => {
+                    return {
+                        setAttributes: jest.fn((tracer, spanName, input) => {
+                        }),
+                        setStatus: jest.fn(() => {
+                            return {
+                                end: jest.fn()
+                            }
+                        }),
+                        setAttribute: jest.fn(),
+                        updateName: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startChildSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                propagationInject: jest.fn(),
+                propagationExtract: jest.fn()
+            })),
+        },
+        PrometheusMetrics: {
+            Setup: jest.fn(() => ({
+             
+            })),
+        },
+        OpentelemetryApi: {
+            propagation: {
+                getBaggage: jest.fn(() => ({
+                    getEntry: (startTimeStamp:number) => {
+                        return {
+                            value: Date.now()
+                        };
+                    }
+                })),
+            }
+        },
+    };
+});
+
+jest.mock("@opentelemetry/api", () => {
+    const originalModule = jest.requireActual("@opentelemetry/api");
+
+    return {
+        ...originalModule,
+        propagation: {
+            getBaggage: jest.fn(() => ({
+                getEntry: jest.fn()
+            })),
+        }
+    };
+});
 
 describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
     let quotingEventHandler:any;
@@ -72,7 +149,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         await quotingEventHandler.start();
 
         expect(messageProducerMock.connect).toHaveBeenCalled();
-        expect(messageConsumerMock.setTopics).toHaveBeenCalledWith([QuotingBCTopics.DomainRequests, QuotingBCTopics.DomainEvents]);
+        expect(messageConsumerMock.setTopics).toHaveBeenCalledWith([QuotingBCTopics.DomainRequests]);
         expect(messageConsumerMock.setBatchCallbackFn).toHaveBeenCalled();
         expect(messageConsumerMock.connect).toHaveBeenCalled();
         expect(messageConsumerMock.startAndWaitForRebalance).toHaveBeenCalled();

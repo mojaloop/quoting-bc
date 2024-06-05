@@ -45,6 +45,8 @@ const DB_NAME = process.env.ACCOUNT_LOOKUP_DB_TEST_NAME ?? "test";
 const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017";
 //const CONNECTION_STRING = process.env["MONGO_URL"] || "mongodb://127.0.0.1:27017";
 const COLLECTION_NAME = "quotes";
+const REDIS_HOST = process.env["REDIS_HOST"] || "redishost";
+const REDIS_PORT = process.env["REDIS_PORT"] || 1234;
 
 let mongoQuotesRepo : MongoQuotesRepo;
 
@@ -58,7 +60,7 @@ describe("Implementations - Mongo Quotes Repo Integration tests", () => {
 
         mongoClient = await MongoClient.connect(connectionString);
         collection = mongoClient.db(DB_NAME).collection(COLLECTION_NAME);
-        mongoQuotesRepo = new MongoQuotesRepo(logger, CONNECTION_STRING, DB_NAME);
+        mongoQuotesRepo = new MongoQuotesRepo(logger, CONNECTION_STRING, "test",1234, 5000);
         await mongoQuotesRepo.init();
         await collection.deleteMany({});
     });

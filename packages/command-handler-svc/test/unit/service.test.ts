@@ -33,10 +33,10 @@
 "use strict";
 
 import { QuotingAggregate, IParticipantService, IQuoteRepo, IBulkQuoteRepo, IAccountLookupService} from "@mojaloop/quoting-bc-domain-lib";
-import { MemoryMessageProducer, MemoryMessageConsumer, MemoryParticipantService, MemoryQuoteRepo, MemoryAuditService, MemoryConfigProvider, MemoryBulkQuoteRepo, MemoryAccountLookupService } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { MemoryMessageProducer, MemoryMessageConsumer, MemoryParticipantService, MemoryQuoteRepo, MemoryAuditService, MemoryConfigProvider, MemoryBulkQuoteRepo, MemoryAccountLookupService, MemoryTracing } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { IMetrics, ITracing, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 import { Service } from "../../src/service";
 import { currencyList } from "@mojaloop/quoting-bc-domain-lib/test/utils/mocked_variables";
@@ -63,6 +63,7 @@ const mockedBulkQuotesRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logge
 const mockedConfigProvider: IConfigProvider = new MemoryConfigProvider(logger);
 
 const metricsMock: IMetrics = new MetricsMock();
+const tracingMock: ITracing = new MemoryTracing();
 
 const PASS_THROUGH_MODE = true;
 
@@ -77,6 +78,7 @@ const mockedAggregate: QuotingAggregate = new QuotingAggregate(
     metricsMock,
     PASS_THROUGH_MODE,
     currencyList,
+    tracingMock
 );
 
 
@@ -102,6 +104,90 @@ jest.mock('@mojaloop/platform-configuration-bc-client-lib', () => {
 jest.mock('@mojaloop/auditing-bc-client-lib');
 jest.mock('@mojaloop/platform-shared-lib-nodejs-kafka-client-lib');
 jest.mock('@mojaloop/quoting-bc-implementations-lib');
+
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            Start: jest.fn(),
+            getInstance: jest.fn(() => ({
+                trace: {
+                    getTracer: jest.fn(() => ({
+                        startActiveSpan: jest.fn((spanName, spanOptions, context, callback) => {
+                            const mockSpan = {
+                              end: jest.fn(),
+                            };
+                            return callback(mockSpan);
+                    })})),
+                },
+                startSpanWithPropagationInput: jest.fn((tracer, spanName, input) => {
+                    return {
+                        setAttributes: jest.fn((tracer, spanName, input) => {
+                        }),
+                        setStatus: jest.fn(() => {
+                            return {
+                                end: jest.fn()
+                            }
+                        }),
+                        setAttribute: jest.fn(),
+                        updateName: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startChildSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                propagationInject: jest.fn(),
+                propagationExtract: jest.fn()
+            })),
+        },
+        PrometheusMetrics: {
+            Setup: jest.fn(() => ({
+             
+            })),
+            getInstance: jest.fn(() => ({
+                getHistogram: () => {
+                    return {
+                        value: Date.now()
+                    };
+                },
+                getCounter: () => {
+                    return {
+                        value: Date.now()
+                    };
+                },
+                getGauge: () => {
+                    return {
+                        value: Date.now()
+                    };
+                }
+            })),
+        },
+        OpentelemetryApi: {
+            propagation: {
+                getBaggage: jest.fn(() => ({
+                    getEntry: (startTimeStamp:number) => {
+                        return {
+                            value: Date.now()
+                        };
+                    }
+                })),
+            }
+        },
+    };
+});
+
 
 describe('Command Handler - Unit Tests for QuotingBC Command Handler Service', () => {
 
