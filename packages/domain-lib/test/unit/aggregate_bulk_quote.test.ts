@@ -62,17 +62,19 @@ import {
     currencyList,
 } from "../utils/mocked_variables";
 import {
+    MemoryTracing,
     mockedBulkQuote1,
     mockedQuote1,
     mockedQuote2,
 } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { QuotingAggregate } from "../../src/aggregate";
-import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
+import { IMetrics, ITracing, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { QueryReceivedBulkQuoteCmd, RejectedBulkQuoteCmd, RequestReceivedBulkQuoteCmd, ResponseReceivedBulkQuoteCmd } from "../../src/commands";
 
 let aggregate: QuotingAggregate;
 
 const metricsMock: IMetrics = new MetricsMock();
+const tracingMock: ITracing = new MemoryTracing();
 
 const PASS_THROUGH_MODE = true;
 const PASS_THROUGH_MODE_FALSE = false;
@@ -89,6 +91,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             metricsMock,
             PASS_THROUGH_MODE_FALSE,
             currencyList,
+            tracingMock
         );
     });
     
@@ -352,6 +355,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             metricsMock,
             PASS_THROUGH_MODE,
             currencyList,
+            tracingMock
         );
 
         // Act
@@ -400,10 +404,6 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             accountLookupService,
             "getAccountLookup"
         ).mockResolvedValueOnce("payee");
-
-        jest.spyOn(quoteRepo, "addQuote").mockResolvedValueOnce(
-            "inserted quote id"
-        );
 
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({

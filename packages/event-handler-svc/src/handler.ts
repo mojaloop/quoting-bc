@@ -29,7 +29,6 @@
  ******/
 
 "use strict";
-import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
     CommandMsg,
@@ -53,21 +52,35 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { QueryReceivedBulkQuoteCmd, QueryReceivedBulkQuoteCmdPayload, QueryReceivedQuoteCmd, QueryReceivedQuoteCmdPayload, RejectedBulkQuoteCmd, RejectedBulkQuoteCmdPayload, RejectedQuoteCmd, RejectedQuoteCmdPayload, RequestReceivedBulkQuoteCmd, RequestReceivedBulkQuoteCmdPayload, RequestReceivedQuoteCmd, RequestReceivedQuoteCmdPayload, ResponseReceivedBulkQuoteCmd, ResponseReceivedBulkQuoteCmdPayload, ResponseReceivedQuoteCmd, ResponseReceivedQuoteCmdPayload } from "../../domain-lib";
 
-import {ICounter, IGauge, IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {
+    Context,
+    ICounter,
+    IGauge,
+    IHistogram,
+    IMetrics,
+    Tracer
+} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import * as OpentelemetryApi from "@opentelemetry/api";
+import {SpanKind, SpanOptions, Baggage} from "@opentelemetry/api";
+
+// These need to match the simulator - Should go to the observability types
+export const TRACING_REQ_START_TS_HEADER_NAME="tracing-request-start-timestamp";
+export const TRACING_RESP_START_TS_HEADER_NAME="tracing-response-start-timestamp";
+
 
 export class QuotingEventHandler{
 	private _logger: ILogger;
-	private _auditClient: IAuditClient;
 	private _messageConsumer: IMessageConsumer;
 	private _messageProducer: IMessageProducer;
     private _quoteDurationHisto:IHistogram;
     private _histo:IHistogram;
     private _eventsCounter:ICounter;
     private _batchSizeGauge:IGauge;
+    protected readonly _tracer: Tracer;
 
-	constructor(logger: ILogger, auditClient:IAuditClient, messageConsumer: IMessageConsumer, messageProducer: IMessageProducer, metrics:IMetrics) {
+	constructor(logger: ILogger, messageConsumer: IMessageConsumer, messageProducer: IMessageProducer, metrics:IMetrics) {
 		this._logger = logger.createChild(this.constructor.name);
-		this._auditClient = auditClient;
 		this._messageConsumer = messageConsumer;
 		this._messageProducer = messageProducer;
 
@@ -75,14 +88,16 @@ export class QuotingEventHandler{
         this._histo = metrics.getHistogram("QuotingEventHandler_Calls", "Events function calls processed the Quoting Event Handler", ["callName", "success"]);
         this._eventsCounter = metrics.getCounter("QuotingEventHandler_EventsProcessed", "Events processed by the Quoting Event Handler", ["eventName"]);
         this._batchSizeGauge = metrics.getGauge("QuotingEventHandler_batchSize");
+
+        this._tracer = OpenTelemetryClient.getInstance().trace.getTracer(this.constructor.name);
 	}
 
 	async start():Promise<void>{
 		// connect the producer
 		await this._messageProducer.connect();
 
-		// create and start the consumer handler
-		this._messageConsumer.setTopics([QuotingBCTopics.DomainRequests, QuotingBCTopics.DomainEvents]);
+		// create and start the consumer handler - we only care about DomainRequests (from the interop api bc)
+		this._messageConsumer.setTopics([QuotingBCTopics.DomainRequests]);
 
         this._messageConsumer.setBatchCallbackFn(this._batchMsgHandler.bind(this));
         await this._messageConsumer.connect();
@@ -104,26 +119,69 @@ export class QuotingEventHandler{
 
                 this._histo.observe({callName:"msgDelay"}, (startTime - message.msgTimestamp)/1000);
 
+                const context =  OpenTelemetryClient.getInstance().propagationExtract(message.tracingInfo);
+
+                const spanName = `processEvent ${message.msgName}`;
+                const spanOptions: SpanOptions = {
+                    kind: SpanKind.CONSUMER,
+                    attributes: {
+                        "msgName": message.msgName,
+                        "entityId": message.payload.quoteId,
+                        "quoteId": message.payload.quoteId,
+                        "batchSize": receivedMessages.length
+                    }
+                };
+
+                await this._tracer.startActiveSpan(spanName, spanOptions, context, async (span) => {
+                    const quoteCmd: CommandMsg | null = this._getCmdFromEvent(message);
+
+                    if(quoteCmd) {
+                        // propagate tracingInfo object
+                        quoteCmd.tracingInfo = {};
+                        OpenTelemetryClient.getInstance().propagationInject(quoteCmd.tracingInfo);
+
+                        outputCommands.push(quoteCmd);
+                        this._eventsCounter.inc({eventName: message.msgName}, 1);
+                    }
+
+                    // metrics
+                    this._recordMetricsFromContext(message.msgName, context);
+
+                    span.end();
+                });
+
+                ////////////////////
+
+               /* const parentSpan = OpenTelemetryClient.getInstance().startSpanWithPropagationInput(this._tracer, "processEvent", message.tracingInfo);
+                parentSpan.setAttributes({
+                    "msgName": message.msgName,
+                    "quoteId": message.payload.quoteId,
+                    "entityId": message.payload.quoteId,
+                    "batchSize": receivedMessages.length
+                });
+
                 const quoteCmd: CommandMsg | null = this._getCmdFromEvent(message);
+
                 if(quoteCmd) {
+                    quoteCmd.tracingInfo = message.tracingInfo; // propagate tracingInfo object
                     outputCommands.push(quoteCmd);
                     this._eventsCounter.inc({eventName: message.msgName}, 1);
                 }
 
+                // inject tracing headers
+                // try to get a tracing context from headers
+                const tracingCtx = OpenTelemetryClient.getInstance().propagationExtract(message.tracingInfo);
+                let baggage = OpentelemetryApi.propagation.getBaggage(tracingCtx)
+
                 // metrics
-                if(!message.fspiopOpaqueState) continue;
-                const now = Date.now();
-                if(message.msgName === QuoteRequestReceivedEvt.name && message.fspiopOpaqueState.prepareSendTimestamp){
-                    this._quoteDurationHisto.observe({"leg": "prepare"}, now - message.fspiopOpaqueState.prepareSendTimestamp);
-                }else if(message.msgName === QuoteResponseReceivedEvt.name && message.fspiopOpaqueState.committedSendTimestamp ){
-                    this._quoteDurationHisto.observe({"leg": "fulfil"}, now - message.fspiopOpaqueState.committedSendTimestamp);
-                    if(message.fspiopOpaqueState.prepareSendTimestamp){
-                        this._quoteDurationHisto.observe({"leg": "total"}, now - message.fspiopOpaqueState.prepareSendTimestamp);
-                    }
-                }
+                if(baggage) this._recordMetricsFromBaggage(message, baggage);
+
+                parentSpan.end();*/
             }
 
+            const timerEndFn_send = this._histo.startTimer({ callName: "messageProducer.send"});
             await this._messageProducer.send(outputCommands);
+            timerEndFn_send({ success: "true" });
             timerEndFn({ success: "true" });
         }catch(err: unknown){
             const error = (err as Error);
@@ -132,6 +190,26 @@ export class QuotingEventHandler{
         }finally {
             this._logger.isDebugEnabled() && this._logger.debug(`  Completed batch in QuotingEventHandler batch size: ${receivedMessages.length}`);
             this._logger.isDebugEnabled() && this._logger.debug(`  Took: ${Date.now()-startTime} ms \n\n`);
+        }
+    }
+
+    private _recordMetricsFromContext(msgName:string, context:Context){
+        const baggage = OpentelemetryApi.propagation.getBaggage(context);
+        if(!baggage) return;
+
+        const now = Date.now();
+        const startTsBabbageValue = baggage.getEntry(TRACING_REQ_START_TS_HEADER_NAME)?.value;
+        const startTs = startTsBabbageValue ? parseInt(startTsBabbageValue) : undefined;
+        const respTsBabbageValue = baggage.getEntry(TRACING_RESP_START_TS_HEADER_NAME)?.value;
+        const respTs = respTsBabbageValue ? parseInt(respTsBabbageValue) : undefined;
+
+        if(msgName === QuoteRequestReceivedEvt.name && startTs){
+            this._quoteDurationHisto.observe({"leg": "prepare"}, now - startTs);
+        }else if(msgName === QuoteResponseReceivedEvt.name && respTs ){
+            this._quoteDurationHisto.observe({"leg": "fulfil"}, now - respTs);
+            if(startTs){
+                this._quoteDurationHisto.observe({"leg": "total"}, now - startTs);
+            }
         }
     }
 

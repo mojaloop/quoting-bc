@@ -71,6 +71,23 @@ const mongoCollectionSpy = jest.fn().mockImplementation(() => ({
     aggregate: mongoAggregateSpy,
 }));
 
+const mongoToArrayListCollectionsSpy = jest.fn().mockImplementation(() => {
+    return []
+})
+
+const mongoListCollectionsSpy = jest.fn().mockImplementation(() => ({
+    findOne: mongoFindOneSpy,
+    insertOne: mongoInsertOneSpy,
+    insertMany: mongoInsertManySpy,
+    bulkWrite: mongoBulkWriteSpy,
+    updateOne: mongoUpdateOneSpy,
+    deleteOne: mongoDeleteOneSpy,
+    find: mongoFindSpy,
+    toArray: mongoToArrayListCollectionsSpy,
+    countDocuments: mongoCountDocumentsSpy,
+    aggregate: mongoAggregateSpy,
+}));
+
 jest.mock('mongodb', () => {
     const mockCollection = jest.fn().mockImplementation(() => ({
         findOne: mongoFindOneSpy
@@ -81,16 +98,37 @@ jest.mock('mongodb', () => {
             connect: mongoConnectSpy,
             close: mongoCloseSpy,
             db: jest.fn().mockImplementation(() => ({
-                collection: mongoCollectionSpy
+                collection: mongoCollectionSpy,
+                listCollections: mongoListCollectionsSpy
             })),
         })),
         Collection: mockCollection,
     };
 });
- 
+
+const redisSetSpy = jest.fn();
+const redisSetExSpy = jest.fn();
+const redisMultiExecSpy = jest.fn();
+const redisGetSpy = jest.fn();
+
+jest.mock('ioredis', () => {
+    return jest.fn().mockImplementation(() => {
+        return {
+            connect: jest.fn(),
+            set: redisSetSpy,
+            setex: redisSetExSpy,
+            multi: jest.fn().mockImplementation(() => {
+                return {
+                    exec: redisMultiExecSpy
+                }
+            }),
+            get: redisGetSpy,
+        };
+    });
+});
   
 const connectionString = 'mongodb://localhost:27017';
-const dbName = 'testDB';
+const dbName = "bulk_quotes";
 
 describe("Implementations - Mongo Bulk Quotes Repo Unit Tests", () => {
     let mongoBulkQuotesRepo: MongoBulkQuotesRepo;
@@ -98,7 +136,11 @@ describe("Implementations - Mongo Bulk Quotes Repo Unit Tests", () => {
     beforeEach(async () => {
         jest.clearAllMocks();
 
-        mongoBulkQuotesRepo = new MongoBulkQuotesRepo(logger, connectionString, dbName);
+        mongoToArrayListCollectionsSpy.mockResolvedValue([
+            { name: dbName },
+        ]);
+        
+        mongoBulkQuotesRepo = new MongoBulkQuotesRepo(logger, connectionString);
 
         await mongoBulkQuotesRepo.init();
 

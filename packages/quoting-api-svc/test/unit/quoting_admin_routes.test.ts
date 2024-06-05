@@ -335,7 +335,7 @@ describe("Quoting Admin Routes - Unit tests", () => {
 
     test("GET - should throw general error with request to get all quotes", async () => {
         // Arrange
-        jest.spyOn(mockedQuoteRepository, "getQuotes")
+        jest.spyOn(mockedQuoteRepository, "searchQuotes")
             .mockImplementationOnce(() => { throw new Error(); })
 
         jest.spyOn(mockedTokenHelper, "getCallSecurityContextFromAccessToken")
@@ -396,7 +396,7 @@ describe("Quoting Admin Routes - Unit tests", () => {
     
     test("GET - should throw general error with request to get all quotes", async () => {
         // Arrange
-        jest.spyOn(mockedQuoteRepository, "getQuotes")
+        jest.spyOn(mockedQuoteRepository, "searchQuotes")
             .mockImplementationOnce(() => { throw new Error(); })
 
         jest.spyOn(mockedTokenHelper, "getCallSecurityContextFromAccessToken")

@@ -41,135 +41,34 @@
  "use strict";
 
 // Quotes
-export class UnableToAddQuoteError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class UnableToAddBulkQuotesError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class UnableToUpdateQuoteError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class QuoteNotFoundError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class UnableToGetQuoteError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class UnableToGetQuotesError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class QuoteAlreadyExistsError extends Error {
-    constructor(message:string) {
-        super(message);
-    }
-}
-export class UnableToDeleteQuoteError extends Error {
-    constructor(message:string) {
-        super(message);
-    }
-}
-
-export class UnableToAddManyQuotesError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
+export class UnableToAddQuoteError extends Error {}
+export class UnableToAddBulkQuotesError extends Error {}
+export class UnableToUpdateQuoteError extends Error {}
+export class QuoteNotFoundError extends Error {}
+export class UnableToGetQuoteError extends Error {}
+export class UnableToGetQuotesError extends Error {}
+export class QuoteAlreadyExistsError extends Error {}
+export class UnableToDeleteQuoteError extends Error {}
+export class UnableToAddManyQuotesError extends Error {}
 
 // Bulk Quotes
-export class UnableToAddBulkQuoteError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class UnableToUpdateBulkQuoteError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class BulkQuoteNotFoundError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class UnableToGetBulkQuoteError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class BulkQuoteAlreadyExistsError extends Error {
-    constructor(message:string) {
-        super(message);
-    }
-}
-export class UnableToDeleteBulkQuoteError extends Error {
-    constructor(message:string) {
-        super(message);
-    }
-}
+export class UnableToAddBulkQuoteError extends Error {}
+export class UnableToUpdateBulkQuoteError extends Error {}
+export class BulkQuoteNotFoundError extends Error {}
+export class UnableToGetBulkQuoteError extends Error {}
+export class BulkQuoteAlreadyExistsError extends Error {}
+export class UnableToDeleteBulkQuoteError extends Error {}
 
 // Cache
 
 // Database
-export class UnableToCloseDatabaseConnectionError extends Error{
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class UnableToInitQuoteRegistryError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-export class UnableToInitBulkQuoteRegistryError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
+export class UnableToCloseDatabaseConnectionError extends Error{}
+export class UnableToInitQuoteRegistryError extends Error {}
+export class UnableToInitBulkQuoteRegistryError extends Error {}
 
 // Account Lookup Adapter
-
-export class GetAccountLookupAdapterError extends Error {
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class BulkInsertMismatchBetweenRequestAndResponseLength extends Error{
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class UnableToBulkInsertQuotesError extends Error{
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class UnableToSearchQuotes extends Error{
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-export class UnableToGetQuoteSearchKeywords extends Error{
-    constructor(message: string) {
-        super(message);
-    }
-}
+export class GetAccountLookupAdapterError extends Error {}
+export class BulkInsertMismatchBetweenRequestAndResponseLength extends Error{}
+export class UnableToBulkInsertQuotesError extends Error{}
+export class UnableToSearchQuotes extends Error{}
+export class UnableToGetQuoteSearchKeywords extends Error{}

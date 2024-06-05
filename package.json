@@ -57,8 +57,8 @@
     "workspaces": [
         "packages/public-types-lib",
         "packages/domain-lib",
-        "packages/implementations-lib",
         "packages/quoting-config-lib",
+        "packages/implementations-lib",
         "packages/event-handler-svc",
         "packages/command-handler-svc",
         "packages/quoting-api-svc",

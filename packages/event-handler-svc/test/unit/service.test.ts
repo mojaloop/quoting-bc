@@ -32,14 +32,12 @@
 
 "use strict";
 
-import { MemoryMessageProducer, MemoryMessageConsumer, MemoryAuditService, MemoryConfigProvider } from "@mojaloop/quoting-bc-shared-mocks-lib";
+import { MemoryMessageProducer, MemoryMessageConsumer } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 import { Service } from "../../src/service";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
-import { LocalAuditClientCryptoProvider } from "@mojaloop/auditing-bc-client-lib";
 
 const logger: ILogger = new ConsoleLogger();
 logger.setLogLevel(LogLevel.FATAL);
@@ -47,10 +45,6 @@ logger.setLogLevel(LogLevel.FATAL);
 const mockedMessageProducer: IMessageProducer = new MemoryMessageProducer(logger);
 
 const mockedMessageConsumer : IMessageConsumer = new MemoryMessageConsumer();
-
-const mockedAuditService = new MemoryAuditService(logger);
-
-const mockedConfigProvider: IConfigProvider = new MemoryConfigProvider(logger);
 
 const metricsMock: IMetrics = new MetricsMock();
 
@@ -63,9 +57,9 @@ jest.mock('@mojaloop/platform-configuration-bc-client-lib', () => {
         DefaultConfigProvider: jest.fn().mockImplementation(() => ({
         })),
         ConfigurationClient: jest.fn().mockImplementation(() => ({
-            init: jest.fn().mockResolvedValue(true), 
-            bootstrap: jest.fn().mockResolvedValue(true), 
-            fetch: jest.fn().mockResolvedValue(true), 
+            init: jest.fn().mockResolvedValue(true),
+            bootstrap: jest.fn().mockResolvedValue(true),
+            fetch: jest.fn().mockResolvedValue(true),
             destroy: jest.fn().mockResolvedValue(true),
             globalConfigs: mockGlobalConfigs
         }))
@@ -75,6 +69,89 @@ jest.mock('@mojaloop/platform-configuration-bc-client-lib', () => {
 
 jest.mock('@mojaloop/auditing-bc-client-lib');
 jest.mock('@mojaloop/platform-shared-lib-nodejs-kafka-client-lib');
+
+jest.mock("@mojaloop/platform-shared-lib-observability-client-lib", () => {
+    const originalModule = jest.requireActual("@mojaloop/platform-shared-lib-observability-client-lib");
+
+    return {
+        ...originalModule,
+        OpenTelemetryClient: {
+            Start: jest.fn(),
+            getInstance: jest.fn(() => ({
+                trace: {
+                    getTracer: jest.fn(() => ({
+                        startActiveSpan: jest.fn((spanName, spanOptions, context, callback) => {
+                            const mockSpan = {
+                              end: jest.fn(),
+                            };
+                            return callback(mockSpan);
+                    })})),
+                },
+                startSpanWithPropagationInput: jest.fn((tracer, spanName, input) => {
+                    return {
+                        setAttributes: jest.fn((tracer, spanName, input) => {
+                        }),
+                        setStatus: jest.fn(() => {
+                            return {
+                                end: jest.fn()
+                            }
+                        }),
+                        setAttribute: jest.fn(),
+                        updateName: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startChildSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                startSpan: jest.fn(() => {
+                    return {
+                        setAttribute: jest.fn(),
+                        end: jest.fn()
+                    }
+                }),
+                propagationInject: jest.fn(),
+                propagationExtract: jest.fn()
+            })),
+        },
+        PrometheusMetrics: {
+            Setup: jest.fn(() => ({
+             
+            })),
+            getInstance: jest.fn(() => ({
+                getHistogram: () => {
+                    return {
+                        value: Date.now()
+                    };
+                },
+                getCounter: () => {
+                    return {
+                        value: Date.now()
+                    };
+                },
+                getGauge: () => {
+                    return {
+                        value: Date.now()
+                    };
+                }
+            })),
+        },
+        OpentelemetryApi: {
+            propagation: {
+                getBaggage: jest.fn(() => ({
+                    getEntry: (startTimeStamp:number) => {
+                        return {
+                            value: Date.now()
+                        };
+                    }
+                })),
+            }
+        },
+    };
+});
 
 describe('Event Handler - Unit Tests for QuotingBC Event Handler Service', () => {
 
@@ -90,7 +167,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler Service', () =>
         const spyConsumerBackCallback = jest.spyOn(mockedMessageConsumer, "setBatchCallbackFn");
 
         // Act
-        await Service.start(logger, mockedAuditService, mockedMessageConsumer, mockedMessageProducer, metricsMock, mockedConfigProvider)
+        await Service.start(logger, mockedMessageConsumer, mockedMessageProducer, metricsMock)
 
         // Assert
         expect(spyConsumerSetTopics).toHaveBeenCalledTimes(1);
@@ -109,7 +186,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler Service', () =>
         const spyMockedProducer = jest.spyOn(mockedMessageProducer, "destroy");
 
         // Act
-        await Service.start(logger, mockedAuditService, mockedMessageConsumer, mockedMessageProducer, metricsMock, mockedConfigProvider)
+        await Service.start(logger, mockedMessageConsumer, mockedMessageProducer, metricsMock)
 
         await Service.stop();
 
@@ -123,14 +200,11 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler Service', () =>
         const loggerConstructorInitSpy = jest.spyOn(KafkaLogger.prototype, 'init');
         const loggerConstructorDestroySpy = jest.spyOn(KafkaLogger.prototype, 'destroy');
 
-        const auditClientConstructorInitSpy = jest.spyOn(LocalAuditClientCryptoProvider, 'createRsaPrivateKeyFileSync');
-
         // Act
         await Service.start();
 
         // Assert Init
         expect(loggerConstructorInitSpy).toHaveBeenCalledTimes(1);
-        expect(auditClientConstructorInitSpy).toHaveBeenCalledTimes(1);
 
         // Cleanup
         await Service.stop();

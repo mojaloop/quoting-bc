@@ -31,19 +31,7 @@
 
 "use strict";
 
-import {
-	QuotingAggregate,
-	IParticipantService,
-	IQuoteRepo,
-    IBulkQuoteRepo,
-    IAccountLookupService,
-} from "@mojaloop/quoting-bc-domain-lib";
-import {
-    ParticipantAdapter,
-    MongoQuotesRepo,
-    MongoBulkQuotesRepo,
-    AccountLookupAdapter,
-} from "@mojaloop/quoting-bc-implementations-lib";
+import crypto from "crypto";
 import {existsSync} from "fs";
 import express, {Express} from "express";
 import {Server} from "net";
@@ -54,6 +42,20 @@ import {
 	KafkaAuditClientDispatcher,
 	LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
+import {
+    QuotingAggregate,
+    IParticipantService,
+    IQuoteRepo,
+    IBulkQuoteRepo,
+    IAccountLookupService,
+} from "@mojaloop/quoting-bc-domain-lib";
+import {
+    ParticipantAdapter,
+    MongoQuotesRepo,
+    MongoBulkQuotesRepo,
+    AccountLookupAdapter,
+} from "@mojaloop/quoting-bc-implementations-lib";
+
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {
 	MLKafkaJsonConsumer,
@@ -66,20 +68,14 @@ import process from "process";
 import {QuotingCommandHandler} from "./handler";
 import {
 	AuthenticatedHttpRequester,
-    LoginHelper
 } from "@mojaloop/security-bc-client-lib";
 import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {OpenTelemetryClient, PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {DefaultConfigProvider, IConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
 import {GetQuotingConfigSet} from "@mojaloop/quoting-bc-config-lib";
-import {
-    IBulkQuote,
-    IQuote,
-} from "@mojaloop/quoting-bc-public-types-lib";
-import crypto from "crypto";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -101,8 +97,8 @@ const KAFKA_AUTH_MECHANISM = process.env["KAFKA_AUTH_MECHANISM"] || "plain";
 const KAFKA_AUTH_USERNAME = process.env["KAFKA_AUTH_USERNAME"] || "user";
 const KAFKA_AUTH_PASSWORD = process.env["KAFKA_AUTH_PASSWORD"] || "password";
 
-// const REDIS_HOST = process.env["REDIS_HOST"] || "localhost";
-// const REDIS_PORT = (process.env["REDIS_PORT"] && parseInt(process.env["REDIS_PORT"])) || 6379;
+const REDIS_HOST = process.env["REDIS_HOST"] || "localhost";
+const REDIS_PORT = (process.env["REDIS_PORT"] && parseInt(process.env["REDIS_PORT"])) || 6379;
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
@@ -120,8 +116,8 @@ const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should 
 const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
 const ACCOUNT_LOOKUP_SVC_URL = process.env["ACCOUNT_LOOKUP_SVC_URL"] || "http://localhost:3030";
 
-// const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-command-handler-svc";
-// const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
+const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-command-handler-svc";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const CONSUMER_BATCH_SIZE = (process.env["CONSUMER_BATCH_SIZE"] && parseInt(process.env["CONSUMER_BATCH_SIZE"])) || 100;
 const CONSUMER_BATCH_TIMEOUT_MS = (process.env["CONSUMER_BATCH_TIMEOUT_MS"] && parseInt(process.env["CONSUMER_BATCH_TIMEOUT_MS"])) || 5;
@@ -156,7 +152,6 @@ let globalLogger: ILogger;
 // Express Server
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3035;
 
-const DB_NAME_QUOTING = "quoting";
 const PARTICIPANTS_CACHE_TIMEOUT_MS =
     (process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"] && parseInt(process.env["PARTICIPANTS_CACHE_TIMEOUT_MS"])) ||
     30 * 1000;
@@ -167,9 +162,6 @@ const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"]=== "true" )? true : 
 
 const ACCOUNT_LOOKUP_HTTP_CLIENT_TIMEOUT_MS = 10_000;
 
-// TODO: Replace this with the commented values once updated on security-bc
-const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "quoting-bc-command-handler-svc";
-const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 export class Service {
 	static logger: ILogger;
@@ -228,12 +220,12 @@ export class Service {
 
             const messageConsumer = new MLKafkaJsonConsumer({
                 ...kafkaConsumerCommonOptions,
-                kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
+                kafkaGroupId: `${INSTANCE_ID}_config_client` // unique consumer group per instance
             }, this.logger.createChild("configClient.consumer"));
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
 
-        this.configClient = GetQuotingConfigSet(configProvider, BC_NAME, APP_NAME, APP_VERSION);
+        this.configClient = GetQuotingConfigSet(BC_NAME, APP_NAME, APP_VERSION, configProvider);
         await this.configClient.init();
         await this.configClient.bootstrap(true);
         await this.configClient.fetch();
@@ -272,7 +264,7 @@ export class Service {
         this.messageProducer = messageProducer;
 
         if (!quotesRepo) {
-            quotesRepo = new MongoQuotesRepo(logger,MONGO_URL, DB_NAME_QUOTING);
+            quotesRepo = new MongoQuotesRepo(logger,MONGO_URL, REDIS_HOST, REDIS_PORT);
 
             await quotesRepo.init();
             logger.info("Quote Registry Repo Initialized");
@@ -280,7 +272,7 @@ export class Service {
         this.quotesRepo = quotesRepo;
 
         if (!bulkQuotesRepo) {
-                bulkQuotesRepo = new MongoBulkQuotesRepo(logger,MONGO_URL, DB_NAME_QUOTING);
+                bulkQuotesRepo = new MongoBulkQuotesRepo(logger,MONGO_URL);
 
             await bulkQuotesRepo.init();
             logger.info("BulkQuote Registry Repo Initialized");
@@ -312,6 +304,8 @@ export class Service {
         }
         this.metrics = metrics;
 
+        await Service.setupTracing();
+
         // Configs:
 		const currencyList = this.configClient.globalConfigs.getCurrencies();
 
@@ -326,6 +320,7 @@ export class Service {
                 this.metrics,
                 PASS_THROUGH_MODE,
                 currencyList,
+                OpenTelemetryClient.getInstance()
             );
         }
         this.aggregate = aggregate;
@@ -338,6 +333,10 @@ export class Service {
 
         // remove startup timeout
         clearTimeout(this.startupTimer);
+    }
+
+    static async setupTracing():Promise<void>{
+        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger);
     }
 
     static setupExpress(): Promise<void> {
