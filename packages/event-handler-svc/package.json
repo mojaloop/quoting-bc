@@ -1,9 +1,9 @@
 {
     "name": "@mojaloop/quoting-bc-event-handler-svc",
-    "version": "0.5.4",
+    "version": "0.6.0",
     "description": "Mojaloop vNext Quoting BC - Event Handler Service",
     "license": "Apache-2.0",
-    "homepage": "https://github.com/mojaloop/quoting-bc/event-handler-svc",
+    "homepage": "https://github.com/mojaloop/quoting-bc/tree/main/packages/event-handler-svc",
     "private": true,
     "mojaloop": {
         "publish_to_dockerhub": true

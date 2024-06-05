@@ -1,9 +1,9 @@
 {
     "name": "@mojaloop/quoting-bc-public-types-lib",
-    "version": "0.5.8",
+    "version": "0.6.0",
     "description": "Mojaloop vNext Quoting BC - Public Types library",
     "license": "Apache-2.0",
-    "homepage": "https://github.com/mojaloop/quoting-bc/public-types-lib",
+    "homepage": "https://github.com/mojaloop/quoting-bc/tree/main/packages/public-types-lib",
     "private": false,
     "bugs": {
         "url": "https://github.com/mojaloop/quoting-bc/issues#readme"

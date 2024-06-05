@@ -1,9 +1,9 @@
 {
     "name": "@mojaloop/quoting-bc-api-svc",
-    "version": "0.5.3",
+    "version": "0.6.0",
     "description": "Mojaloop vNext Quoting BC - Quoting REST API Service",
     "license": "Apache-2.0",
-    "homepage": "https://github.com/mojaloop/quoting-bc/quoting-api-svc",
+    "homepage": "https://github.com/mojaloop/quoting-bc/tree/main/packages/quoting-api-svc",
     "private": true,
     "mojaloop": {
         "publish_to_dockerhub": true
