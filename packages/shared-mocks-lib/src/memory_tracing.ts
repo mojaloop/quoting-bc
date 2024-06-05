@@ -90,29 +90,29 @@ export class MemoryContext implements Context {
 
 export class MemoryTracer implements Tracer {
 	startSpan(name: string, options?: SpanOptions, context?: Context): Span {
-	  // Return an instance of MemorySpan
-	  return new MemorySpan();
+		// Return an instance of MemorySpan
+		return new MemorySpan();
 	}
   
 	startActiveSpan<F extends (span: Span) => unknown>(name: string, fn: F): ReturnType<F>;
 	startActiveSpan<F extends (span: Span) => unknown>(name: string, options: SpanOptions, fn: F): ReturnType<F>;
 	startActiveSpan<F extends (span: Span) => unknown>(name: string, options: SpanOptions, context: Context, fn: F): ReturnType<F>;
 	startActiveSpan<F extends (span: Span) => unknown>(
-	  name: string,
-	  optionsOrFn: SpanOptions | F,
-	  contextOrFn?: Context | F,
-	  fn?: F
+		name: string,
+		optionsOrFn: SpanOptions | F,
+		contextOrFn?: Context | F,
+		fn?: F
 	): ReturnType<F> {
-	  // Implement the method as needed, this is a simple example
-	  const span = this.startSpan(name);
-	  if (typeof optionsOrFn === 'function') {
-		return (optionsOrFn as F)(span) as ReturnType<F>;
-	  } else if (typeof contextOrFn === 'function') {
-		return (contextOrFn as F)(span) as ReturnType<F>;
-	  } else if (fn) {
-		return fn(span) as ReturnType<F>;
-	  }
-	  throw new Error("Method not implemented.");
+		// Implement the method as needed, this is a simple example
+		const span = this.startSpan(name);
+		if (typeof optionsOrFn === "function") {
+			return (optionsOrFn as F)(span) as ReturnType<F>;
+		} else if (typeof contextOrFn === "function") {
+			return (contextOrFn as F)(span) as ReturnType<F>;
+		} else if (fn) {
+			return fn(span) as ReturnType<F>;
+		}
+		throw new Error("Method not implemented.");
 	}
 }
 
@@ -120,7 +120,6 @@ export class MemoryTracerProvider implements TracerProvider {
 	getTracer(name: string, version?: string | undefined, options?: TracerOptions | undefined): Tracer {
 		return new MemoryTracer();
 	}
-
 }
 
 export class MemoryTraceAPI {
@@ -131,31 +130,31 @@ export class MemoryTraceAPI {
 					return {
 						setAttributes: () => {
 							return {
-								end: () => {}
-							}
+								end: jest.fn()
+							};
 						},
-						end: () => {},
-					}
+						end: jest.fn(),
+					};
 				} 
-			}
+			};
 		}
 	};
   
 	setGlobalTracerProvider(provider: TracerProvider): boolean {
-	  this._proxyTracerProvider = provider;
-	  return true;
+		this._proxyTracerProvider = provider;
+		return true;
 	}
   
 	getTracerProvider(): TracerProvider {
-	  return this._proxyTracerProvider;
+		return this._proxyTracerProvider;
 	}
   
 	getTracer(name: string, version?: string): Tracer {
-	  return this._proxyTracerProvider.getTracer(name, version);
+		return this._proxyTracerProvider.getTracer(name, version);
 	}
   
 	disable(): void {
-	  this._proxyTracerProvider = undefined;
+		this._proxyTracerProvider = undefined;
 	}
 }
 
