@@ -1,9 +1,9 @@
 {
     "name": "@mojaloop/quoting-bc-command-handler-svc",
-    "version": "0.5.5",
+    "version": "0.6.0",
     "description": "Mojaloop vNext Quoting BC - Command Handler Service",
     "license": "Apache-2.0",
-    "homepage": "https://github.com/mojaloop/quoting-bc/command-handler-svc",
+    "homepage": "https://github.com/mojaloop/quoting-bc/tree/main/packages/command-handler-svc",
     "private": true,
     "mojaloop": {
         "publish_to_dockerhub": true
