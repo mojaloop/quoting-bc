@@ -39,12 +39,10 @@ const CONFIGSET_VERSION = "0.1.0";
 
 export function GetQuotingConfigSet(
     bcName:string,
-    appName:string,
-    appVersion:string,
     configProvider?: IConfigProvider,
 ): ConfigurationClient {
     const configClient = new ConfigurationClient(
-        bcName, appName, appVersion, CONFIGSET_VERSION, configProvider
+        bcName, CONFIGSET_VERSION, configProvider
     );
 
     /*

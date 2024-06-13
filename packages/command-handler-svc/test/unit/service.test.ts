@@ -239,14 +239,11 @@ describe('Command Handler - Unit Tests for QuotingBC Command Handler Service', (
         const loggerConstructorInitSpy = jest.spyOn(KafkaLogger.prototype, 'init');
         const loggerConstructorDestroySpy = jest.spyOn(KafkaLogger.prototype, 'destroy');
 
-        const auditClientConstructorInitSpy = jest.spyOn(LocalAuditClientCryptoProvider, 'createRsaPrivateKeyFileSync');
-
         // Act
         await Service.start();
 
         // Assert Init
         expect(loggerConstructorInitSpy).toHaveBeenCalledTimes(1);
-        expect(auditClientConstructorInitSpy).toHaveBeenCalledTimes(1);
 
         // Cleanup
         await Service.stop();

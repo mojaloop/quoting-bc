@@ -48,6 +48,7 @@ import {
     IQuoteRepo,
     IBulkQuoteRepo,
     IAccountLookupService,
+    QuotingPrivilegesDefinition
 } from "@mojaloop/quoting-bc-domain-lib";
 import {
     ParticipantAdapter,
@@ -67,9 +68,9 @@ import {IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-
 import process from "process";
 import {QuotingCommandHandler} from "./handler";
 import {
-	AuthenticatedHttpRequester,
+	AuthenticatedHttpRequester, AuthorizationClient,
 } from "@mojaloop/security-bc-client-lib";
-import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
+import {IAuthenticatedHttpRequester, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {OpenTelemetryClient, PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
@@ -82,7 +83,7 @@ const packageJSON = require("../package.json");
 
 const BC_NAME = "quoting-bc";
 const APP_NAME = "command-handler-svc";
-const APP_VERSION = packageJSON.version;
+const BC_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
@@ -111,7 +112,7 @@ const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should 
 // const AUTH_N_TOKEN_AUDIENCE = process.env["AUTH_N_TOKEN_AUDIENCE"] || "mojaloop.vnext.default_audience";
 // const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_BASEURL}/.well-known/jwks.json`;
 //
-// const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
+const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
 
 const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
 const ACCOUNT_LOOKUP_SVC_URL = process.env["ACCOUNT_LOOKUP_SVC_URL"] || "http://localhost:3030";
@@ -178,6 +179,7 @@ export class Service {
     static bulkQuotesRepo: IBulkQuoteRepo;
     static metrics: IMetrics;
     static configClient: IConfigurationClient;
+    static authorizationClient: IAuthorizationClient;
     static startupTimer: NodeJS.Timeout;
 
     static async start(
@@ -192,6 +194,7 @@ export class Service {
         metrics?:IMetrics,
         configProvider?: IConfigProvider,
         aggregate?: QuotingAggregate,
+        authorizationClient?: IAuthorizationClient
     ): Promise<void> {
         console.log(`Service starting with PID: ${process.pid}`);
 
@@ -203,7 +206,7 @@ export class Service {
             logger = new KafkaLogger(
                 BC_NAME,
                 APP_NAME,
-                APP_VERSION,
+                BC_VERSION,
                 kafkaProducerCommonOptions,
                 KAFKA_LOGS_TOPIC,
                 LOG_LEVEL
@@ -212,7 +215,7 @@ export class Service {
         }
         globalLogger = this.logger = logger;
 
-        /// start config client - this is not mockable (can use STANDALONE MODE if desired)
+        // start config client - this is not mockable (can use STANDALONE MODE if desired)
         if(!configProvider) {
             // create the instance of IAuthenticatedHttpRequester
             const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
@@ -225,7 +228,7 @@ export class Service {
             configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
         }
 
-        this.configClient = GetQuotingConfigSet(BC_NAME, APP_NAME, APP_VERSION, configProvider);
+        this.configClient = GetQuotingConfigSet(BC_NAME, configProvider);
         await this.configClient.init();
         await this.configClient.bootstrap(true);
         await this.configClient.fetch();
@@ -243,7 +246,7 @@ export class Service {
             const cryptoProvider = new LocalAuditClientCryptoProvider(AUDIT_KEY_FILE_PATH);
             const auditDispatcher = new KafkaAuditClientDispatcher(kafkaProducerCommonOptions, KAFKA_AUDITS_TOPIC, auditLogger);
             // NOTE: to pass the same kafka logger to the audit client, make sure the logger is started/initialised already
-            auditClient = new AuditClient(BC_NAME, APP_NAME, APP_VERSION, cryptoProvider, auditDispatcher);
+            auditClient = new AuditClient(BC_NAME, APP_NAME, BC_VERSION, cryptoProvider, auditDispatcher);
             await auditClient.init();
         }
         this.auditClient = auditClient;
@@ -279,6 +282,37 @@ export class Service {
         }
         this.bulkQuotesRepo = bulkQuotesRepo;
 
+        // authorization client
+        if (!authorizationClient) {
+            // create the instance of IAuthenticatedHttpRequester
+            const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+            const messageConsumer = new MLKafkaJsonConsumer(
+                {
+                    ...kafkaConsumerCommonOptions,
+                    kafkaGroupId: `${INSTANCE_ID}_authz_client` // unique consumer group per instance
+                }, logger.createChild("authorizationClientConsumer")
+            );
+
+            // setup privileges - bootstrap app privs and get priv/role associations
+            authorizationClient = new AuthorizationClient(
+                BC_NAME, 
+                BC_VERSION,
+                AUTH_Z_SVC_BASEURL, 
+                logger.createChild("AuthorizationClient"),
+                authRequester,
+                messageConsumer
+            );
+
+            authorizationClient.addPrivilegesArray(QuotingPrivilegesDefinition);
+            await (authorizationClient as AuthorizationClient).bootstrap(true);
+            await (authorizationClient as AuthorizationClient).fetch();
+            // init message consumer to automatically update on role changed events
+            await (authorizationClient as AuthorizationClient).init();
+        }
+        this.authorizationClient = authorizationClient;
+        
         if (!participantAdapter) {
             const authRequester:IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
             authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
@@ -298,7 +332,7 @@ export class Service {
             const labels: Map<string, string> = new Map<string, string>();
             labels.set("bc", BC_NAME);
             labels.set("app", APP_NAME);
-            labels.set("version", APP_VERSION);
+            labels.set("version", BC_VERSION);
             PrometheusMetrics.Setup({prefix:"", defaultLabels: labels}, this.logger);
             metrics = PrometheusMetrics.getInstance();
         }
@@ -336,7 +370,7 @@ export class Service {
     }
 
     static async setupTracing():Promise<void>{
-        OpenTelemetryClient.Start(BC_NAME, APP_NAME, APP_VERSION, INSTANCE_ID, this.logger);
+        OpenTelemetryClient.Start(BC_NAME, APP_NAME, BC_VERSION, INSTANCE_ID, this.logger);
     }
 
     static setupExpress(): Promise<void> {
@@ -361,7 +395,7 @@ export class Service {
 
             this.expressServer = this.app.listen(SVC_DEFAULT_HTTP_PORT, () => {
                 globalLogger.info(`🚀Server ready at: http://localhost:${SVC_DEFAULT_HTTP_PORT}`);
-                globalLogger.info(`Quote Command Handler Service started, version: ${this.configClient.applicationVersion}`);
+                globalLogger.info(`Quote Command Handler Service started, version: ${BC_VERSION}`);
                 resolve();
             });
 
