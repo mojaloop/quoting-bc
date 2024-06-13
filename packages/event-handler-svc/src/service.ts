@@ -149,7 +149,7 @@ export class Service {
         await Service.setupTracing();
 
         // We only need the minimum, no configProvider required
-        this.configClient = GetQuotingConfigSet(BC_NAME, APP_NAME, APP_VERSION);
+        this.configClient = GetQuotingConfigSet(BC_NAME);
         await this.configClient.init();
 
 		if(!messageConsumer){
@@ -213,7 +213,7 @@ export class Service {
 
             this.expressServer = this.app.listen(SVC_DEFAULT_HTTP_PORT, () => {
                 globalLogger.info(`🚀Server ready at: http://localhost:${SVC_DEFAULT_HTTP_PORT}`);
-                globalLogger.info(`Quoting Event Handler Service started, version: ${this.configClient.applicationVersion}`);
+                globalLogger.info(`Quoting Event Handler Service started, version: ${APP_VERSION}`);
                 resolve();
             });
         });

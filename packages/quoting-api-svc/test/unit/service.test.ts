@@ -36,7 +36,6 @@ import { IQuoteRepo, IBulkQuoteRepo} from "@mojaloop/quoting-bc-domain-lib";
 import { MemoryQuoteRepo, MemoryAuditService, MemoryConfigProvider, MemoryBulkQuoteRepo } from "@mojaloop/quoting-bc-shared-mocks-lib";
 import { ConsoleLogger, ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import { IMetrics, MetricsMock } from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 import { Service } from "../../src/service";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { LocalAuditClientCryptoProvider } from "@mojaloop/auditing-bc-client-lib";
@@ -49,8 +48,6 @@ const mockedAuditService = new MemoryAuditService(logger);
 const mockedQuotesRepository: IQuoteRepo = new MemoryQuoteRepo(logger);
 
 const mockedBulkQuotesRepository: IBulkQuoteRepo = new MemoryBulkQuoteRepo(logger);
-
-const mockedConfigProvider: IConfigProvider = new MemoryConfigProvider(logger);
 
 const metricsMock: IMetrics = new MetricsMock();
 
@@ -77,6 +74,24 @@ jest.mock('@mojaloop/platform-configuration-bc-client-lib', () => {
     };
 });
 
+const tokenHelperInitSpy = jest.fn();
+const tokenHelperDestroySpy = jest.fn();
+
+jest.mock('@mojaloop/security-bc-client-lib', () => {
+    return {
+        ...jest.requireActual('@mojaloop/security-bc-client-lib'),
+        AuthorizationClient: jest.fn().mockImplementation(() => ({
+            fetch: jest.fn(), 
+            init: jest.fn(), 
+        })),
+        TokenHelper: jest.fn().mockImplementation(() => ({
+            init: tokenHelperInitSpy, 
+            destroy: tokenHelperDestroySpy, 
+        }))
+    };
+});
+
+
 const expressListenSpy = jest.fn();
 
 const expressAppMock = {
@@ -84,12 +99,6 @@ const expressAppMock = {
     use: jest.fn(),
     get: jest.fn()
 }
-jest.doMock('express', () => {
-    return () => {
-      return expressAppMock
-    }
-})
-
 jest.doMock('express', () => {
     return () => {
       return expressAppMock
@@ -162,9 +171,7 @@ jest.mock('mongodb', () => {
 
 
 jest.mock('@mojaloop/auditing-bc-client-lib');
-jest.mock('@mojaloop/auditing-bc-client-lib');
 jest.mock('@mojaloop/platform-shared-lib-nodejs-kafka-client-lib');
-jest.mock('@mojaloop/security-bc-client-lib');
 jest.mock('ioredis');
 
 describe('API Service - Unit Tests for QuotingBC API Service', () => {
@@ -175,12 +182,10 @@ describe('API Service - Unit Tests for QuotingBC API Service', () => {
 
     test("should be able to run start and init all variables", async()=>{
         // Arrange & Act
-        await Service.start(logger, mockedAuditService, mockedQuotesRepository, mockedBulkQuotesRepository, mockedConfigProvider, metricsMock);
+        await Service.start(logger, mockedAuditService, mockedQuotesRepository, mockedBulkQuotesRepository, metricsMock);
 
         // Assert
-        expect(configurationClientInitSpy).toHaveBeenCalledTimes(1);
-        expect(configurationClientBootstrapSpy).toHaveBeenCalledTimes(1);
-        expect(configurationClientFetchSpy).toHaveBeenCalledTimes(1);
+        expect(tokenHelperInitSpy).toHaveBeenCalledTimes(1);
 
         // Cleanup
         await Service.stop();
@@ -188,13 +193,16 @@ describe('API Service - Unit Tests for QuotingBC API Service', () => {
     });
 
     test("should teardown instances when server stopped", async()=>{
-        // Arrange & Act
-        await Service.start(logger, mockedAuditService, mockedQuotesRepository, mockedBulkQuotesRepository, mockedConfigProvider, metricsMock);
+        // Arrange
+        jest.spyOn(mockedAuditService,'destroy')
+       
+        // Act
+        await Service.start(logger, mockedAuditService, mockedQuotesRepository, mockedBulkQuotesRepository, metricsMock);
 
         await Service.stop();
 
         // Assert
-        expect(configurationClientDestroySpy).toHaveBeenCalledTimes(1);
+        expect(mockedAuditService.destroy).toHaveBeenCalledTimes(1);
 
     });
 
@@ -202,8 +210,6 @@ describe('API Service - Unit Tests for QuotingBC API Service', () => {
         // Arrange
         const loggerConstructorInitSpy = jest.spyOn(KafkaLogger.prototype, 'init');
         const loggerConstructorDestroySpy = jest.spyOn(KafkaLogger.prototype, 'destroy');
-
-        const auditClientConstructorInitSpy = jest.spyOn(LocalAuditClientCryptoProvider, 'createRsaPrivateKeyFileSync');
 
         mongoToArrayListCollectionsSpy.mockResolvedValue([
             { name: "quotes" },
@@ -215,7 +221,6 @@ describe('API Service - Unit Tests for QuotingBC API Service', () => {
 
         // Assert Init
         expect(loggerConstructorInitSpy).toHaveBeenCalledTimes(1);
-        expect(auditClientConstructorInitSpy).toHaveBeenCalledTimes(1);
 
         // Cleanup
         await Service.stop();
