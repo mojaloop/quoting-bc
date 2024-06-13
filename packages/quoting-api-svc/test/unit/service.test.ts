@@ -80,6 +80,10 @@ const tokenHelperDestroySpy = jest.fn();
 jest.mock('@mojaloop/security-bc-client-lib', () => {
     return {
         ...jest.requireActual('@mojaloop/security-bc-client-lib'),
+        AuthorizationClient: jest.fn().mockImplementation(() => ({
+            fetch: jest.fn(), 
+            init: jest.fn(), 
+        })),
         TokenHelper: jest.fn().mockImplementation(() => ({
             init: tokenHelperInitSpy, 
             destroy: tokenHelperDestroySpy, 
