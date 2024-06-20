@@ -52,12 +52,15 @@ export interface IQuoteRepo {
   storeQuotes(quotes:IQuote[]):Promise<void>;
 
   searchQuotes(
-    amountType:string|null,
-    transactionType:string|null,
-    quoteId:string|null,
-    transactionId:string|null,
-    bulkQuoteId:string|null,
-    pageIndex?:number,
+    amountType: string | null,
+    transactionType: string | null,
+    quoteId: string | null,
+    transactionId: string | null,
+    bulkQuoteId: string | null,
+    payerId: string | null,
+    payeeId: string | null,
+    status: string | null,
+    pageIndex?: number,
     pageSize?: number
   ): Promise<QuotingSearchResults>;
 
