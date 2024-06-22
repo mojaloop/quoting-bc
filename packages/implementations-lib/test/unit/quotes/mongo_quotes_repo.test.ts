@@ -368,7 +368,7 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
         mongoCountDocumentsSpy.mockResolvedValueOnce(countResult);
 
         // Act
-        const result = await mongoQuotesRepo.searchQuotes('type1', 'scenario1', 'quote123', 'trans123', 'bulk123');
+        const result = await mongoQuotesRepo.searchQuotes('type1', 'scenario1', 'quote123', 'trans123', 'bulk123', 'fsp2', 'fsp1', null);
 
         // Assert
         expect(mongoFindSpy).toHaveBeenCalledWith({
@@ -378,6 +378,8 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
                 { amountType: 'type1' },
                 { 'transactionType.scenario': 'scenario1' },
                 { bulkQuoteId: { $regex: 'bulk123', $options: 'i' } },
+                { 'payer.partyIdInfo.fspId': 'fsp2' },
+                { 'payee.partyIdInfo.fspId': 'fsp1' }
             ],
         },{
             limit: 100, 
@@ -395,6 +397,8 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
                 { amountType: 'type1' },
                 { 'transactionType.scenario': 'scenario1' },
                 { bulkQuoteId: { $regex: 'bulk123', $options: 'i' } },
+                { 'payer.partyIdInfo.fspId': 'fsp2' },
+                { 'payee.partyIdInfo.fspId': 'fsp1' }
             ],
         });
 
@@ -410,17 +414,21 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
         });
 
         // Act & Assert
-        await expect(mongoQuotesRepo.searchQuotes(null, null, null, null, null, 0, 10)).rejects.toThrow(UnableToSearchQuotes);
+        await expect(mongoQuotesRepo.searchQuotes(null, null, null, null, null, null, null, null, 0, 10)).rejects.toThrow(UnableToSearchQuotes);
     });
 
     it('should return distinct search keywords for different fields', async () => {
         // Arrange
         const amountTypeResult = {
-            _id: { amountType: 'type1', transactionType: 'typeA' },
+            _id: { amountType: 'type1', transactionType: 'typeA', status: 'statusA' },
         };
 
         const transactionTypeResult = {
-            _id: { amountType: 'type2', transactionType: { scenario: 'typeB' } },
+            _id: { amountType: 'type2', transactionType: { scenario: 'typeB' }, status: 'statusB' },
+        };
+
+        const statusResult = {
+            _id: { amountType: 'type3', transactionType: 'typeC', status: 'statusC' },
         };
 
         mongoAggregateSpy.mockReturnValueOnce({
@@ -439,9 +447,18 @@ describe("Implementations - Mongo Quotes Repo Unit Tests", () => {
             })),
         });
 
+        mongoAggregateSpy.mockReturnValueOnce({
+            [Symbol.asyncIterator]: jest.fn(() => ({
+                next: jest.fn()
+                    .mockResolvedValueOnce({ value: statusResult, done: false })
+                    .mockResolvedValueOnce({ done: true }), 
+            })),
+        });
+
         const expectedResponse = [
             { fieldName: 'amountType', distinctTerms: ['type1'] },
             { fieldName: 'transactionType', distinctTerms: [undefined] },
+            { fieldName: 'status', distinctTerms: ['statusA'] },
         ];
 
         // Act
