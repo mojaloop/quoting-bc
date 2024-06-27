@@ -98,7 +98,7 @@ export class MemoryQuoteRepo implements IQuoteRepo {
     return Promise.resolve(this._quotes);
   }
 
-  searchQuotes(amountType: string | null, transactionType: string | null, quoteId: string | null, transactionId: string | null, bulkQuoteId: string | null, pageIndex?: number | undefined, pageSize?: number | undefined): Promise<QuotingSearchResults> {
+  searchQuotes(amountType: string | null, transactionType: string | null, quoteId: string | null, transactionId: string | null, bulkQuoteId: string | null, payerId: string | null, payeeId: string | null, status: string | null, pageIndex?: number | undefined, pageSize?: number | undefined): Promise<QuotingSearchResults> {
     throw new Error("Method not implemented.");
   }
   
