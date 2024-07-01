@@ -394,15 +394,15 @@ export class MongoQuotesRepo implements IQuoteRepo {
 			};
 
 			for await (const term of result) {
-				if(!amountType.distinctTerms.includes(term._id.amountType)) {
+				if(term._id.amountType && !amountType.distinctTerms.includes(term._id.amountType)) {
 					amountType.distinctTerms.push(term._id.amountType);
 				}
 				
-				if(!transactionType.distinctTerms.includes(term._id.transactionType.scenario)) {
+				if(term._id.transactionType?.scenario && !transactionType.distinctTerms.includes(term._id.transactionType.scenario)) {
 					transactionType.distinctTerms.push(term._id.transactionType.scenario);
 				}
 
-                if (!status.distinctTerms.includes(term._id.status)) {
+                if (term._id.status && !status.distinctTerms.includes(term._id.status)) {
                     status.distinctTerms.push(term._id.status);
                 }
 			}
