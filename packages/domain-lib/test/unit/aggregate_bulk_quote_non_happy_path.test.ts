@@ -109,22 +109,20 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuoteRequestedEvent - should return error event if no individual quotes are present", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
+        const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = "destinationFspId";
         const payload = createBulkQuoteRequestedEvtPayload({
             ...mockedBulkQuote,
             individualQuotes: [] as IQuote[],
+        }, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
         });
-
-        const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
-        const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -150,19 +148,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuoteRequestedEvent - should return error event if requester participant validation fails", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -190,19 +186,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuoteRequestedEvent - should return error event if no destination fspId provided and couldnt fetch a new one from lookup", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -240,19 +234,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuoteRequestedEvent - should return error event if no destination fspId provided and couldnt fetch a new one due to lookup service error", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -290,19 +282,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuoteRequestedEvent - should try to fetch destination fspid for all individual quotes in the worst case scenario", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -337,22 +327,21 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
         const surpassedExpiration = new Date(Date.now() - 1000).toDateString();
+        const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = "destinationFspId";
         const payload = createBulkQuoteRequestedEvtPayload({
             ...mockedBulkQuote,
             expiration: surpassedExpiration,
+        },
+        { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
         });
-
-        const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
-        const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -392,19 +381,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuoteRequestedEvent - should send error event if aggregate is not on passthrough mode and is unable to update bulk quote to the database", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -461,19 +448,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuoteRequestedEvent - should send error event if aggregate is not on passthrough mode and is unable to add the individual quotes that belong to bulk quote to the database", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -533,20 +518,18 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuotePendingReceivedEvent - should return error event if requester is invalid", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload =
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -586,20 +569,19 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             })
         );
 
-        const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+
+        const payload =
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -673,20 +655,18 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuotePendingReceivedEvent - should return error event if requester is invalid and when updating bulk quote on database cant find the original", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload =
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -732,20 +712,18 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuotePendingReceivedEvent - should return error event if requester is invalid and when updating bulk quote on database a error is thrown when trying to find the original on database", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload =
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -794,20 +772,18 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuotePendingReceivedEvent - should return error event if requester is invalid and when updating bulk quote on database a error is thrown when trying to get the quotes belonging to bulk quote", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload =
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -858,15 +834,13 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuotePendingReceivedEvent - should return error event if requester is invalid and when updating bulk quote on database a error is thrown when trying to update the quotes that belong to bulk quote", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload =
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const responseQuotes = mockedBulkQuote1.individualQuotes.map(
             (quote) => ({
@@ -877,7 +851,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -926,15 +900,14 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleBulkQuotePendingReceivedEvent - should return error event if requester is invalid and when updating bulk quote on database a error is thrown ", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload =
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
+
 
         const responseQuotes = mockedBulkQuote1.individualQuotes.map(
             (quote) => ({
@@ -945,7 +918,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1004,20 +977,19 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             })
         );
 
-        const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        
+        const payload =
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1111,20 +1083,20 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             })
         );
 
-        const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+
+        const payload =
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
+
 
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1198,19 +1170,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleGetBulkQuoteQueryReceivedEvent - should return error event if with passthrough mode is enabled", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             QueryReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1257,19 +1227,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleGetBulkQuoteQueryReceivedEvent - should return error event if requester is invalid", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             QueryReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1297,19 +1265,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleGetBulkQuoteQueryReceivedEvent - should return error event if destination is invalid", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null as any;
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             QueryReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1343,19 +1309,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleGetBulkQuoteQueryReceivedEvent - should return error event if without pass through mode cant find a bulk quote by its id", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             QueryReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1395,19 +1359,18 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleGetBulkQuoteQueryReceivedEvent - should return error event if without pass through mode when trying to get a bulk quote by id an error occurs", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
+
 
         const command: CommandMsg = createCommand(
             payload, 
             QueryReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1462,19 +1425,18 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleGetBulkQuoteQueryReceivedEvent - should return error event if without pass through mode when trying to get a bulk quote by id is not found", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
+
 
         const command: CommandMsg = createCommand(
             payload, 
-            QueryReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            QueryReceivedBulkQuoteCmd.name,
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1526,19 +1488,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleGetBulkQuoteQueryReceivedEvent - should return error event if without pass through mode when trying to get individual quote for the bulk quote and none is returned", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote,{ 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             QueryReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1597,19 +1557,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
     test("handleGetBulkQuoteQueryReceivedEvent - should return error event if without pass through mode when trying to get individual quote for the bulk quote a error occurs", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload, 
             QueryReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1677,22 +1635,21 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             errorDescription: "Generic payer error",
             extensionList: null,
         };
-        const payload = createBulkQuoteQueryRejectedEvtPayload(
-            mockedBulkQuote,
-            errorInformation
-        );
-
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteQueryRejectedEvtPayload(
+            mockedBulkQuote,
+            errorInformation,
+            { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            }
+        );
 
         const command: CommandMsg = createCommand(
             payload, 
             RejectedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 
@@ -1725,22 +1682,21 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             errorDescription: "Generic payer error",
             extensionList: null,
         };
-        const payload = createBulkQuoteQueryRejectedEvtPayload(
-            mockedBulkQuote,
-            errorInformation
-        );
-
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null as any;
-        const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
-        };
+        const payload = createBulkQuoteQueryRejectedEvtPayload(
+            mockedBulkQuote,
+            errorInformation,
+            { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            }
+        );
 
         const command: CommandMsg = createCommand(
             payload, 
             RejectedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            null, 
             MessageTypes.COMMAND
         );
 

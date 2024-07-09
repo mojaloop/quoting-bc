@@ -50,28 +50,30 @@ import {
 import { IBulkQuote, IMoney, IQuote } from "@mojaloop/quoting-bc-public-types-lib";
 
 export function createQuoteResponseReceivedEvtPayload(
-    mockedQuote: IQuote
+    mockedQuote: IQuote,
+    override: any = {}
 ): QuoteResponseReceivedEvtPayload {
-    const quote = Object.assign({}, mockedQuote);
+    const quote = Object.assign({}, mockedQuote, override);
     return {
+        requesterFspId: "randomRequesterFspId",
+		destinationFspId: "randomDestinationFspId",
         expiration: quote.expiration as string,
         geoCode: quote.geoCode,
         quoteId: quote.quoteId,
-        extensionList: quote.extensionList,
-        condition: quote.condition as string,
-        ilpPacket: quote.ilpPacket as string,
         transferAmount: quote.totalTransferAmount as IMoney,
         payeeFspCommission: quote.payeeFspCommission as IMoney,
         payeeFspFee: quote.payeeFspFee as IMoney,
         payeeReceiveAmount: quote.payeeReceiveAmount as IMoney,
+        ...override
     };
 }
 
 export function createQuoteRequestReceivedEvtPayload(
-    mockedQuote: IQuote
+    mockedQuote: IQuote,
+    override: any = {}
 ): QuoteRequestReceivedEvtPayload {
     // create a copy without reference to the original object with JSON parse/stringify
-    const quote = Object.assign({}, mockedQuote);
+    const quote = Object.assign({}, mockedQuote, override);
 
     return {
         amount: quote.amount,
@@ -83,66 +85,96 @@ export function createQuoteRequestReceivedEvtPayload(
         transactionId: quote.transactionId,
         amountType: quote.amountType,
         note: quote.note,
-        extensionList: quote.extensionList,
         fees: quote.feesPayer,
         transactionType: quote.transactionType,
         transactionRequestId: quote.transactionRequestId,
         converter: null, 
-        currencyConversion: null
+        currencyConversion: null,
+        ...override
     };
 }
 
 export function createQuoteQueryReceivedEvtPayload(
-    mockedQuote: IQuote
+    mockedQuote: IQuote,
+    override: any = {}
 ): QuoteQueryReceivedEvtPayload {
-    const quote = Object.assign({}, mockedQuote);
+    const quote = Object.assign({}, mockedQuote, override);
     return {
+        requesterFspId: "randomRequesterFspId",
+		destinationFspId: "randomDestinationFspId",
         quoteId: quote.quoteId,
+        ...override
     };
 }
 
 export function createQuoteQueryRejectedEvtPayload(
-    mockedQuote: IQuote
+    mockedQuote: IQuote,
+    override: any = {}
 ): QuoteRejectedEvtPayload {
-    const quote = Object.assign({}, mockedQuote);
+    const quote = Object.assign({}, mockedQuote, override);
     return {
+        requesterFspId: "randomRequesterFspId",
+		destinationFspId: "randomDestinationFspId",
         quoteId: quote.quoteId,
         errorInformation: quote.errorInformation as any,
+        ...override
     };
 }
 
 export function createBulkQuoteRequestedEvtPayload(
-    bulkQuote: IBulkQuote
+    bulkQuote: IBulkQuote,
+    override: any = {},
+    deleteProps: string[] = []
 ): BulkQuoteRequestedEvtPayload {
-    const mockedBulkQuote = Object.assign({}, bulkQuote);
-    return {
+    const mockedBulkQuote = Object.assign({}, bulkQuote, override);
+    const payload = {
+        requesterFspId: "randomRequesterFspId",
+		destinationFspId: "randomDestinationFspId",
         bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         payer: mockedBulkQuote.payer,
         geoCode: mockedBulkQuote.geoCode,
         expiration: mockedBulkQuote.expiration,
         individualQuotes: mockedBulkQuote.individualQuotes as any,
-        extensionList: mockedBulkQuote.extensionList,
+        ...override
     };
+
+    deleteProps.forEach(prop => {
+        delete payload[prop];
+    });
+
+    return payload;
 }
 
 export function createBulkQuotePendingReceivedEvtPayload(
-    bulkQuote: IBulkQuote
+    bulkQuote: IBulkQuote,
+    override: any = {},
+    deleteProps: string[] = []
 ): BulkQuotePendingReceivedEvtPayload {
-    const mockedBulkQuote = Object.assign({}, bulkQuote);
-    return {
+    const mockedBulkQuote = Object.assign({}, bulkQuote, override);
+    const payload = {
+        requesterFspId: "randomRequesterFspId",
+		destinationFspId: "randomDestinationFspId",
         bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         expiration: mockedBulkQuote.expiration,
-        extensionList: mockedBulkQuote.extensionList,
         individualQuoteResults: mockedBulkQuote.individualQuotes as any,
+        ...override
     };
+
+    deleteProps.forEach(prop => {
+        delete payload[prop];
+    });
+
+    return payload;
 }
 
 export function createBulkQuoteQueryReceivedEvtPayload(
-    mockedBulkQuote: IBulkQuote
+    mockedBulkQuote: IBulkQuote,
+    override: any = {}
 ): BulkQuoteQueryReceivedEvtPayload {
-    const bulkQuote = Object.assign({}, mockedBulkQuote);
+    const bulkQuote = Object.assign({}, mockedBulkQuote, override);
     return {
         bulkQuoteId: bulkQuote.bulkQuoteId,
+        ...override
     };
 }
 
@@ -157,12 +189,16 @@ export function createBulkQuoteQueryRejectedEvtPayload(
                 value: string;
             }[];
         } | null;
-    }
+    },
+    override: any = {}
 ): BulkQuoteRejectedEvtPayload {
-    const bulkQuote = Object.assign({}, mockedBulkQuote);
+    const bulkQuote = Object.assign({}, mockedBulkQuote, override);
     return {
+        requesterFspId: "randomRequesterFspId",
+		destinationFspId: "randomDestinationFspId",
         bulkQuoteId: bulkQuote.bulkQuoteId,
         errorInformation,
+        ...override
     };
 }
 

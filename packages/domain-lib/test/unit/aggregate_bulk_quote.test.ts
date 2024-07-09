@@ -112,12 +112,16 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleBulkQuoteRequestedEvent - should call getAccountLookup if destination fspId not provided", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload: BulkQuoteRequestedEvtPayload =
-            createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = "payer";
+        const payload: BulkQuoteRequestedEvtPayload =
+            createBulkQuoteRequestedEvtPayload(mockedBulkQuote, {
+                requesterFspId: requesterFspId,
+                destinationFspId: null
+            });
+
+
         const fspiopOpaqueState = {
-            requesterFspId,
+            exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
@@ -159,13 +163,17 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleBulkQuoteRequestedEvent - should call getAccountLookup if destination fspId not provided only one time in the best case scenario", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload: BulkQuoteRequestedEvtPayload =
-            createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = "payer";
+        const payload: BulkQuoteRequestedEvtPayload =
+            createBulkQuoteRequestedEvtPayload(mockedBulkQuote, {
+                requesterFspId: requesterFspId,
+                destinationFspId: null
+            });
+
         const fspiopOpaqueState = {
-            requesterFspId,
+            exampleProperty: "randomValue"
         };
+
 
         const command: CommandMsg = createCommand(
             payload, 
@@ -203,14 +211,16 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleBulkQuoteRequestedEvent - should add bulkQuote to bulkQuote repo without passthrough mode", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
-        const payload: BulkQuoteRequestedEvtPayload =
-            createBulkQuoteRequestedEvtPayload(mockedQuote);
-
         const requesterFspId = "payer";
         const destinationFspId = "payee";
+        const payload: BulkQuoteRequestedEvtPayload =
+            createBulkQuoteRequestedEvtPayload(mockedQuote, {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
+
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
@@ -219,6 +229,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             fspiopOpaqueState, 
             MessageTypes.COMMAND
         );
+
+        const payloadResponse =
+            createBulkQuoteRequestedEvtPayload(mockedQuote, {}, ["requesterFspId", "destinationFspId"]);
 
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
@@ -246,7 +259,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
                 msgName: BulkQuoteReceivedEvt.name,
-                payload: payload
+                payload: payloadResponse
             })]
         );
     });
@@ -255,14 +268,16 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleBulkQuoteRequestedEvent - should add quotes to quote repo that belong to bulkQuote without passthrough mode", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
-        const payload: BulkQuoteRequestedEvtPayload =
-            createBulkQuoteRequestedEvtPayload(mockedQuote);
-
         const requesterFspId = "payer";
         const destinationFspId = "payee";
+        const payload: BulkQuoteRequestedEvtPayload =
+            createBulkQuoteRequestedEvtPayload(mockedQuote, {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
+
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
@@ -272,6 +287,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             MessageTypes.COMMAND
         );
 
+        const payloadResponse =
+            createBulkQuoteRequestedEvtPayload(mockedQuote, {}, ["requesterFspId", "destinationFspId"]);
+            
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
                 id: "payer",
@@ -302,7 +320,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
                 msgName: BulkQuoteReceivedEvt.name,
-                payload: payload
+                payload: payloadResponse
             })]
         );
     });
@@ -310,15 +328,18 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleBulkQuoteRequestedEvent - should not add bulkQuote to bulkQuote repo with passthrough mode", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
-        const payload: BulkQuoteRequestedEvtPayload =
-            createBulkQuoteRequestedEvtPayload(mockedQuote);
-
         const requesterFspId = "payer";
         const destinationFspId = "payee";
+        const payload: BulkQuoteRequestedEvtPayload =
+            createBulkQuoteRequestedEvtPayload(mockedQuote, {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
+
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
+
 
         const command: CommandMsg = createCommand(
             payload, 
@@ -326,6 +347,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             fspiopOpaqueState, 
             MessageTypes.COMMAND
         );
+
+        const payloadResponse =
+            createBulkQuoteRequestedEvtPayload(mockedQuote, {}, ["requesterFspId", "destinationFspId"]);
 
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
@@ -366,7 +390,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
                 msgName: BulkQuoteReceivedEvt.name,
-                payload: payload
+                payload: payloadResponse
             })]
         );
     });
@@ -374,14 +398,16 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleBulkQuoteRequestedEvent - should publish QuoteRequestAcceptedEvt if event runs successfully", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
-        const payload: BulkQuoteRequestedEvtPayload =
-            createBulkQuoteRequestedEvtPayload(mockedBulkQuote);
-
         const requesterFspId = "payer";
         const destinationFspId = "payee";
+        const payload: BulkQuoteRequestedEvtPayload =
+            createBulkQuoteRequestedEvtPayload(mockedBulkQuote, {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
+
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
@@ -396,9 +422,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             payer: mockedBulkQuote.payer,
             geoCode: mockedBulkQuote.geoCode,
             expiration: mockedBulkQuote.expiration,
-            individualQuotes: mockedBulkQuote.individualQuotes as any,
-            extensionList: mockedBulkQuote.extensionList,
-        } as any;
+            individualQuotes: mockedBulkQuote.individualQuotes,
+        };
 
         jest.spyOn(
             accountLookupService,
@@ -440,12 +465,16 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleBulkQuotePendingReceivedEvent - should update bulk quote on bulk quote repository", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
+        const requesterFspId = "payer";
+        const destinationFspId = "payee";
         const payload: BulkQuotePendingReceivedEvtPayload =
-            createBulkQuotePendingReceivedEvtPayload(mockedQuote);
+            createBulkQuotePendingReceivedEvtPayload(mockedQuote, {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const fspiopOpaqueState = {
-            requesterFspId: "payer",
-            destinationFspId: "payee",
+            exampleProperty: "randomValue"
         };
         
         const command: CommandMsg = createCommand(
@@ -455,6 +484,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             MessageTypes.COMMAND
         );
 
+        const payloadResponse =
+            createBulkQuotePendingReceivedEvtPayload(mockedQuote, {}, ["requesterFspId", "destinationFspId"]);
+        
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
                 id: "payer",
@@ -489,7 +521,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
                 msgName: BulkQuoteAcceptedEvt.name,
-                payload: payload
+                payload: payloadResponse
             })]
         );
     });
@@ -503,14 +535,16 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 ...quote,
             })
         );
-        const payload: BulkQuotePendingReceivedEvtPayload =
-            createBulkQuotePendingReceivedEvtPayload(mockedQuote);
         const requesterFspId = "payer";
         const destinationFspId = "payee";
+        const payload: BulkQuotePendingReceivedEvtPayload =
+            createBulkQuotePendingReceivedEvtPayload(mockedQuote, {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
         
         const command: CommandMsg = createCommand(
@@ -579,14 +613,16 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleBulkQuotePendingReceivedEvent - should send quote response accepted event", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
-        const payload: BulkQuotePendingReceivedEvtPayload =
-            createBulkQuotePendingReceivedEvtPayload(mockedQuote);
         const requesterFspId = "payer";
         const destinationFspId = "payee";
+        const payload: BulkQuotePendingReceivedEvtPayload =
+            createBulkQuotePendingReceivedEvtPayload(mockedQuote, {
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
@@ -601,7 +637,6 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             expiration: mockedQuote.expiration as string,
             bulkQuoteId: mockedQuote.bulkQuoteId,
             individualQuoteResults: mockedQuote.individualQuotes as any,
-            extensionList: mockedQuote.extensionList,
         };
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -644,16 +679,16 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleGetBulkQuoteQueryReceivedEvent - should send bulk quote response event if bulk quote exists", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
+        const requesterFspId = "payer";
+        const destinationFspId = "payee";
         const payload = {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         };
 
-        const requesterFspId = "payer";
-        const destinationFspId = "payee";
-
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
@@ -676,8 +711,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             individualQuoteResults: [mockedQuote1, mockedQuote2],
             expiration: mockedBulkQuote.expiration,
-            extensionList: mockedBulkQuote.extensionList,
-        } as any;
+        };
 
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
@@ -713,17 +747,17 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
     test("handleGetBulkQuoteQueryRejectedEvent - it should publish bulk quote with error information", async () => {
         // Arrange
         const mockedBulkQuote = mockedBulkQuote1;
+        const requesterFspId = "payer";
+        const destinationFspId = "payee";
         const payload: BulkQuoteRejectedEvtPayload = {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             errorInformation: {
                 errorCode: "3200",
                 errorDescription: "Bulk quote error",
-                extensionList: null,
             },
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
         };
-
-        const requesterFspId = "payer";
-        const destinationFspId = "payee";
 
         const fspiopOpaqueState = {
             requesterFspId,
@@ -746,7 +780,6 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             errorInformation: {
                 errorCode: "3200",
                 errorDescription: "Bulk quote error",
-                extensionList: null,
             },
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         };

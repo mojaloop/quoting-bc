@@ -201,7 +201,6 @@ describe("Domain - Unit Tests for Quote Events", () => {
             geoCode: mockedQuote.geoCode,
             note: mockedQuote.note,
             expiration: mockedQuote.expiration,
-            extensionList: mockedQuote.extensionList,
             converter: null,
             currencyConversion: null
         };
@@ -386,7 +385,6 @@ describe("Domain - Unit Tests for Quote Events", () => {
             geoCode: mockedQuote.geoCode,
             note: mockedQuote.note,
             expiration: mockedQuote.expiration,
-            extensionList: mockedQuote.extensionList,
             converter: null,
             currencyConversion: null
         };
@@ -429,11 +427,13 @@ describe("Domain - Unit Tests for Quote Events", () => {
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload: QuoteResponseReceivedEvtPayload =
-            createQuoteResponseReceivedEvtPayload(mockedQuote);
+            createQuoteResponseReceivedEvtPayload(mockedQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
@@ -456,6 +456,16 @@ describe("Domain - Unit Tests for Quote Events", () => {
             currencyList,
             tracingMock
         );
+
+        const payloadResponse = {
+            quoteId: payload.quoteId,
+            expiration: payload.expiration,
+            geoCode: payload.geoCode,
+            payeeReceiveAmount: payload.payeeReceiveAmount,
+            transferAmount: payload.transferAmount,
+            payeeFspCommission: payload.payeeFspCommission,
+            payeeFspFee: payload.payeeFspFee,
+        };
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
             mockedQuote
@@ -484,7 +494,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         expect(messageProducer.send).toHaveBeenCalledWith([
             expect.objectContaining({
                 "msgName": QuoteResponseAccepted.name,
-                "payload": payload
+                "payload": payloadResponse
             }),
         ]);
     });
@@ -540,11 +550,13 @@ describe("Domain - Unit Tests for Quote Events", () => {
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload: QuoteResponseReceivedEvtPayload =
-            createQuoteResponseReceivedEvtPayload(mockedQuote);
+            createQuoteResponseReceivedEvtPayload(mockedQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
@@ -558,9 +570,6 @@ describe("Domain - Unit Tests for Quote Events", () => {
             expiration: mockedQuote.expiration as string,
             geoCode: mockedQuote.geoCode,
             quoteId: mockedQuote.quoteId,
-            extensionList: mockedQuote.extensionList,
-            condition: mockedQuote.condition as string,
-            ilpPacket: mockedQuote.ilpPacket as string,
             transferAmount: mockedQuote.totalTransferAmount as IMoney,
             payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
             payeeFspFee: mockedQuote.payeeFspFee as IMoney,
@@ -607,16 +616,16 @@ describe("Domain - Unit Tests for Quote Events", () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const mockedQuoteResponse = mockedQuote4;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
+        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload: QuoteQueryReceivedEvtPayload = {
             quoteId: mockedQuote.quoteId,
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
         };
 
-        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
-        const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
@@ -628,12 +637,9 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
         const payloadResponse: QuoteQueryResponseEvtPayload = {
             quoteId: mockedQuoteResponse.quoteId,
-            condition: mockedQuoteResponse.condition as string,
             expiration: mockedQuoteResponse.expiration as string,
             transferAmount: mockedQuoteResponse.totalTransferAmount as IMoney,
-            extensionList: mockedQuoteResponse.extensionList,
             geoCode: mockedQuoteResponse.geoCode,
-            ilpPacket: mockedQuoteResponse.ilpPacket as string,
             payeeFspCommission: mockedQuoteResponse.payeeFspCommission,
             payeeFspFee: mockedQuoteResponse.payeeFspFee,
             payeeReceiveAmount: mockedQuoteResponse.payeeReceiveAmount,
@@ -678,15 +684,16 @@ describe("Domain - Unit Tests for Quote Events", () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const mockedQuoteResponse = mockedQuote4;
-        const payload: QuoteRejectedEvtPayload =
-            createQuoteQueryRejectedEvtPayload(mockedQuote);
-
-        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
+        const payload: QuoteRejectedEvtPayload =
+            createQuoteQueryRejectedEvtPayload(mockedQuote, { 
+                requesterFspId: requesterFspId,
+                destinationFspId: destinationFspId
+            });
 
         const fspiopOpaqueState = {
-            requesterFspId,
-            destinationFspId,
+            exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
@@ -696,7 +703,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             MessageTypes.COMMAND
         );
 
-        const payloadResponse: QuoteRejectedEvtPayload = {
+        const payloadResponse = {
             quoteId: mockedQuote.quoteId,
             errorInformation: mockedQuote.errorInformation as any,
         };

@@ -34,7 +34,7 @@
 
 /* istanbul ignore file */
 
-import { IQuote, IBulkQuote, IParty, IAmountType, IMoney, ITransactionType, IGeoCode, IExtensionList, IErrorInformation, QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
+import { IQuote, IBulkQuote, IParty, IAmountType, IMoney, ITransactionType, IGeoCode, IErrorInformation, QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
 
 /** Quote entity **/
 /* istanbul ignore next */
@@ -56,16 +56,15 @@ export class Quote implements IQuote {
     geoCode: IGeoCode | null;
     note: string | null;
     expiration: string | null;
-    extensionList: IExtensionList | null;
     errorInformation: IErrorInformation | null;
     status: QuoteState | null;
     totalTransferAmount: IMoney | null;
-    ilpPacket: string | null;
-    condition: string | null;
     payeeReceiveAmount: IMoney | null;
     payeeFspFee: IMoney | null;
     payeeFspCommission: IMoney | null;
     transferAmount : IMoney | null;
+    // Protocol Specific
+    fspiopOpaqueState: any | null;
 }
 
 /** BulkQuote entity **/
@@ -79,6 +78,7 @@ export class BulkQuote implements IBulkQuote {
     expiration: string | null;
     individualQuotes: IQuote[];
     quotesNotProcessedIds: string[];
-    extensionList: IExtensionList | null;
     status: QuoteState | null;
+    // Protocol Specific
+    fspiopOpaqueState: any | null;
 }

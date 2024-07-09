@@ -159,12 +159,20 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         // Arrange
         const payload = {
             bulkQuoteId: null,
-            prepare: { committedSendTimestamp: 123456789, prepareSendTimestamp: 123456789 },
             ...mockedQuoteRequestPayload,
         }
 
+        const fspiopOpaqueState = { 
+            committedSendTimestamp: 123456789, 
+            prepareSendTimestamp: 123456789 
+        };
+
         const receivedMessages = [
-            { msgType: MessageTypes.DOMAIN_EVENT, msgName: QuoteRequestReceivedEvt.name, payload: payload, fspiopOpaqueState: payload.prepare },
+            { msgType: MessageTypes.DOMAIN_EVENT,
+                msgName: QuoteRequestReceivedEvt.name,
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState 
+            },
         ];
 
         jest.spyOn(messageProducerMock, "send");
@@ -176,7 +184,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         expect(messageProducerMock.send).toHaveBeenCalledWith([
             expect.objectContaining({
                 msgName: RequestReceivedQuoteCmd.name,
-                payload: payload
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState
             })
         ]);
     });
@@ -184,12 +193,21 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
     it('should process QuoteResponseReceivedEvt successfully', async () => {
         // Arrange
         const payload = {
-            prepare: { committedSendTimestamp: 123456789, prepareSendTimestamp: 123456789 },
             ...mockedQuoteResponsePayload,
         }
 
+        const fspiopOpaqueState = { 
+            committedSendTimestamp: 123456789, 
+            prepareSendTimestamp: 123456789 
+        };
+
         const receivedMessages = [
-            { msgType: MessageTypes.DOMAIN_EVENT, msgName: QuoteResponseReceivedEvt.name, payload: payload, fspiopOpaqueState: payload.prepare },
+            { 
+                msgType: MessageTypes.DOMAIN_EVENT,
+                msgName: QuoteResponseReceivedEvt.name,
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState 
+            },
         ];
 
         jest.spyOn(messageProducerMock, "send");
@@ -201,7 +219,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         expect(messageProducerMock.send).toHaveBeenCalledWith([
             expect.objectContaining({
                 msgName: ResponseReceivedQuoteCmd.name,
-                payload: payload
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState
             })
         ]);
     });
@@ -209,12 +228,21 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
     it('should process QuoteQueryReceivedEvt successfully', async () => {
         // Arrange
         const payload = {
-            prepare: { committedSendTimestamp: 123456789, prepareSendTimestamp: 123456789 },
             ...mockedQuoteQueryPayload,
         }
 
+        const fspiopOpaqueState = { 
+            committedSendTimestamp: 123456789, 
+            prepareSendTimestamp: 123456789 
+        };
+
         const receivedMessages = [
-            { msgType: MessageTypes.DOMAIN_EVENT, msgName: QuoteQueryReceivedEvt.name, payload: payload, fspiopOpaqueState: payload.prepare },
+            { 
+                msgType: MessageTypes.DOMAIN_EVENT,
+                msgName: QuoteQueryReceivedEvt.name,
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState 
+            },
         ];
 
         jest.spyOn(messageProducerMock, "send");
@@ -226,7 +254,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         expect(messageProducerMock.send).toHaveBeenCalledWith([
             expect.objectContaining({
                 msgName: QueryReceivedQuoteCmd.name,
-                payload: payload
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState
             })
         ]);
     });
@@ -234,12 +263,21 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
     it('should process QuoteRejectedEvt successfully', async () => {
         // Arrange
         const payload = {
-            prepare: { committedSendTimestamp: 123456789, prepareSendTimestamp: 123456789 },
             ...quoteRejectedPayload,
         }
 
+        const fspiopOpaqueState = { 
+            committedSendTimestamp: 123456789, 
+            prepareSendTimestamp: 123456789 
+        };
+
         const receivedMessages = [
-            { msgType: MessageTypes.DOMAIN_EVENT, msgName: QuoteRejectedEvt.name, payload: payload, fspiopOpaqueState: payload.prepare },
+            { 
+                msgType: MessageTypes.DOMAIN_EVENT,
+                msgName: QuoteRejectedEvt.name,
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState
+            },
         ];
 
         jest.spyOn(messageProducerMock, "send");
@@ -251,7 +289,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         expect(messageProducerMock.send).toHaveBeenCalledWith([
             expect.objectContaining({
                 msgName: RejectedQuoteCmd.name,
-                payload: payload
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState
             })
         ]);
     });
@@ -259,12 +298,21 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
     it('should process BulkQuoteRequestedEvt successfully', async () => {
         // Arrange
         const payload = {
-            prepare: { committedSendTimestamp: 123456789, prepareSendTimestamp: 123456789 },
             ...bulkQuoteRequestedPayload,
         }
 
+        const fspiopOpaqueState = { 
+            committedSendTimestamp: 123456789, 
+            prepareSendTimestamp: 123456789 
+        };
+
         const receivedMessages = [
-            { msgType: MessageTypes.DOMAIN_EVENT, msgName: BulkQuoteRequestedEvt.name, payload: payload, fspiopOpaqueState: payload.prepare },
+            { 
+                msgType: MessageTypes.DOMAIN_EVENT,
+                msgName: BulkQuoteRequestedEvt.name,
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState 
+            },
         ];
 
         jest.spyOn(messageProducerMock, "send");
@@ -276,7 +324,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         expect(messageProducerMock.send).toHaveBeenCalledWith([
             expect.objectContaining({
                 msgName: RequestReceivedBulkQuoteCmd.name,
-                payload: payload
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState
             })
         ]);
     });
@@ -284,12 +333,21 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
     it('should process BulkQuotePendingReceivedEvt successfully', async () => {
         // Arrange
         const payload = {
-            prepare: { committedSendTimestamp: 123456789, prepareSendTimestamp: 123456789 },
             ...bulkQuotePendingPayload,
         }
 
+        const fspiopOpaqueState = { 
+            committedSendTimestamp: 123456789, 
+            prepareSendTimestamp: 123456789 
+        };
+
         const receivedMessages = [
-            { msgType: MessageTypes.DOMAIN_EVENT, msgName: BulkQuotePendingReceivedEvt.name, payload: payload, fspiopOpaqueState: payload.prepare },
+            { 
+                msgType: MessageTypes.DOMAIN_EVENT,
+                msgName: BulkQuotePendingReceivedEvt.name,
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState
+            },
         ];
 
         jest.spyOn(messageProducerMock, "send");
@@ -301,7 +359,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         expect(messageProducerMock.send).toHaveBeenCalledWith([
             expect.objectContaining({
                 msgName: ResponseReceivedBulkQuoteCmd.name,
-                payload: payload
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState
             })
         ]);
     });
@@ -309,12 +368,21 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
     it('should process BulkQuoteQueryReceivedEvt successfully', async () => {
         // Arrange
         const payload = {
-            prepare: { committedSendTimestamp: 123456789, prepareSendTimestamp: 123456789 },
             ...mockedBulkQuoteQueryPayload,
         }
 
+        const fspiopOpaqueState = { 
+            committedSendTimestamp: 123456789, 
+            prepareSendTimestamp: 123456789 
+        };
+
         const receivedMessages = [
-            { msgType: MessageTypes.DOMAIN_EVENT, msgName: BulkQuoteQueryReceivedEvt.name, payload: payload, fspiopOpaqueState: payload.prepare },
+            { 
+                msgType: MessageTypes.DOMAIN_EVENT,
+                msgName: BulkQuoteQueryReceivedEvt.name,
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState 
+            },
         ];
 
         jest.spyOn(messageProducerMock, "send");
@@ -326,7 +394,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         expect(messageProducerMock.send).toHaveBeenCalledWith([
             expect.objectContaining({
                 msgName: QueryReceivedBulkQuoteCmd.name,
-                payload: payload
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState
             })
         ]);
     });
@@ -335,12 +404,21 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
     it('should process BulkQuoteRejectedEvt successfully', async () => {
         // Arrange
         const payload = {
-            prepare: { committedSendTimestamp: 123456789, prepareSendTimestamp: 123456789 },
             ...bulkQuoteRejectedPayload,
         }
 
+        const fspiopOpaqueState = { 
+            committedSendTimestamp: 123456789, 
+            prepareSendTimestamp: 123456789 
+        };
+
         const receivedMessages = [
-            { msgType: MessageTypes.DOMAIN_EVENT, msgName: BulkQuoteRejectedEvt.name, payload: payload, fspiopOpaqueState: payload.prepare },
+            { 
+                msgType: MessageTypes.DOMAIN_EVENT,
+                msgName: BulkQuoteRejectedEvt.name,
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState 
+            },
         ];
 
         jest.spyOn(messageProducerMock, "send");
@@ -352,7 +430,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
         expect(messageProducerMock.send).toHaveBeenCalledWith([
             expect.objectContaining({
                 msgName: RejectedBulkQuoteCmd.name,
-                payload: payload
+                payload: payload,
+                fspiopOpaqueState: fspiopOpaqueState
             })
         ]);
     });

@@ -37,124 +37,121 @@
 import { QuoteState } from "./enums";
 
 
- export interface IPartyComplexName {
-     firstName: string | null;
-     middleName: string | null;
-     lastName: string | null;
- }
+export interface IPartyComplexName {
+    firstName: string | null;
+    middleName: string | null;
+    lastName: string | null;
+}
 
- export interface IPartyPersonalInfo {
-     complexName: IPartyComplexName | null;
-     dateOfBirth: string | null;
-     kycInformation: string | null;
- }
+export interface IPartyPersonalInfo {
+    complexName: IPartyComplexName | null;
+    dateOfBirth: string | null;
+    kycInformation: string | null;
+}
 
- export interface IPartyIdInfo {
-     partyIdType: string
-     partyIdentifier: string
-     partySubIdOrType: string | null
-     fspId: string | null
- }
+export interface IPartyIdInfo {
+    partyIdType: string
+    partyIdentifier: string
+    partySubIdOrType: string | null
+    fspId: string | null
+}
 
- export interface IParty {
-     partyIdInfo: IPartyIdInfo;
-     merchantClassificationCode: string | null;
-     name: string | null;
-     personalInfo: IPartyPersonalInfo | null;
-     supportedCurrencies: string[] | null;
- }
+export interface IParty {
+    partyIdInfo: IPartyIdInfo;
+    merchantClassificationCode: string | null;
+    name: string | null;
+    personalInfo: IPartyPersonalInfo | null;
+    supportedCurrencies: string[] | null;
+}
 
- export interface IMoney {
-     currency: string;
-     amount: string
- }
+export interface IMoney {
+    currency: string;
+    amount: string
+}
 
- export interface IRefund {
-     originalTransactionId: string;
-     refundReason: string | null;
- }
+export interface IRefund {
+    originalTransactionId: string;
+    refundReason: string | null;
+}
 
- export interface ITransactionType {
-     scenario: string
-     subScenario: string | null
-     initiator: string
-     initiatorType: string
-     refundInfo: IRefund | null,
-     balanceOfPayments: string | null
- }
+export interface ITransactionType {
+    scenario: string
+    subScenario: string | null
+    initiator: string
+    initiatorType: string
+    refundInfo: IRefund | null,
+    balanceOfPayments: string | null
+}
 
- export type IAmountType = "SEND" | "RECEIVE";
+export type IAmountType = "SEND" | "RECEIVE";
 
- export interface IGeoCode {
-     latitude: string;
-     longitude: string;
- }
- export interface IExtensionList {
-     extension: { key: string; value: string;}[];
- }
+export interface IGeoCode {
+    latitude: string;
+    longitude: string;
+}
 
- export interface IErrorInformation {
-     errorCode: string;
-     errorDescription: string;
-     extensionList: IExtensionList
- }
+export interface IErrorInformation {
+    errorCode: string;
+    errorDescription: string;
+}
 
- export interface IParticipant {
-     id: string;
-     type: string;
-     subId: string | null;
-     isActive: boolean;
- }
+export interface IParticipant {
+    id: string;
+    type: string;
+    subId: string | null;
+    isActive: boolean;
+}
 
- export interface IQuote {
-     createdAt: number;
-     updatedAt: number;
-     requesterFspId:string;
-     destinationFspId:string;
-     quoteId: string;
-     bulkQuoteId: string | null;
-     transactionId: string;
-     payee: IParty;
-     payer: IParty;
-     amountType: IAmountType;
-     amount: IMoney;
-     transactionType: ITransactionType;
-     feesPayer: IMoney | null;
-     transactionRequestId: string | null;
-     geoCode: IGeoCode | null;
-     note: string | null;
-     expiration: string | null;
-     extensionList: IExtensionList | null;
-     errorInformation: IErrorInformation | null;
-     status: QuoteState | null;
-     totalTransferAmount: IMoney | null;
-     ilpPacket: string | null;
-     condition: string | null;
-     payeeReceiveAmount: IMoney | null;
-     payeeFspFee: IMoney | null;
-     payeeFspCommission: IMoney | null;
-     transferAmount : IMoney | null;
- }
- export interface IBulkQuote {
-     createdAt: number;
-     updatedAt: number;
-     bulkQuoteId: string;
-     payer: IParty;
-     geoCode: IGeoCode | null;
-     expiration: string | null;
-     individualQuotes: IQuote[];
-     quotesNotProcessedIds: string[];
-     extensionList: IExtensionList | null;
-     status: QuoteState | null;
- }
+export interface IQuote {
+    createdAt: number;
+    updatedAt: number;
+    requesterFspId:string;
+    destinationFspId:string;
+    quoteId: string;
+    bulkQuoteId: string | null;
+    transactionId: string;
+    payee: IParty;
+    payer: IParty;
+    amountType: IAmountType;
+    amount: IMoney;
+    transactionType: ITransactionType;
+    feesPayer: IMoney | null;
+    transactionRequestId: string | null;
+    geoCode: IGeoCode | null;
+    note: string | null;
+    expiration: string | null;
+    errorInformation: IErrorInformation | null;
+    status: QuoteState | null;
+    totalTransferAmount: IMoney | null;
+    payeeReceiveAmount: IMoney | null;
+    payeeFspFee: IMoney | null;
+    payeeFspCommission: IMoney | null;
+    transferAmount : IMoney | null;
+    // Protocol Specific
+    fspiopOpaqueState: any | null;
+}
+export interface IBulkQuote {
+    createdAt: number;
+    updatedAt: number;
+    bulkQuoteId: string;
+    payer: IParty;
+    geoCode: IGeoCode | null;
+    expiration: string | null;
+    individualQuotes: IQuote[];
+    quotesNotProcessedIds: string[];
+    status: QuoteState | null;
+    // Protocol Specific
+    fspiopOpaqueState: any | null;
 
- export interface IQuoteSchemeRules {
-     currencies: string[];
- }
+}
 
- export declare type QuotingSearchResults = {
-     pageSize: number;
-     totalPages: number;
-     pageIndex: number;
-     items: IQuote[];
- }
+export interface IQuoteSchemeRules {
+    currencies: string[];
+}
+
+export declare type QuotingSearchResults = {
+    pageSize: number;
+    totalPages: number;
+    pageIndex: number;
+    items: IQuote[];
+}

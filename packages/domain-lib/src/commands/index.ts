@@ -118,16 +118,6 @@ export type RequestReceivedQuoteCmdPayload = {
     } | null;
     note: string | null;
     expiration: string | null;
-    extensionList: {
-        extension: {
-            key: string;
-            value: string;
-        }[];
-    } | null;
-	prepare: {
-		headers: { [key: string]: string };
-		payload: string;
-	};
 }
 
 export class RequestReceivedQuoteCmd extends CommandMsg {
@@ -151,14 +141,14 @@ export class RequestReceivedQuoteCmd extends CommandMsg {
 }
 
 export type ResponseReceivedQuoteCmdPayload = {
+    requesterFspId: string;
+    destinationFspId: string | null;
     quoteId: string;
     transferAmount: {
         currency: string;
         amount: string;
     };
     expiration: string;
-    ilpPacket: string;
-    condition: string;
     payeeReceiveAmount: {
         currency: string;
         amount: string;
@@ -175,16 +165,6 @@ export type ResponseReceivedQuoteCmdPayload = {
         latitude: string;
         longitude: string;
     } | null;
-    extensionList: {
-        extension: {
-            key: string;
-            value: string;
-        }[];
-    } | null;
-	prepare: {
-		headers: { [key: string]: string };
-		payload: string;
-	};
 }
 
 
@@ -209,11 +189,9 @@ export class ResponseReceivedQuoteCmd extends CommandMsg {
 }
 
 export type QueryReceivedQuoteCmdPayload = {
+    requesterFspId: string;
+    destinationFspId: string | null;
     quoteId: string;
-    prepare: {
-		headers: { [key: string]: string };
-		payload: string;
-	};
 }
 
 export class QueryReceivedQuoteCmd extends CommandMsg {
@@ -242,21 +220,13 @@ export class QueryReceivedQuoteCmd extends CommandMsg {
 }
 
 export type RejectedQuoteCmdPayload = {
+    requesterFspId: string;
+    destinationFspId: string | null;
     quoteId: string;
     errorInformation: {
         errorCode: string;
         errorDescription: string;
-        extensionList: {
-            extension: {
-                key: string;
-                value: string;
-            }[];
-        } | null;
     };
-	prepare: {
-		headers: { [key: string]: string };
-		payload: string;
-	};
 }
 
 
@@ -281,6 +251,8 @@ export class RejectedQuoteCmd extends CommandMsg {
 }
 
 export type RequestReceivedBulkQuoteCmdPayload = {
+    requesterFspId: string;
+    destinationFspId: string | null;
     bulkQuoteId: string;
     payer: {
         partyIdInfo: {
@@ -352,23 +324,7 @@ export type RequestReceivedBulkQuoteCmdPayload = {
             balanceOfPayments: string | null;
         };
         note: string | null;
-        extensionList: {
-            extension: {
-                key: string;
-                value: string;
-            }[];
-        } | null;
     }[];
-    extensionList: {
-        extension: {
-            key: string;
-            value: string;
-        }[];
-    } | null;
-	prepare: {
-		headers: { [key: string]: string };
-		payload: string;
-	};
 }
 
 export class RequestReceivedBulkQuoteCmd extends CommandMsg {
@@ -392,6 +348,8 @@ export class RequestReceivedBulkQuoteCmd extends CommandMsg {
 }
 
 export type ResponseReceivedBulkQuoteCmdPayload = {
+    requesterFspId: string;
+    destinationFspId: string | null;
     bulkQuoteId: string;
     individualQuoteResults: {
         quoteId: string;
@@ -431,36 +389,12 @@ export type ResponseReceivedBulkQuoteCmdPayload = {
             currency: string;
             amount: string;
         } | null;
-        ilpPacket: string;
-        condition: string;
         errorInformation: {
             errorCode: string;
             errorDescription: string;
-            extensionList: {
-                extension: {
-                    key: string;
-                    value: string;
-                }[];
-            };
-        } | null;
-        extensionList: {
-            extension: {
-                key: string;
-                value: string;
-            }[];
         } | null;
     }[];
     expiration: string | null;
-    extensionList: {
-        extension: {
-            key: string;
-            value: string;
-        }[];
-    } | null;
-	prepare: {
-		headers: { [key: string]: string };
-		payload: string;
-	};
 }
 
 
@@ -485,11 +419,9 @@ export class ResponseReceivedBulkQuoteCmd extends CommandMsg {
 }
 
 export type QueryReceivedBulkQuoteCmdPayload = {
+    requesterFspId: string;
+    destinationFspId: string | null;
     bulkQuoteId: string;
-    prepare: {
-		headers: { [key: string]: string };
-		payload: string;
-	};
 }
 
 export class QueryReceivedBulkQuoteCmd extends CommandMsg {
@@ -518,21 +450,13 @@ export class QueryReceivedBulkQuoteCmd extends CommandMsg {
 }
 
 export type RejectedBulkQuoteCmdPayload = {
+    requesterFspId: string;
+    destinationFspId: string | null;
     bulkQuoteId: string;
     errorInformation: {
         errorCode: string;
         errorDescription: string;
-        extensionList: {
-            extension: {
-                key: string;
-                value: string;
-            }[];
-        } | null;
     };
-	prepare: {
-		headers: { [key: string]: string };
-		payload: string;
-	};
 }
 
 

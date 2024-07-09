@@ -1118,6 +1118,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
     test("handleQuoteResponseReceivedEvent - should send error event if quote is rejected due invalid requester and store quote with rejected status on database if passthrough mode is disabled", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
+        const requesterFspId = null as any;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
         const payload = createQuoteResponseReceivedEvtPayload({
             ...mockedQuote,
@@ -1128,15 +1129,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                     fspId: null as any,
                 },
             },
+        }, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
             payload,
             ResponseReceivedQuoteCmd.name,
-            {
-                requesterFspId: null as any,
-                destinationFspId,
-            },
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1188,6 +1189,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
+        const destinationFspId = null;
         const payload = createQuoteResponseReceivedEvtPayload({
             ...mockedQuote,
             payee: {
@@ -1197,15 +1199,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                     fspId: null as any,
                 },
             },
+        }, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
             payload,
             ResponseReceivedQuoteCmd.name,
-            {
-                requesterFspId,
-                destinationFspId: null as any,
-            },
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1271,15 +1273,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const payload = createQuoteResponseReceivedEvtPayload({
             ...mockedQuote,
             expiration: surpassedExpiration,
+        }, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
             payload,
             ResponseReceivedQuoteCmd.name,
-            {
-                requesterFspId,
-                destinationFspId,
-            },
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1345,15 +1347,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteResponseReceivedEvtPayload(mockedQuote);
+        const payload = createQuoteResponseReceivedEvtPayload(mockedQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload,
             ResponseReceivedQuoteCmd.name,
-            {
-                requesterFspId,
-                destinationFspId,
-            },
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1419,15 +1421,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = null;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload,
             QueryReceivedQuoteCmd.name,
-            {
-                requesterFspId,
-                destinationFspId,
-            },
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1459,15 +1461,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload,
             QueryReceivedQuoteCmd.name,
-            {
-                requesterFspId,
-                destinationFspId,
-            },
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1510,15 +1512,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload,
             QueryReceivedQuoteCmd.name,
-            {
-                requesterFspId: mockedQuote.payer.partyIdInfo.fspId,
-                destinationFspId: mockedQuote.payee.partyIdInfo.fspId,
-            },
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1564,15 +1566,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload,
             QueryReceivedQuoteCmd.name,
-            {
-                requesterFspId: mockedQuote.payer.partyIdInfo.fspId,
-                destinationFspId: mockedQuote.payee.partyIdInfo.fspId,
-            },
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1630,15 +1632,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote);
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload,
             QueryReceivedQuoteCmd.name,
-            {
-                requesterFspId: mockedQuote.payer.partyIdInfo.fspId,
-                destinationFspId: mockedQuote.payee.partyIdInfo.fspId,
-            },
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1700,15 +1702,15 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = null;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteQueryRejectedEvtPayload(mockedQuote);
+        const payload = createQuoteQueryRejectedEvtPayload(mockedQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
         const command: CommandMsg = createCommand(
             payload,
             RejectedQuoteCmd.name,
-            {
-                requesterFspId,
-                destinationFspId,
-            },
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1738,15 +1740,17 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const payload = createQuoteQueryRejectedEvtPayload(mockedQuote);
+        const payload = createQuoteQueryRejectedEvtPayload(mockedQuote, { 
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId
+        });
 
+        payload.destinationFspId = null;
+        
         const command: CommandMsg = createCommand(
             payload,
             RejectedQuoteCmd.name,
-            {
-                requesterFspId,
-                destinationFspId,
-            },
+            null,
             MessageTypes.COMMAND
         );
 

@@ -268,11 +268,8 @@ export class MongoQuotesRepo implements IQuoteRepo {
             geoCode: quote.geoCode ?? null,
             note: quote.note ?? null,
             expiration: quote.expiration ?? null,
-            extensionList: quote.extensionList ?? null,
             status: quote.status ?? null,
             totalTransferAmount: quote.totalTransferAmount ?? null,
-            ilpPacket: quote.ilpPacket ?? null,
-            condition: quote.condition ?? null,
             destinationFspId: quote.destinationFspId ?? null,
             payeeFspCommission: quote.payeeFspCommission ?? null,
             payeeFspFee: quote.payeeFspFee ?? null,
@@ -280,6 +277,8 @@ export class MongoQuotesRepo implements IQuoteRepo {
             requesterFspId: quote.requesterFspId ?? null,
             errorInformation: quote.errorInformation ?? null,
             transferAmount: quote.transferAmount ?? null,
+            // Protocol Specific
+            fspiopOpaqueState: quote.fspiopOpaqueState ?? null,
         };
         return quoteMapped;
     }
