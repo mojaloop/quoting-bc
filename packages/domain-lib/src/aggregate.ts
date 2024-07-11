@@ -700,7 +700,7 @@ export class QuotingAggregate {
         }
 
         if (!this._passThroughMode) {
-            const quote: Partial<Quote> = {
+            const updatedQuote: Partial<Quote> = {
                 quoteId: message.payload.quoteId,
                 condition: message.payload.condition,
                 expiration: message.payload.expiration,
@@ -714,7 +714,10 @@ export class QuotingAggregate {
                 status: quoteStatus,
             };
 
-            this._quotesCache.set(message.payload.quoteId, quote as Quote);
+            this._quotesCache.set(message.payload.quoteId, {
+                ...quote,
+                ...updatedQuote
+            });
         }
 
         // Return error event if previous validations failed
