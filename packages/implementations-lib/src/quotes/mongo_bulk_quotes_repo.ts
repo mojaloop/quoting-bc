@@ -235,10 +235,11 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
             payer: bulkQuote.payer ?? null,
             geoCode: bulkQuote.geoCode ?? null,
             expiration: bulkQuote.expiration ?? null,
-            extensionList: bulkQuote.extensionList ?? null,
             individualQuotes: bulkQuote.individualQuotes ?? [],
             quotesNotProcessedIds: bulkQuote.quotesNotProcessedIds ?? [],
             status: bulkQuote.status ?? null,
+            // Protocol Specific
+            fspiopOpaqueState: bulkQuote.fspiopOpaqueState ?? null,
         };
         return quoteMapped;
     }

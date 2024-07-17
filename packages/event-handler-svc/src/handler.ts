@@ -38,7 +38,6 @@ import {
     MessageTypes
 } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
-
     BulkQuotePendingReceivedEvt,
     BulkQuoteQueryReceivedEvt,
     BulkQuoteRejectedEvt,
@@ -48,9 +47,25 @@ import {
 	QuoteRequestReceivedEvt,
     QuoteResponseReceivedEvt,
     QuotingBCTopics,
-
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { QueryReceivedBulkQuoteCmd, QueryReceivedBulkQuoteCmdPayload, QueryReceivedQuoteCmd, QueryReceivedQuoteCmdPayload, RejectedBulkQuoteCmd, RejectedBulkQuoteCmdPayload, RejectedQuoteCmd, RejectedQuoteCmdPayload, RequestReceivedBulkQuoteCmd, RequestReceivedBulkQuoteCmdPayload, RequestReceivedQuoteCmd, RequestReceivedQuoteCmdPayload, ResponseReceivedBulkQuoteCmd, ResponseReceivedBulkQuoteCmdPayload, ResponseReceivedQuoteCmd, ResponseReceivedQuoteCmdPayload } from "../../domain-lib";
+import { 
+    QueryReceivedBulkQuoteCmd,
+    QueryReceivedBulkQuoteCmdPayload,
+    QueryReceivedQuoteCmd,
+    QueryReceivedQuoteCmdPayload,
+    RejectedBulkQuoteCmd,
+    RejectedBulkQuoteCmdPayload,
+    RejectedQuoteCmd,
+    RejectedQuoteCmdPayload,
+    RequestReceivedBulkQuoteCmd,
+    RequestReceivedBulkQuoteCmdPayload,
+    RequestReceivedQuoteCmd,
+    RequestReceivedQuoteCmdPayload,
+    ResponseReceivedBulkQuoteCmd,
+    ResponseReceivedBulkQuoteCmdPayload,
+    ResponseReceivedQuoteCmd,
+    ResponseReceivedQuoteCmdPayload 
+} from "../../domain-lib";
 
 import {
     Context,
@@ -62,7 +77,7 @@ import {
 } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {OpenTelemetryClient} from "@mojaloop/platform-shared-lib-observability-client-lib";
 import * as OpentelemetryApi from "@opentelemetry/api";
-import {SpanKind, SpanOptions, Baggage} from "@opentelemetry/api";
+import {SpanKind, SpanOptions } from "@opentelemetry/api";
 
 // These need to match the simulator - Should go to the observability types
 export const TRACING_REQ_START_TS_HEADER_NAME="tracing-request-start-timestamp";
@@ -245,7 +260,7 @@ export class QuotingEventHandler{
 
     }
 
-    private _prepareEventToRequestReceiveQuoteCommand(evt: QuoteRequestReceivedEvt): RequestReceivedQuoteCmd{
+    private _prepareEventToRequestReceiveQuoteCommand(evt: QuoteRequestReceivedEvt): RequestReceivedQuoteCmd {
 		const cmdPayload: RequestReceivedQuoteCmdPayload = {
 			bulkQuoteId: null,
 			quoteId: evt.payload.quoteId,
@@ -262,8 +277,6 @@ export class QuotingEventHandler{
 			geoCode: evt.payload.geoCode,
 			note: evt.payload.note,
 			expiration: evt.payload.expiration,
-			extensionList: evt.payload.extensionList,
-			prepare: evt.fspiopOpaqueState,
 		};
 		const cmd = new RequestReceivedQuoteCmd(cmdPayload);
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
@@ -272,17 +285,15 @@ export class QuotingEventHandler{
 
 	private _prepareEventToResponseReceiveQuoteCommand(evt: QuoteResponseReceivedEvt): ResponseReceivedQuoteCmd {
 		const cmdPayload: ResponseReceivedQuoteCmdPayload = {
+            requesterFspId: evt.payload.requesterFspId,
+			destinationFspId: evt.payload.destinationFspId,
 			quoteId: evt.payload.quoteId,
 			transferAmount: evt.payload.transferAmount,
 			expiration: evt.payload.expiration,
-			ilpPacket: evt.payload.ilpPacket,
-			condition: evt.payload.condition,
 			payeeReceiveAmount: evt.payload.payeeReceiveAmount,
 			payeeFspFee: evt.payload.payeeFspFee,
 			payeeFspCommission: evt.payload.payeeFspCommission,
 			geoCode: evt.payload.geoCode,
-			extensionList: evt.payload.extensionList,
-			prepare: evt.fspiopOpaqueState,
 		};
 		const cmd = new ResponseReceivedQuoteCmd(cmdPayload);
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
@@ -291,8 +302,9 @@ export class QuotingEventHandler{
 
 	private _prepareEventToQueryReceiveQuoteCommand(evt: QuoteQueryReceivedEvt): QueryReceivedQuoteCmd {
 		const cmdPayload: QueryReceivedQuoteCmdPayload = {
+            requesterFspId: evt.payload.requesterFspId,
+			destinationFspId: evt.payload.destinationFspId,
             quoteId: evt.payload.quoteId,
-            prepare: evt.fspiopOpaqueState,
         };
 		const cmd = new QueryReceivedQuoteCmd(cmdPayload);
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
@@ -301,9 +313,10 @@ export class QuotingEventHandler{
 
     private _prepareEventToRejectQuoteCommand(evt: QuoteRejectedEvt): RejectedQuoteCmd {
 		const cmdPayload: RejectedQuoteCmdPayload = {
+            requesterFspId: evt.payload.requesterFspId,
+			destinationFspId: evt.payload.destinationFspId,
             quoteId: evt.payload.quoteId,
             errorInformation: evt.payload.errorInformation,
-            prepare: evt.fspiopOpaqueState,
         };
 		const cmd = new RejectedQuoteCmd(cmdPayload);
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
@@ -312,13 +325,13 @@ export class QuotingEventHandler{
 
     private _prepareEventToRequestReceiveBulkQuoteCommand(evt: BulkQuoteRequestedEvt): RequestReceivedBulkQuoteCmd{
 		const cmdPayload: RequestReceivedBulkQuoteCmdPayload = {
+            requesterFspId: evt.payload.requesterFspId,
+			destinationFspId: evt.payload.destinationFspId,
             bulkQuoteId: evt.payload.bulkQuoteId,
             payer: evt.payload.payer,
             geoCode: evt.payload.geoCode,
             expiration: evt.payload.expiration,
             individualQuotes: evt.payload.individualQuotes,
-            extensionList: evt.payload.extensionList,
-            prepare: evt.fspiopOpaqueState,
         };
 		const cmd = new RequestReceivedBulkQuoteCmd(cmdPayload);
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
@@ -327,11 +340,11 @@ export class QuotingEventHandler{
 
     private _prepareEventToResponseReceiveBulkQuoteCommand(evt: BulkQuotePendingReceivedEvt): ResponseReceivedBulkQuoteCmd{
 		const cmdPayload: ResponseReceivedBulkQuoteCmdPayload = {
+            requesterFspId: evt.payload.requesterFspId,
+			destinationFspId: evt.payload.destinationFspId,
             bulkQuoteId: evt.payload.bulkQuoteId,
             individualQuoteResults: evt.payload.individualQuoteResults,
             expiration: evt.payload.expiration,
-            extensionList: evt.payload.extensionList,
-            prepare: evt.fspiopOpaqueState,
         };
 		const cmd = new ResponseReceivedBulkQuoteCmd(cmdPayload);
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
@@ -340,8 +353,9 @@ export class QuotingEventHandler{
 
     private _prepareEventToQueryReceiveBulkQuoteCommand(evt: BulkQuoteQueryReceivedEvt): QueryReceivedBulkQuoteCmd {
 		const cmdPayload: QueryReceivedBulkQuoteCmdPayload = {
+            requesterFspId: evt.payload.requesterFspId,
+			destinationFspId: evt.payload.destinationFspId,
             bulkQuoteId: evt.payload.bulkQuoteId,
-            prepare: evt.fspiopOpaqueState,
         };
 		const cmd = new QueryReceivedBulkQuoteCmd(cmdPayload);
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
@@ -350,9 +364,10 @@ export class QuotingEventHandler{
 
     private _prepareEventToRejectBulkQuoteCommand(evt: BulkQuoteRejectedEvt): RejectedBulkQuoteCmd {
 		const cmdPayload: RejectedBulkQuoteCmdPayload = {
+            requesterFspId: evt.payload.requesterFspId,
+			destinationFspId: evt.payload.destinationFspId,
             bulkQuoteId: evt.payload.bulkQuoteId,
             errorInformation: evt.payload.errorInformation,
-            prepare: evt.fspiopOpaqueState,
         };
 		const cmd = new RejectedBulkQuoteCmd(cmdPayload);
 		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;

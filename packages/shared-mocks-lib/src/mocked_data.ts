@@ -111,16 +111,7 @@ export const mockedQuote1: IQuote = {
         amount: "5",
     },
     expiration: "2024-08-15T08:43:25.699Z",
-    extensionList: {
-        extension: [
-            {
-                key: "key",
-                value: "value",
-            },
-        ],
-    },
     status: QuoteState.ACCEPTED,
-    ilpPacket: "omnis",
     payeeReceiveAmount: {
         currency: "EUR",
         amount: "200",
@@ -133,7 +124,6 @@ export const mockedQuote1: IQuote = {
         currency: "EUR",
         amount: "2.5",
     },
-    condition: "omnis",
     geoCode: {
         latitude: "1",
         longitude: "2",
@@ -146,20 +136,9 @@ export const mockedQuote1: IQuote = {
     errorInformation: {
         errorCode: "8562",
         errorDescription: "aliquip",
-        extensionList: {
-            extension: [
-                {
-                    key: "ad aliqua dolor reprehende",
-                    value: "ipsum aliq",
-                },
-                {
-                    key: "la",
-                    value: "commodo dolore et",
-                },
-            ],
-        },
     },
     transferAmount: null,
+    fspiopOpaqueState: null,
 };
 
 export const mockedQuote2: IQuote = {
@@ -229,16 +208,7 @@ export const mockedQuote2: IQuote = {
         },
     },
     expiration: "2024-08-15T08:43:25.699Z",
-    extensionList: {
-        extension: [
-            {
-                key: "key",
-                value: "value",
-            },
-        ],
-    },
     status: QuoteState.PENDING,
-    ilpPacket: "omnis",
     payeeReceiveAmount: {
         currency: "USD",
         amount: "300",
@@ -255,7 +225,6 @@ export const mockedQuote2: IQuote = {
         currency: "USD",
         amount: "2",
     },
-    condition: "omnis",
     geoCode: {
         latitude: "11",
         longitude: "22",
@@ -268,20 +237,9 @@ export const mockedQuote2: IQuote = {
     errorInformation: {
         errorCode: "8562",
         errorDescription: "aliquip",
-        extensionList: {
-            extension: [
-                {
-                    key: "ad aliqua dolor reprehende",
-                    value: "ipsum aliq",
-                },
-                {
-                    key: "la",
-                    value: "commodo dolore et",
-                },
-            ],
-        },
     },
     transferAmount: null,
+    fspiopOpaqueState: null,
 };
 
 export const mockedQuote3: IQuote = {
@@ -351,16 +309,7 @@ export const mockedQuote3: IQuote = {
         },
     },
     expiration: "2024-08-15T08:43:25.699Z",
-    extensionList: {
-        extension: [
-            {
-                key: "key",
-                value: "value",
-            },
-        ],
-    },
     status: QuoteState.REJECTED,
-    ilpPacket: "omnis",
     payeeReceiveAmount: {
         currency: "USD",
         amount: "400",
@@ -377,7 +326,6 @@ export const mockedQuote3: IQuote = {
         currency: "USD",
         amount: "2",
     },
-    condition: "omnis",
     geoCode: {
         latitude: "11",
         longitude: "22",
@@ -390,20 +338,9 @@ export const mockedQuote3: IQuote = {
     errorInformation: {
         errorCode: "8562",
         errorDescription: "aliquip",
-        extensionList: {
-            extension: [
-                {
-                    key: "ad aliqua dolor reprehende",
-                    value: "ipsum aliq",
-                },
-                {
-                    key: "la",
-                    value: "commodo dolore et",
-                },
-            ],
-        },
     },
     transferAmount: null,
+    fspiopOpaqueState: null,
 };
 
 export const mockedQuote4: IQuote = {
@@ -473,16 +410,7 @@ export const mockedQuote4: IQuote = {
         },
     },
     expiration: "2024-08-15T08:43:25.699Z",
-    extensionList: {
-        extension: [
-            {
-                key: "key",
-                value: "value",
-            },
-        ],
-    },
     status: QuoteState.ACCEPTED,
-    ilpPacket: "omnis",
     payeeReceiveAmount: {
         currency: "EUR",
         amount: "1000",
@@ -499,7 +427,6 @@ export const mockedQuote4: IQuote = {
         currency: "EUR",
         amount: "5",
     },
-    condition: "omnis",
     geoCode: {
         latitude: "113",
         longitude: "224",
@@ -512,23 +439,12 @@ export const mockedQuote4: IQuote = {
     errorInformation: {
         errorCode: "8562",
         errorDescription: "aliquip",
-        extensionList: {
-            extension: [
-                {
-                    key: "ad aliqua dolor reprehende",
-                    value: "ipsum aliq",
-                },
-                {
-                    key: "la",
-                    value: "commodo dolore et",
-                },
-            ],
-        },
     },
     transferAmount: {
         currency: "EUR",
         amount: "1010.2",
     },
+    fspiopOpaqueState: null,
 };
 
 export const mockedQuotes: IQuote[] = [
@@ -603,20 +519,13 @@ export const mockedBulkQuote1: IBulkQuote = {
             },
         },
     ],
-    extensionList: {
-        extension: [
-            {
-                key: "key",
-                value: "value",
-            },
-        ],
-    },
     geoCode: {
         latitude: "1",
         longitude: "2",
     },
     status: QuoteState.RECEIVED,
     quotesNotProcessedIds: ["3", "4"],
+    fspiopOpaqueState: null
 } as unknown as IBulkQuote;
 
 export const mockedBulkQuote2: IBulkQuote = {
@@ -645,20 +554,13 @@ export const mockedBulkQuote2: IBulkQuote = {
     },
     expiration: "2024-08-15T08:43:25.699Z",
     individualQuotes: [mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4],
-    extensionList: {
-        extension: [
-            {
-                key: "key",
-                value: "value",
-            },
-        ],
-    },
     geoCode: {
         latitude: "1",
         longitude: "2",
     },
     status: QuoteState.RECEIVED,
     quotesNotProcessedIds: ["1", "2"],
+    fspiopOpaqueState: null,
 };
 
 export const mockedBulkQuote3: IBulkQuote = {
@@ -687,20 +589,13 @@ export const mockedBulkQuote3: IBulkQuote = {
     },
     expiration: "2024-08-15T08:43:25.699Z",
     individualQuotes: [mockedQuote1, mockedQuote2, mockedQuote3],
-    extensionList: {
-        extension: [
-            {
-                key: "key",
-                value: "value",
-            },
-        ],
-    },
     geoCode: {
         latitude: "1",
         longitude: "2",
     },
     status: QuoteState.REJECTED,
     quotesNotProcessedIds: ["3"],
+    fspiopOpaqueState: null,
 };
 
 export const mockedQuoteRequestPayload = {
@@ -784,12 +679,6 @@ export const mockedQuoteRequestPayload = {
     },
     note: "note123",
     expiration: "2024-05-01",
-    extensionList: {
-        extension: [
-            { key: "key1", value: "value1" },
-            { key: "key2", value: "value2" },
-        ],
-    },
 };
 
 export const mockedQuoteResponsePayload = {
@@ -799,8 +688,6 @@ export const mockedQuoteResponsePayload = {
         amount: "100",
     },
     expiration: "2024-05-01",
-    ilpPacket: "ilpPacket123",
-    condition: "condition123",
     payeeReceiveAmount: {
         currency: "USD",
         amount: "95",
@@ -817,12 +704,6 @@ export const mockedQuoteResponsePayload = {
         latitude: "123.456",
         longitude: "456.789",
     },
-    extensionList: {
-        extension: [
-            { key: "key1", value: "value1" },
-            { key: "key2", value: "value2" },
-        ],
-    },
 };
 
 export const mockedQuoteQueryPayload = {
@@ -834,12 +715,6 @@ export const quoteRejectedPayload = {
     errorInformation: {
         errorCode: "ERR123",
         errorDescription: "Quote rejected due to insufficient funds",
-        extensionList: {
-            extension: [
-                { key: "key1", value: "value1" },
-                { key: "key2", value: "value2" },
-            ],
-        },
     },
 };
 
@@ -916,20 +791,8 @@ export const bulkQuoteRequestedPayload = {
                 balanceOfPayments: "balanceOfPayments123",
             },
             note: "note123",
-            extensionList: {
-                extension: [
-                    { key: "key1", value: "value1" },
-                    { key: "key2", value: "value2" },
-                ],
-            },
         },
     ],
-    extensionList: {
-        extension: [
-            { key: "key1", value: "value1" },
-            { key: "key2", value: "value2" },
-        ],
-    },
 };
 
 export const bulkQuotePendingPayload = {
@@ -973,33 +836,13 @@ export const bulkQuotePendingPayload = {
                 currency: "USD",
                 amount: "2",
             },
-            ilpPacket: "ilpPacket123",
-            condition: "condition123",
             errorInformation: {
                 errorCode: "ERR123",
                 errorDescription: "Error occurred during quote processing",
-                extensionList: {
-                    extension: [
-                        { key: "key1", value: "value1" },
-                        { key: "key2", value: "value2" },
-                    ],
-                },
-            },
-            extensionList: {
-                extension: [
-                    { key: "key1", value: "value1" },
-                    { key: "key2", value: "value2" },
-                ],
             },
         },
     ],
     expiration: "2024-05-01",
-    extensionList: {
-        extension: [
-            { key: "key1", value: "value1" },
-            { key: "key2", value: "value2" },
-        ],
-    },
 };
 
 export const mockedBulkQuoteQueryPayload = {
@@ -1011,11 +854,5 @@ export const bulkQuoteRejectedPayload = {
     errorInformation: {
         errorCode: "ERR123",
         errorDescription: "Bulk quote rejected due to invalid request",
-        extensionList: {
-            extension: [
-                { key: "key1", value: "value1" },
-                { key: "key2", value: "value2" },
-            ],
-        },
     },
 };
