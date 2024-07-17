@@ -96,7 +96,9 @@
              const quoteId = req.query.quoteId as string || null;
              const bulkQuoteId = req.query.bulkQuoteId as string || null;
              const transactionId = req.query.transactionId as string || null;
-     
+             const payerId = req.query.payerId as string || req.query.payerid as string;
+             const payeeId = req.query.payeeId as string || req.query.payeeid as string;
+             const status = req.query.status as string || null;
      
              // optional pagination
              const pageIndexStr = req.query.pageIndex as string || req.query.pageindex as string;
@@ -114,6 +116,9 @@
                  quoteId,
                  transactionId,
                  bulkQuoteId,
+                 payerId,
+                 payeeId,
+                 status,
                  pageIndex,
                  pageSize
              );

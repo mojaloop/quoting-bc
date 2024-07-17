@@ -284,11 +284,14 @@ export class MongoQuotesRepo implements IQuoteRepo {
     }
 
 	async searchQuotes(
-        amountType:string|null,
-        transactionType:string|null,
-        quoteId:string|null,
-        transactionId:string|null,
-        bulkQuoteId:string|null,
+        amountType: string | null,
+        transactionType: string | null,
+        quoteId: string | null,
+        transactionId: string | null,
+        bulkQuoteId: string | null,
+        payerId: string | null,
+        payeeId: string | null,
+        status: string | null,
         pageIndex = 0,
         pageSize: number = MAX_ENTRIES_PER_PAGE
     ): Promise<any> {
@@ -316,9 +319,19 @@ export class MongoQuotesRepo implements IQuoteRepo {
         if (transactionType) {
             filter.$and.push({ "transactionType.scenario": transactionType });
         }
-        if(bulkQuoteId){
+        if (bulkQuoteId) {
             filter.$and.push({ bulkQuoteId: { $regex: bulkQuoteId, $options: "i" } });
         }
+        if (payerId) {
+            filter.$and.push({ "payer.partyIdInfo.fspId": payerId });
+        }
+        if (payeeId) {
+            filter.$and.push({ "payee.partyIdInfo.fspId": payeeId });
+        }
+        if (status) {
+            filter.$and.push({ status: status });
+        }
+
         if(filter.$and.length === 0) {
             filter = {};
         }
@@ -361,7 +374,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
         try {
             const result = this._collection
                 .aggregate([
-					{$group: { "_id": { amountType: "$amountType", transactionType: "$transactionType" } } }
+					{$group: { "_id": { amountType: "$amountType", transactionType: "$transactionType", status: "$status" } } }
 				]);
 
 			const amountType:{fieldName:string, distinctTerms:string[]} = {
@@ -374,18 +387,29 @@ export class MongoQuotesRepo implements IQuoteRepo {
 				distinctTerms: []
 			};
 
-			for await (const term of result) {
+            const status: {fieldName:string, distinctTerms:string[]} = {
+				fieldName: "status",
+				distinctTerms: []
+			};
 
-				if(!amountType.distinctTerms.includes(term._id.amountType)) {
+			for await (const term of result) {
+				if(term._id.amountType && !amountType.distinctTerms.includes(term._id.amountType)) {
 					amountType.distinctTerms.push(term._id.amountType);
 				}
-				retObj.push(amountType);
-
-				if(!transactionType.distinctTerms.includes(term._id.transactionType.scenario)) {
+				
+				if(term._id.transactionType?.scenario && !transactionType.distinctTerms.includes(term._id.transactionType.scenario)) {
 					transactionType.distinctTerms.push(term._id.transactionType.scenario);
 				}
-				retObj.push(transactionType);
+
+                if (term._id.status && !status.distinctTerms.includes(term._id.status)) {
+                    status.distinctTerms.push(term._id.status);
+                }
 			}
+
+            retObj.push(amountType);
+            retObj.push(transactionType);
+            retObj.push(status);
+
         } catch (err) {
             this._logger.error(err);
             throw new UnableToGetQuoteSearchKeywords("Unable to get search quote keywords");

@@ -706,8 +706,7 @@ export class QuotingAggregate {
         }
 
         if (!this._passThroughMode) {
-            const updatedQuote: Quote = {
-                ...quote,
+            const updatedQuote: Partial<Quote> = {
                 quoteId: message.payload.quoteId,
                 expiration: message.payload.expiration,
                 geoCode: message.payload.geoCode,
@@ -720,7 +719,10 @@ export class QuotingAggregate {
                 fspiopOpaqueState: message.fspiopOpaqueState,
             };
 
-            this._quotesCache.set(message.payload.quoteId, updatedQuote);
+            this._quotesCache.set(message.payload.quoteId, {
+                ...quote,
+                ...updatedQuote
+            });
         }
 
         // Return error event if previous validations failed
