@@ -36,7 +36,9 @@
         "audit:resolve": "npm audit fix",
         "dep:check": "(ncu -e 2 || true) && npm -ws run dep:check",
         "dep:update": "(ncu -e 2 -u || true) && npm -ws run dep:update",
-        "start:quoting-svc": "npm -w packages/quoting-svc run start"
+        "start:quoting-svc": "npm -w packages/quoting-api-svc run start",
+        "start:command-handler-svc": "npm -w packages/command-handler-svc run start",
+        "start:event-handler-svc": "npm -w packages/event-handler-svc run start"
     },
     "devDependencies": {
         "@types/jest": "^29.5.12",

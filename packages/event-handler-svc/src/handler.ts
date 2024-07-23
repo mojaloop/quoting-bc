@@ -290,6 +290,7 @@ export class QuotingEventHandler{
 			quoteId: evt.payload.quoteId,
 			transferAmount: evt.payload.transferAmount,
 			expiration: evt.payload.expiration,
+            note: evt.payload.note,
 			payeeReceiveAmount: evt.payload.payeeReceiveAmount,
 			payeeFspFee: evt.payload.payeeFspFee,
 			payeeFspCommission: evt.payload.payeeFspCommission,
