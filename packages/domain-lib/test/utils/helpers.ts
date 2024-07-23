@@ -58,6 +58,7 @@ export function createQuoteResponseReceivedEvtPayload(
         requesterFspId: "randomRequesterFspId",
 		destinationFspId: "randomDestinationFspId",
         expiration: quote.expiration as string,
+        note: quote.note,
         geoCode: quote.geoCode,
         quoteId: quote.quoteId,
         transferAmount: quote.totalTransferAmount as IMoney,
