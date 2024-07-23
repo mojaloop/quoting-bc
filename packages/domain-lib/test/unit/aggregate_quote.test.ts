@@ -460,6 +460,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         const payloadResponse = {
             quoteId: payload.quoteId,
             expiration: payload.expiration,
+            note: payload.note,
             geoCode: payload.geoCode,
             payeeReceiveAmount: payload.payeeReceiveAmount,
             transferAmount: payload.transferAmount,
@@ -568,6 +569,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
         const quoteResponsePayload: QuoteResponseAcceptedEvtPayload = {
             expiration: mockedQuote.expiration as string,
+            note: mockedQuote.note,
             geoCode: mockedQuote.geoCode,
             quoteId: mockedQuote.quoteId,
             transferAmount: mockedQuote.totalTransferAmount as IMoney,
@@ -638,6 +640,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         const payloadResponse: QuoteQueryResponseEvtPayload = {
             quoteId: mockedQuoteResponse.quoteId,
             expiration: mockedQuoteResponse.expiration as string,
+            note: mockedQuoteResponse.note,
             transferAmount: mockedQuoteResponse.totalTransferAmount as IMoney,
             geoCode: mockedQuoteResponse.geoCode,
             payeeFspCommission: mockedQuoteResponse.payeeFspCommission,

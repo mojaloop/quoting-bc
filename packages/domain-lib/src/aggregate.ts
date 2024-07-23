@@ -709,6 +709,7 @@ export class QuotingAggregate {
             const updatedQuote: Partial<Quote> = {
                 quoteId: message.payload.quoteId,
                 expiration: message.payload.expiration,
+                note: message.payload.note,
                 geoCode: message.payload.geoCode,
                 payeeFspCommission: message.payload.payeeFspCommission,
                 payeeFspFee: message.payload.payeeFspFee,
@@ -736,6 +737,7 @@ export class QuotingAggregate {
             quoteId: message.payload.quoteId,
             transferAmount: message.payload.transferAmount,
             expiration: message.payload.expiration,
+            note: message.payload.note,
             payeeReceiveAmount: message.payload.payeeReceiveAmount,
             payeeFspFee: message.payload.payeeFspFee,
             payeeFspCommission: message.payload.payeeFspCommission,
@@ -830,6 +832,7 @@ export class QuotingAggregate {
             quoteId: quote.quoteId,
             transferAmount: quote.transferAmount as IMoney,
             expiration: quote.expiration as string,
+            note: quote.note,
             payeeReceiveAmount: quote.amount,
             payeeFspFee: quote.payeeFspFee,
             geoCode: quote.geoCode as IGeoCode,
