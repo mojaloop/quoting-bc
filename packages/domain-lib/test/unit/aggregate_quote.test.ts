@@ -123,14 +123,14 @@ describe("Domain - Unit Tests for Quote Events", () => {
             });
 
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             requesterFspId,
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -177,14 +177,14 @@ describe("Domain - Unit Tests for Quote Events", () => {
             });
 
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             requesterFspId,
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -246,7 +246,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             requesterFspId,
             destinationFspId,
         };
@@ -254,7 +254,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -308,7 +308,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             requesterFspId,
             destinationFspId,
         };
@@ -316,7 +316,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -360,7 +360,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
 
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             requesterFspId,
             destinationFspId,
         };
@@ -368,7 +368,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -432,14 +432,14 @@ describe("Domain - Unit Tests for Quote Events", () => {
                 destinationFspId: destinationFspId
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -508,7 +508,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         const payload: QuoteResponseReceivedEvtPayload =
             createQuoteResponseReceivedEvtPayload(mockedQuote);
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             requesterFspId,
             destinationFspId,
         };
@@ -516,7 +516,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -556,14 +556,14 @@ describe("Domain - Unit Tests for Quote Events", () => {
                 destinationFspId: destinationFspId
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -604,9 +604,10 @@ describe("Domain - Unit Tests for Quote Events", () => {
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
-                fspiopOpaqueState: fspiopOpaqueState,
                 payload: quoteResponsePayload,
                 msgName: QuoteResponseAccepted.name,
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState,
             })]
         );
     });
@@ -626,14 +627,14 @@ describe("Domain - Unit Tests for Quote Events", () => {
             destinationFspId: destinationFspId,
         };
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             QueryReceivedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -674,8 +675,9 @@ describe("Domain - Unit Tests for Quote Events", () => {
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
-                fspiopOpaqueState: fspiopOpaqueState,
                 payload: payloadResponse,
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState,
             })]
         );
     });
@@ -695,14 +697,14 @@ describe("Domain - Unit Tests for Quote Events", () => {
                 destinationFspId: destinationFspId
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             RejectedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -737,8 +739,9 @@ describe("Domain - Unit Tests for Quote Events", () => {
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
-                fspiopOpaqueState: fspiopOpaqueState,
                 payload: payloadResponse,
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState,
             })]
         );
     });

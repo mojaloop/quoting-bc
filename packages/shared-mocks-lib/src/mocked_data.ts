@@ -110,7 +110,7 @@ export const mockedQuote1: IQuote = {
         currency: "EUR",
         amount: "5",
     },
-    expiration: "2024-08-15T08:43:25.699Z",
+        expiration: "2026-08-15T08:43:25.699Z",
     status: QuoteState.ACCEPTED,
     payeeReceiveAmount: {
         currency: "EUR",
@@ -138,7 +138,8 @@ export const mockedQuote1: IQuote = {
         errorDescription: "aliquip",
     },
     transferAmount: null,
-    fspiopOpaqueState: null,
+    inboundProtocolType: "FSPIOP_v1_1",
+    inboundProtocolOpaqueState: null,
 };
 
 export const mockedQuote2: IQuote = {
@@ -207,7 +208,7 @@ export const mockedQuote2: IQuote = {
                 "Dolores porro et ut quos exercitationem ut eaque dolorum sint.\nQuisquam nihil deserunt iure et ducimus officia aut ea.\nA molestiae minus facere recusandae.",
         },
     },
-    expiration: "2024-08-15T08:43:25.699Z",
+        expiration: "2026-08-15T08:43:25.699Z",
     status: QuoteState.PENDING,
     payeeReceiveAmount: {
         currency: "USD",
@@ -239,7 +240,8 @@ export const mockedQuote2: IQuote = {
         errorDescription: "aliquip",
     },
     transferAmount: null,
-    fspiopOpaqueState: null,
+    inboundProtocolType: "FSPIOP_v1_1",
+    inboundProtocolOpaqueState: null,
 };
 
 export const mockedQuote3: IQuote = {
@@ -308,7 +310,7 @@ export const mockedQuote3: IQuote = {
                 "Dolores porro et ut quos exercitationem ut eaque dolorum sint.\nQuisquam nihil deserunt iure et ducimus offic",
         },
     },
-    expiration: "2024-08-15T08:43:25.699Z",
+        expiration: "2026-08-15T08:43:25.699Z",
     status: QuoteState.REJECTED,
     payeeReceiveAmount: {
         currency: "USD",
@@ -340,7 +342,8 @@ export const mockedQuote3: IQuote = {
         errorDescription: "aliquip",
     },
     transferAmount: null,
-    fspiopOpaqueState: null,
+    inboundProtocolType: "FSPIOP_v1_1",
+    inboundProtocolOpaqueState: null,
 };
 
 export const mockedQuote4: IQuote = {
@@ -409,7 +412,7 @@ export const mockedQuote4: IQuote = {
                 "Dolores porro et ut quos exercitationem ut eaque dolorum sint.\nQuisquam nihil deserunt iure et ducimus offic",
         },
     },
-    expiration: "2024-08-15T08:43:25.699Z",
+        expiration: "2026-08-15T08:43:25.699Z",
     status: QuoteState.ACCEPTED,
     payeeReceiveAmount: {
         currency: "EUR",
@@ -444,7 +447,8 @@ export const mockedQuote4: IQuote = {
         currency: "EUR",
         amount: "1010.2",
     },
-    fspiopOpaqueState: null,
+    inboundProtocolType: "FSPIOP_v1_1",
+    inboundProtocolOpaqueState: null,
 };
 
 export const mockedQuotes: IQuote[] = [
@@ -476,7 +480,7 @@ export const mockedBulkQuote1: IBulkQuote = {
             partySubIdOrType: "partySubIdOrType1",
         },
     },
-    expiration: "2024-08-15T08:43:25.699Z",
+        expiration: "2026-08-15T08:43:25.699Z",
     individualQuotes: [
         {
             quoteId: "2243fdbe-5dea-3abd-a210-3780e7f2f1f4",
@@ -525,7 +529,8 @@ export const mockedBulkQuote1: IBulkQuote = {
     },
     status: QuoteState.RECEIVED,
     quotesNotProcessedIds: ["3", "4"],
-    fspiopOpaqueState: null
+    inboundProtocolType: "FSPIOP_v1_1",
+    inboundProtocolOpaqueState: null
 } as unknown as IBulkQuote;
 
 export const mockedBulkQuote2: IBulkQuote = {
@@ -552,7 +557,7 @@ export const mockedBulkQuote2: IBulkQuote = {
         },
         supportedCurrencies: []
     },
-    expiration: "2024-08-15T08:43:25.699Z",
+        expiration: "2026-08-15T08:43:25.699Z",
     individualQuotes: [mockedQuote1, mockedQuote2, mockedQuote3, mockedQuote4],
     geoCode: {
         latitude: "1",
@@ -560,7 +565,8 @@ export const mockedBulkQuote2: IBulkQuote = {
     },
     status: QuoteState.RECEIVED,
     quotesNotProcessedIds: ["1", "2"],
-    fspiopOpaqueState: null,
+    inboundProtocolType: "FSPIOP_v1_1",
+    inboundProtocolOpaqueState: null,
 };
 
 export const mockedBulkQuote3: IBulkQuote = {
@@ -587,7 +593,7 @@ export const mockedBulkQuote3: IBulkQuote = {
         },
         supportedCurrencies: []
     },
-    expiration: "2024-08-15T08:43:25.699Z",
+        expiration: "2026-08-15T08:43:25.699Z",
     individualQuotes: [mockedQuote1, mockedQuote2, mockedQuote3],
     geoCode: {
         latitude: "1",
@@ -595,7 +601,8 @@ export const mockedBulkQuote3: IBulkQuote = {
     },
     status: QuoteState.REJECTED,
     quotesNotProcessedIds: ["3"],
-    fspiopOpaqueState: null,
+    inboundProtocolType: "FSPIOP_v1_1",
+    inboundProtocolOpaqueState: null,
 };
 
 export const mockedQuoteRequestPayload = {
