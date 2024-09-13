@@ -350,7 +350,8 @@ export class QuotingAggregate {
             const errorEvent = new QuoteBCInvalidMessageTypeErrorEvent({
                 errorCode: errorCode,
             });
-            errorEvent.fspiopOpaqueState = cmd.fspiopOpaqueState;
+            errorEvent.inboundProtocolType = cmd.inboundProtocolType;
+            errorEvent.inboundProtocolOpaqueState = cmd.inboundProtocolOpaqueState;
             this._outputEvents.push(errorEvent);
         }
 
@@ -524,7 +525,8 @@ export class QuotingAggregate {
             errorInformation: null,
             transferAmount: message.payload.amount,
             // Protocol Specific
-            fspiopOpaqueState: message.fspiopOpaqueState,
+            inboundProtocolType: message.inboundProtocolType,
+            inboundProtocolOpaqueState: message.inboundProtocolOpaqueState,
         };
 
         if (!this._passThroughMode) {
@@ -554,7 +556,8 @@ export class QuotingAggregate {
         };
 
         const event = new QuoteRequestAcceptedEvt(payload);
-        event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.inboundProtocolType = message.inboundProtocolType;
+        event.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
         event.tracingInfo = message.tracingInfo;
 
 
@@ -589,7 +592,8 @@ export class QuotingAggregate {
 				errorCode: errorCode
 			});
 
-            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.inboundProtocolType = message.inboundProtocolType;
+            errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
             errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             return;
@@ -601,7 +605,8 @@ export class QuotingAggregate {
                 errorCode: QuotingErrorCodeNames.QUOTE_NOT_FOUND,
             };
             const errorEvent = new QuoteBCQuoteNotFoundErrorEvent(errorPayload);
-            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.inboundProtocolType = message.inboundProtocolType;
+            errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
             errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             timerEndFn({ success: "false" });
@@ -717,7 +722,8 @@ export class QuotingAggregate {
                 transferAmount: message.payload.transferAmount,
                 status: quoteStatus,
                 // Protocol Specific
-                fspiopOpaqueState: message.fspiopOpaqueState,
+                inboundProtocolType: message.inboundProtocolType,
+                inboundProtocolOpaqueState: message.inboundProtocolOpaqueState,
             };
 
             this._quotesCache.set(message.payload.quoteId, {
@@ -745,7 +751,8 @@ export class QuotingAggregate {
         };
         //TODO: add evt to name
         const event = new QuoteResponseAccepted(payload);
-        event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.inboundProtocolType = message.inboundProtocolType;
+        event.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
         event.tracingInfo = message.tracingInfo;
 
         /* istanbul ignore next */
@@ -811,7 +818,8 @@ export class QuotingAggregate {
 				errorCode: errorCode
 			});
 
-            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.inboundProtocolType = message.inboundProtocolType;
+            errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
             errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             return;
@@ -840,7 +848,8 @@ export class QuotingAggregate {
         };
 
         const event = new QuoteQueryResponseEvt(payload);
-        event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.inboundProtocolType = message.inboundProtocolType;
+        event.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
         event.tracingInfo = message.tracingInfo;
 
         this._outputEvents.push(event);
@@ -909,7 +918,8 @@ export class QuotingAggregate {
 				errorCode: errorCode
 			});
 
-            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.inboundProtocolType = message.inboundProtocolType;
+            errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
             errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             return;
@@ -924,7 +934,8 @@ export class QuotingAggregate {
 				errorCode: errorCode
 			});
 
-            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.inboundProtocolType = message.inboundProtocolType;
+            errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
             errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             return;
@@ -936,7 +947,8 @@ export class QuotingAggregate {
         };
 
         const event = new QuoteRejectedResponseEvt(payload);
-        event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.inboundProtocolType = message.inboundProtocolType;
+        event.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
         event.tracingInfo = message.tracingInfo;
 
         this._outputEvents.push(event);
@@ -1076,7 +1088,8 @@ export class QuotingAggregate {
             quotesNotProcessedIds: [],
             status: QuoteState.PENDING,
             // Protocol Specific
-            fspiopOpaqueState: message.fspiopOpaqueState,
+            inboundProtocolType: message.inboundProtocolType,
+            inboundProtocolOpaqueState: message.inboundProtocolOpaqueState,
         };
 
         if (!this._passThroughMode) {
@@ -1110,7 +1123,8 @@ export class QuotingAggregate {
         };
 
         const event = new BulkQuoteReceivedEvt(payload);
-        event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.inboundProtocolType = message.inboundProtocolType;
+        event.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
         event.tracingInfo = message.tracingInfo;
 
         if (!this._passThroughMode) {
@@ -1130,7 +1144,8 @@ export class QuotingAggregate {
                     errorPayload
                 );
 
-                errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+                errorEvent.inboundProtocolType = message.inboundProtocolType;
+                errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
                 errorEvent.tracingInfo = message.tracingInfo;
                 this._outputEvents.push(errorEvent);
                 timerEndFn({ success: "false" });
@@ -1170,7 +1185,8 @@ export class QuotingAggregate {
 				errorCode: errorCode
 			});
 
-            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.inboundProtocolType = message.inboundProtocolType;
+            errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
             errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             return;
@@ -1182,7 +1198,8 @@ export class QuotingAggregate {
                 errorCode: QuotingErrorCodeNames.BULK_QUOTE_NOT_FOUND,
             };
             const errorEvent = new QuoteBCBulkQuoteNotFoundErrorEvent(errorPayload);
-            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.inboundProtocolType = message.inboundProtocolType;
+            errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
             errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             timerEndFn({ success: "false" });
@@ -1285,7 +1302,8 @@ export class QuotingAggregate {
                     errorCode: errorCode
                 });
 
-                errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+                errorEvent.inboundProtocolType = message.inboundProtocolType;
+                errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
                 errorEvent.tracingInfo = message.tracingInfo;
                 this._outputEvents.push(errorEvent);
                 timerEndFn({ success: "false" });
@@ -1304,7 +1322,8 @@ export class QuotingAggregate {
         };
 
         const event = new BulkQuoteAcceptedEvt(payload);
-        event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.inboundProtocolType = message.inboundProtocolType;
+        event.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
         event.tracingInfo = message.tracingInfo;
 
         try {
@@ -1326,7 +1345,8 @@ export class QuotingAggregate {
 				errorCode: errorCode
 			});
 
-            errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+            errorEvent.inboundProtocolType = message.inboundProtocolType;
+            errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
             errorEvent.tracingInfo = message.tracingInfo;
             this._outputEvents.push(errorEvent);
             timerEndFn({ success: "false" });
@@ -1396,7 +1416,8 @@ export class QuotingAggregate {
                     errorCode: errorCode
                 });
 
-                errorEvent.fspiopOpaqueState = message.fspiopOpaqueState;
+                errorEvent.inboundProtocolType = message.inboundProtocolType;
+                errorEvent.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
                 errorEvent.tracingInfo = message.tracingInfo;
                 this._outputEvents.push(errorEvent);
                 return;
@@ -1451,7 +1472,8 @@ export class QuotingAggregate {
         };
 
         const event = new BulkQuoteQueryResponseEvt(payload);
-        event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.inboundProtocolType = message.inboundProtocolType;
+        event.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
         event.tracingInfo = message.tracingInfo;
 
         this._outputEvents.push(event);
@@ -1515,7 +1537,8 @@ export class QuotingAggregate {
         };
 
         const event = new BulkQuoteRejectedResponseEvt(payload);
-        event.fspiopOpaqueState = message.fspiopOpaqueState;
+        event.inboundProtocolType = message.inboundProtocolType;
+        event.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
         event.tracingInfo = message.tracingInfo;
 
         this._outputEvents.push(event);
@@ -1637,8 +1660,10 @@ export class QuotingAggregate {
                 quote.errorInformation =
                     quoteFromBulkQuoteReceivedInRequest.errorInformation;
                 // Protocol Specific
-                quote.fspiopOpaqueState =
-                    quoteFromBulkQuoteReceivedInRequest.fspiopOpaqueState;
+                quote.inboundProtocolType =
+                    quoteFromBulkQuoteReceivedInRequest.inboundProtocolType;
+                quote.inboundProtocolOpaqueState =
+                    quoteFromBulkQuoteReceivedInRequest.inboundProtocolOpaqueState;
             }
         });
 

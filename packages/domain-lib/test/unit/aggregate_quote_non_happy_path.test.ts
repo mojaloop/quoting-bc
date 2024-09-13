@@ -134,14 +134,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const payload = null;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             requesterFspId,
             destinationFspId,
         };
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
         const responsePayload: QuoteBCInvalidMessagePayloadErrorPayload = {
@@ -169,14 +169,14 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const payload = createQuoteRequestReceivedEvtPayload(mockedQuote);
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId as string;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             requesterFspId,
             destinationFspId,
         };
         const command: CommandMsg = createCommand(
             payload, 
             undefined as any, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
         const responsePayload: QuoteBCMissingMessageNameErrorEventPayload = {

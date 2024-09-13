@@ -120,14 +120,14 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             });
 
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
             payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            RequestReceivedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -170,7 +170,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 destinationFspId: null
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
@@ -178,7 +178,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -219,14 +219,14 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 destinationFspId: destinationFspId
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -276,14 +276,14 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 destinationFspId: destinationFspId
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -336,7 +336,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 destinationFspId: destinationFspId
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
@@ -344,7 +344,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -406,14 +406,14 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 destinationFspId: destinationFspId
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             RequestReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -473,14 +473,14 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 destinationFspId: destinationFspId
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
         
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -543,14 +543,14 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 destinationFspId: destinationFspId
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
         
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -621,14 +621,14 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
                 destinationFspId: destinationFspId
             });
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             ResponseReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -667,9 +667,10 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
-                fspiopOpaqueState,
                 payload: quoteResponsePayload,
                 msgName: BulkQuoteAcceptedEvt.name,
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState,
             })]
         );
     });
@@ -687,14 +688,14 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         };
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
 
         const command: CommandMsg = createCommand(
             payload, 
             QueryReceivedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -737,7 +738,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             [expect.objectContaining({
                 payload: responsePayload,
                 msgName: BulkQuoteQueryResponseEvt.name,
-                fspiopOpaqueState,
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState,
             })]
         );
     });
@@ -759,7 +761,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             destinationFspId: destinationFspId
         };
 
-        const fspiopOpaqueState = {
+        const inboundProtocolOpaqueState = {
             requesterFspId,
             destinationFspId,
         };
@@ -767,7 +769,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         const command: CommandMsg = createCommand(
             payload, 
             RejectedBulkQuoteCmd.name, 
-            fspiopOpaqueState, 
+            inboundProtocolOpaqueState, 
             MessageTypes.COMMAND
         );
 
@@ -808,7 +810,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             [expect.objectContaining({
                 payload: responsePayload,
                 msgName: BulkQuoteRejectedResponseEvt.name,
-                fspiopOpaqueState,
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState,
             })]
         );
     });

@@ -162,16 +162,18 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             ...mockedQuoteRequestPayload,
         }
 
-        const fspiopOpaqueState = { 
+        const inboundProtocolOpaqueState = { 
             committedSendTimestamp: 123456789, 
             prepareSendTimestamp: 123456789 
         };
 
         const receivedMessages = [
-            { msgType: MessageTypes.DOMAIN_EVENT,
+            { 
+                msgType: MessageTypes.DOMAIN_EVENT,
                 msgName: QuoteRequestReceivedEvt.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState 
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState 
             },
         ];
 
@@ -185,7 +187,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             expect.objectContaining({
                 msgName: RequestReceivedQuoteCmd.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState
             })
         ]);
     });
@@ -196,7 +199,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             ...mockedQuoteResponsePayload,
         }
 
-        const fspiopOpaqueState = { 
+        const inboundProtocolOpaqueState = { 
             committedSendTimestamp: 123456789, 
             prepareSendTimestamp: 123456789 
         };
@@ -206,7 +209,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
                 msgType: MessageTypes.DOMAIN_EVENT,
                 msgName: QuoteResponseReceivedEvt.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState 
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState 
             },
         ];
 
@@ -220,7 +224,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             expect.objectContaining({
                 msgName: ResponseReceivedQuoteCmd.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState
             })
         ]);
     });
@@ -231,7 +236,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             ...mockedQuoteQueryPayload,
         }
 
-        const fspiopOpaqueState = { 
+        const inboundProtocolOpaqueState = { 
             committedSendTimestamp: 123456789, 
             prepareSendTimestamp: 123456789 
         };
@@ -241,7 +246,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
                 msgType: MessageTypes.DOMAIN_EVENT,
                 msgName: QuoteQueryReceivedEvt.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState 
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState 
             },
         ];
 
@@ -255,7 +261,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             expect.objectContaining({
                 msgName: QueryReceivedQuoteCmd.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState
             })
         ]);
     });
@@ -266,7 +273,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             ...quoteRejectedPayload,
         }
 
-        const fspiopOpaqueState = { 
+        const inboundProtocolOpaqueState = { 
             committedSendTimestamp: 123456789, 
             prepareSendTimestamp: 123456789 
         };
@@ -276,7 +283,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
                 msgType: MessageTypes.DOMAIN_EVENT,
                 msgName: QuoteRejectedEvt.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState
             },
         ];
 
@@ -290,7 +298,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             expect.objectContaining({
                 msgName: RejectedQuoteCmd.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState
             })
         ]);
     });
@@ -301,7 +310,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             ...bulkQuoteRequestedPayload,
         }
 
-        const fspiopOpaqueState = { 
+        const inboundProtocolOpaqueState = { 
             committedSendTimestamp: 123456789, 
             prepareSendTimestamp: 123456789 
         };
@@ -311,7 +320,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
                 msgType: MessageTypes.DOMAIN_EVENT,
                 msgName: BulkQuoteRequestedEvt.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState 
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState 
             },
         ];
 
@@ -325,7 +335,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             expect.objectContaining({
                 msgName: RequestReceivedBulkQuoteCmd.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState
             })
         ]);
     });
@@ -336,7 +347,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             ...bulkQuotePendingPayload,
         }
 
-        const fspiopOpaqueState = { 
+        const inboundProtocolOpaqueState = { 
             committedSendTimestamp: 123456789, 
             prepareSendTimestamp: 123456789 
         };
@@ -346,7 +357,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
                 msgType: MessageTypes.DOMAIN_EVENT,
                 msgName: BulkQuotePendingReceivedEvt.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState
             },
         ];
 
@@ -360,7 +372,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             expect.objectContaining({
                 msgName: ResponseReceivedBulkQuoteCmd.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState
             })
         ]);
     });
@@ -371,7 +384,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             ...mockedBulkQuoteQueryPayload,
         }
 
-        const fspiopOpaqueState = { 
+        const inboundProtocolOpaqueState = { 
             committedSendTimestamp: 123456789, 
             prepareSendTimestamp: 123456789 
         };
@@ -381,7 +394,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
                 msgType: MessageTypes.DOMAIN_EVENT,
                 msgName: BulkQuoteQueryReceivedEvt.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState 
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState 
             },
         ];
 
@@ -395,7 +409,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             expect.objectContaining({
                 msgName: QueryReceivedBulkQuoteCmd.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState
             })
         ]);
     });
@@ -407,7 +422,7 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             ...bulkQuoteRejectedPayload,
         }
 
-        const fspiopOpaqueState = { 
+        const inboundProtocolOpaqueState = { 
             committedSendTimestamp: 123456789, 
             prepareSendTimestamp: 123456789 
         };
@@ -417,7 +432,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
                 msgType: MessageTypes.DOMAIN_EVENT,
                 msgName: BulkQuoteRejectedEvt.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState 
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState 
             },
         ];
 
@@ -431,7 +447,8 @@ describe('Event Handler - Unit Tests for QuotingBC Event Handler', () => {
             expect.objectContaining({
                 msgName: RejectedBulkQuoteCmd.name,
                 payload: payload,
-                fspiopOpaqueState: fspiopOpaqueState
+                inboundProtocolType: "FSPIOP_v1_1",
+                inboundProtocolOpaqueState: inboundProtocolOpaqueState
             })
         ]);
     });

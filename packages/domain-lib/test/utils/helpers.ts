@@ -206,10 +206,11 @@ export function createBulkQuoteQueryRejectedEvtPayload(
 export function createMessage(
     payload: object | null,
     messageName: string,
-    fspiopOpaqueState: object | null
+    inboundProtocolOpaqueState: object | null
 ): IMessage {
     return {
-        fspiopOpaqueState,
+        inboundProtocolType: "FSPIOP_v1_1",
+        inboundProtocolOpaqueState,
         msgId: "fake msg id",
         msgKey: "fake msg key",
         msgTopic: "fake msg topic",
@@ -225,11 +226,12 @@ export function createMessage(
 export function createCommand(
     payload: object|null, 
     messageName: string|null, 
-    fspiopOpaqueState: object|null, 
+    inboundProtocolOpaqueState: object|null, 
     msgType: MessageTypes = MessageTypes.COMMAND
 ): CommandMsg {
     return {
-        fspiopOpaqueState,
+        inboundProtocolType: "FSPIOP_v1_1",
+        inboundProtocolOpaqueState,
         msgId: "fake msg id",
         msgKey: "fake msg key",
         msgTopic: "fake msg topic",

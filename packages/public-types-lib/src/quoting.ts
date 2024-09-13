@@ -128,7 +128,8 @@ export interface IQuote {
     payeeFspCommission: IMoney | null;
     transferAmount : IMoney | null;
     // Protocol Specific
-    fspiopOpaqueState: any | null;
+    inboundProtocolType: string;
+    inboundProtocolOpaqueState: any | null;
 }
 export interface IBulkQuote {
     createdAt: number;
@@ -141,7 +142,8 @@ export interface IBulkQuote {
     quotesNotProcessedIds: string[];
     status: QuoteState | null;
     // Protocol Specific
-    fspiopOpaqueState: any | null;
+    inboundProtocolType: string;
+    inboundProtocolOpaqueState: any | null;
 
 }
 

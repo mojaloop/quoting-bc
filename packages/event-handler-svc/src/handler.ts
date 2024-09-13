@@ -279,7 +279,8 @@ export class QuotingEventHandler{
 			expiration: evt.payload.expiration,
 		};
 		const cmd = new RequestReceivedQuoteCmd(cmdPayload);
-		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+        cmd.inboundProtocolType = evt.inboundProtocolType;
+        cmd.inboundProtocolOpaqueState = evt.inboundProtocolOpaqueState;
 		return cmd;
 	}
 
@@ -297,7 +298,8 @@ export class QuotingEventHandler{
 			geoCode: evt.payload.geoCode,
 		};
 		const cmd = new ResponseReceivedQuoteCmd(cmdPayload);
-		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+        cmd.inboundProtocolType = evt.inboundProtocolType;
+        cmd.inboundProtocolOpaqueState = evt.inboundProtocolOpaqueState;
 		return cmd;
 	}
 
@@ -308,7 +310,8 @@ export class QuotingEventHandler{
             quoteId: evt.payload.quoteId,
         };
 		const cmd = new QueryReceivedQuoteCmd(cmdPayload);
-		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+        cmd.inboundProtocolType = evt.inboundProtocolType;
+        cmd.inboundProtocolOpaqueState = evt.inboundProtocolOpaqueState;
 		return cmd;
 	}
 
@@ -320,7 +323,8 @@ export class QuotingEventHandler{
             errorInformation: evt.payload.errorInformation,
         };
 		const cmd = new RejectedQuoteCmd(cmdPayload);
-		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+        cmd.inboundProtocolType = evt.inboundProtocolType;
+        cmd.inboundProtocolOpaqueState = evt.inboundProtocolOpaqueState;
 		return cmd;
 	}
 
@@ -335,7 +339,8 @@ export class QuotingEventHandler{
             individualQuotes: evt.payload.individualQuotes,
         };
 		const cmd = new RequestReceivedBulkQuoteCmd(cmdPayload);
-		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+        cmd.inboundProtocolType = evt.inboundProtocolType;
+        cmd.inboundProtocolOpaqueState = evt.inboundProtocolOpaqueState;
 		return cmd;
 	}
 
@@ -348,7 +353,8 @@ export class QuotingEventHandler{
             expiration: evt.payload.expiration,
         };
 		const cmd = new ResponseReceivedBulkQuoteCmd(cmdPayload);
-		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+        cmd.inboundProtocolType = evt.inboundProtocolType;
+        cmd.inboundProtocolOpaqueState = evt.inboundProtocolOpaqueState;
 		return cmd;
 	}
 
@@ -359,7 +365,8 @@ export class QuotingEventHandler{
             bulkQuoteId: evt.payload.bulkQuoteId,
         };
 		const cmd = new QueryReceivedBulkQuoteCmd(cmdPayload);
-		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+        cmd.inboundProtocolType = evt.inboundProtocolType;
+        cmd.inboundProtocolOpaqueState = evt.inboundProtocolOpaqueState;
 		return cmd;
 	}
 
@@ -371,7 +378,8 @@ export class QuotingEventHandler{
             errorInformation: evt.payload.errorInformation,
         };
 		const cmd = new RejectedBulkQuoteCmd(cmdPayload);
-		cmd.fspiopOpaqueState = evt.fspiopOpaqueState;
+        cmd.inboundProtocolType = evt.inboundProtocolType;
+        cmd.inboundProtocolOpaqueState = evt.inboundProtocolOpaqueState;
 		return cmd;
 	}
 

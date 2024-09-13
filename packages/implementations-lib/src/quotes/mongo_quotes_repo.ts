@@ -278,7 +278,8 @@ export class MongoQuotesRepo implements IQuoteRepo {
             errorInformation: quote.errorInformation ?? null,
             transferAmount: quote.transferAmount ?? null,
             // Protocol Specific
-            fspiopOpaqueState: quote.fspiopOpaqueState ?? null,
+            inboundProtocolType: quote.inboundProtocolType ?? null,
+            inboundProtocolOpaqueState: quote.inboundProtocolOpaqueState ?? null,
         };
         return quoteMapped;
     }

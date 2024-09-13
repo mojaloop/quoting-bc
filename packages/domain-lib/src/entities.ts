@@ -64,7 +64,8 @@ export class Quote implements IQuote {
     payeeFspCommission: IMoney | null;
     transferAmount : IMoney | null;
     // Protocol Specific
-    fspiopOpaqueState: any | null;
+    inboundProtocolType: string;
+    inboundProtocolOpaqueState: any | null;
 }
 
 /** BulkQuote entity **/
@@ -80,5 +81,6 @@ export class BulkQuote implements IBulkQuote {
     quotesNotProcessedIds: string[];
     status: QuoteState | null;
     // Protocol Specific
-    fspiopOpaqueState: any | null;
+    inboundProtocolType: string;
+    inboundProtocolOpaqueState: any | null;
 }
