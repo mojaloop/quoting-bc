@@ -262,22 +262,23 @@ export class QuotingEventHandler{
 
     private _prepareEventToRequestReceiveQuoteCommand(evt: QuoteRequestReceivedEvt): RequestReceivedQuoteCmd {
 		const cmdPayload: RequestReceivedQuoteCmdPayload = {
-			bulkQuoteId: null,
-			quoteId: evt.payload.quoteId,
-			transactionId: evt.payload.transactionId,
-			transactionRequestId: evt.payload.transactionRequestId,
-			payee: evt.payload.payee,
-			payer: evt.payload.payer,
-			amountType: evt.payload.amountType,
-			amount: evt.payload.amount,
-			transactionType: evt.payload.transactionType,
-			converter: evt.payload.converter,
-			currencyConversion: evt.payload.currencyConversion,
-			fees: evt.payload.fees,
-			geoCode: evt.payload.geoCode,
-			note: evt.payload.note,
-			expiration: evt.payload.expiration,
-		};
+            bulkQuoteId: null,
+            quoteId: evt.payload.quoteId,
+            transactionId: evt.payload.transactionId,
+            transactionRequestId: evt.payload.transactionRequestId,
+            payee: evt.payload.payee,
+            payer: evt.payload.payer,
+            amountType: evt.payload.amountType,
+            amount: evt.payload.amount,
+            transactionType: evt.payload.transactionType,
+            converter: evt.payload.converter,
+            currencyConversion: evt.payload.currencyConversion,
+            fees: evt.payload.fees,
+            geoCode: evt.payload.geoCode,
+            note: evt.payload.note,
+            expiration: evt.payload.expiration,
+            extensions: evt.payload.extensions,
+        };
 		const cmd = new RequestReceivedQuoteCmd(cmdPayload);
         cmd.inboundProtocolType = evt.inboundProtocolType;
         cmd.inboundProtocolOpaqueState = evt.inboundProtocolOpaqueState;
@@ -296,6 +297,7 @@ export class QuotingEventHandler{
 			payeeFspFee: evt.payload.payeeFspFee,
 			payeeFspCommission: evt.payload.payeeFspCommission,
 			geoCode: evt.payload.geoCode,
+            extensions: evt.payload.extensions,
 		};
 		const cmd = new ResponseReceivedQuoteCmd(cmdPayload);
         cmd.inboundProtocolType = evt.inboundProtocolType;
@@ -337,6 +339,7 @@ export class QuotingEventHandler{
             geoCode: evt.payload.geoCode,
             expiration: evt.payload.expiration,
             individualQuotes: evt.payload.individualQuotes,
+            extensions: evt.payload.extensions,
         };
 		const cmd = new RequestReceivedBulkQuoteCmd(cmdPayload);
         cmd.inboundProtocolType = evt.inboundProtocolType;
@@ -351,6 +354,7 @@ export class QuotingEventHandler{
             bulkQuoteId: evt.payload.bulkQuoteId,
             individualQuoteResults: evt.payload.individualQuoteResults,
             expiration: evt.payload.expiration,
+            extensions: evt.payload.extensions,
         };
 		const cmd = new ResponseReceivedBulkQuoteCmd(cmdPayload);
         cmd.inboundProtocolType = evt.inboundProtocolType;

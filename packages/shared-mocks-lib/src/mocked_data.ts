@@ -136,10 +136,12 @@ export const mockedQuote1: IQuote = {
     errorInformation: {
         errorCode: "8562",
         errorDescription: "aliquip",
+        extensions: [],
     },
     transferAmount: null,
     inboundProtocolType: "FSPIOP_v1_1",
     inboundProtocolOpaqueState: null,
+    extensions: [],
 };
 
 export const mockedQuote2: IQuote = {
@@ -238,10 +240,12 @@ export const mockedQuote2: IQuote = {
     errorInformation: {
         errorCode: "8562",
         errorDescription: "aliquip",
+        extensions: [],
     },
     transferAmount: null,
     inboundProtocolType: "FSPIOP_v1_1",
     inboundProtocolOpaqueState: null,
+    extensions: [],
 };
 
 export const mockedQuote3: IQuote = {
@@ -340,10 +344,12 @@ export const mockedQuote3: IQuote = {
     errorInformation: {
         errorCode: "8562",
         errorDescription: "aliquip",
+        extensions: [],
     },
     transferAmount: null,
     inboundProtocolType: "FSPIOP_v1_1",
     inboundProtocolOpaqueState: null,
+    extensions: [],
 };
 
 export const mockedQuote4: IQuote = {
@@ -442,6 +448,7 @@ export const mockedQuote4: IQuote = {
     errorInformation: {
         errorCode: "8562",
         errorDescription: "aliquip",
+        extensions: [],
     },
     transferAmount: {
         currency: "EUR",
@@ -449,6 +456,7 @@ export const mockedQuote4: IQuote = {
     },
     inboundProtocolType: "FSPIOP_v1_1",
     inboundProtocolOpaqueState: null,
+    extensions: [],
 };
 
 export const mockedQuotes: IQuote[] = [
@@ -530,7 +538,8 @@ export const mockedBulkQuote1: IBulkQuote = {
     status: QuoteState.RECEIVED,
     quotesNotProcessedIds: ["3", "4"],
     inboundProtocolType: "FSPIOP_v1_1",
-    inboundProtocolOpaqueState: null
+    inboundProtocolOpaqueState: null,
+    extensions: [],
 } as unknown as IBulkQuote;
 
 export const mockedBulkQuote2: IBulkQuote = {
@@ -567,6 +576,7 @@ export const mockedBulkQuote2: IBulkQuote = {
     quotesNotProcessedIds: ["1", "2"],
     inboundProtocolType: "FSPIOP_v1_1",
     inboundProtocolOpaqueState: null,
+    extensions: [],
 };
 
 export const mockedBulkQuote3: IBulkQuote = {
@@ -603,6 +613,7 @@ export const mockedBulkQuote3: IBulkQuote = {
     quotesNotProcessedIds: ["3"],
     inboundProtocolType: "FSPIOP_v1_1",
     inboundProtocolOpaqueState: null,
+    extensions: [],
 };
 
 export const mockedQuoteRequestPayload = {

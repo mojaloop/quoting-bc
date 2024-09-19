@@ -277,6 +277,7 @@ export class MongoQuotesRepo implements IQuoteRepo {
             requesterFspId: quote.requesterFspId ?? null,
             errorInformation: quote.errorInformation ?? null,
             transferAmount: quote.transferAmount ?? null,
+            extensions: quote.extensions ?? null,
             // Protocol Specific
             inboundProtocolType: quote.inboundProtocolType ?? null,
             inboundProtocolOpaqueState: quote.inboundProtocolOpaqueState ?? null,

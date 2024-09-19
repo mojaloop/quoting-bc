@@ -108,7 +108,7 @@ import {
     QuoteRequestAcceptedEvt,
     QuoteRequestAcceptedEvtPayload,
     QuoteRequestReceivedEvt,
-    QuoteResponseAccepted,
+    QuoteResponseAcceptedEvt,
     QuoteResponseAcceptedEvtPayload,
     QuoteResponseReceivedEvt,
     QuoteBCUnableToGetQuoteFromDatabaseErrorEvent,
@@ -524,6 +524,7 @@ export class QuotingAggregate {
             totalTransferAmount: null,
             errorInformation: null,
             transferAmount: message.payload.amount,
+            extensions: message.payload.extensions,
             // Protocol Specific
             inboundProtocolType: message.inboundProtocolType,
             inboundProtocolOpaqueState: message.inboundProtocolOpaqueState,
@@ -552,7 +553,8 @@ export class QuotingAggregate {
             note: message.payload.note,
             expiration: message.payload.expiration,
             converter: message.payload.converter,
-            currencyConversion: message.payload.currencyConversion
+            currencyConversion: message.payload.currencyConversion,
+            extensions: message.payload.extensions,
         };
 
         const event = new QuoteRequestAcceptedEvt(payload);
@@ -721,6 +723,7 @@ export class QuotingAggregate {
                 payeeReceiveAmount: message.payload.payeeReceiveAmount,
                 transferAmount: message.payload.transferAmount,
                 status: quoteStatus,
+                extensions: message.payload.extensions,
                 // Protocol Specific
                 inboundProtocolType: message.inboundProtocolType,
                 inboundProtocolOpaqueState: message.inboundProtocolOpaqueState,
@@ -748,9 +751,10 @@ export class QuotingAggregate {
             payeeFspFee: message.payload.payeeFspFee,
             payeeFspCommission: message.payload.payeeFspCommission,
             geoCode: message.payload.geoCode,
+            extensions: message.payload.extensions
         };
         //TODO: add evt to name
-        const event = new QuoteResponseAccepted(payload);
+        const event = new QuoteResponseAcceptedEvt(payload);
         event.inboundProtocolType = message.inboundProtocolType;
         event.inboundProtocolOpaqueState = message.inboundProtocolOpaqueState;
         event.tracingInfo = message.tracingInfo;
@@ -845,6 +849,7 @@ export class QuotingAggregate {
             payeeFspFee: quote.payeeFspFee,
             geoCode: quote.geoCode as IGeoCode,
             payeeFspCommission: quote.payeeFspCommission as IMoney,
+            extensions: quote.extensions,
         };
 
         const event = new QuoteQueryResponseEvt(payload);
@@ -1087,6 +1092,7 @@ export class QuotingAggregate {
             individualQuotes: individualQuotesInsideBulkQuote as IQuote[],
             quotesNotProcessedIds: [],
             status: QuoteState.PENDING,
+            extensions: message.payload.extensions,
             // Protocol Specific
             inboundProtocolType: message.inboundProtocolType,
             inboundProtocolOpaqueState: message.inboundProtocolOpaqueState,
@@ -1118,8 +1124,8 @@ export class QuotingAggregate {
             payer: message.payload.payer,
             geoCode: message.payload.geoCode,
             expiration: expirationDate,
-            //TODO: fix this to be of type IQuote[]
             individualQuotes: individualQuotesInsideBulkQuote,
+            extensions: message.payload.extensions,
         };
 
         const event = new BulkQuoteReceivedEvt(payload);
@@ -1319,6 +1325,7 @@ export class QuotingAggregate {
             bulkQuoteId: message.payload.bulkQuoteId,
             individualQuoteResults: message.payload.individualQuoteResults,
             expiration: message.payload.expiration,
+            extensions: message.payload.extensions,
         };
 
         const event = new BulkQuoteAcceptedEvt(payload);
@@ -1467,8 +1474,9 @@ export class QuotingAggregate {
 
         const payload: BulkQuoteQueryResponseEvtPayload = {
             bulkQuoteId: bulkQuote.bulkQuoteId,
-            individualQuoteResults: individualQuotes,
+            individualQuoteResults: individualQuotes as IQuote[],
             expiration: bulkQuote.expiration,
+            extensions: bulkQuote.extensions,
         };
 
         const event = new BulkQuoteQueryResponseEvt(payload);
@@ -1659,6 +1667,8 @@ export class QuotingAggregate {
                     quoteFromBulkQuoteReceivedInRequest.payeeFspCommission;
                 quote.errorInformation =
                     quoteFromBulkQuoteReceivedInRequest.errorInformation;
+                quote.extensions =
+                    quoteFromBulkQuoteReceivedInRequest.extensions;
                 // Protocol Specific
                 quote.inboundProtocolType =
                     quoteFromBulkQuoteReceivedInRequest.inboundProtocolType;

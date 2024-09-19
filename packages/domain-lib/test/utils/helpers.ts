@@ -65,6 +65,7 @@ export function createQuoteResponseReceivedEvtPayload(
         payeeFspCommission: quote.payeeFspCommission as IMoney,
         payeeFspFee: quote.payeeFspFee as IMoney,
         payeeReceiveAmount: quote.payeeReceiveAmount as IMoney,
+        extensions: quote.extensions,
         ...override
     };
 }
@@ -91,6 +92,7 @@ export function createQuoteRequestReceivedEvtPayload(
         transactionRequestId: quote.transactionRequestId,
         converter: null, 
         currencyConversion: null,
+        extensions: quote.extensions,
         ...override
     };
 }
@@ -135,7 +137,8 @@ export function createBulkQuoteRequestedEvtPayload(
         payer: mockedBulkQuote.payer,
         geoCode: mockedBulkQuote.geoCode,
         expiration: mockedBulkQuote.expiration,
-        individualQuotes: mockedBulkQuote.individualQuotes as any,
+        individualQuotes: mockedBulkQuote.individualQuotes,
+        extensions: mockedBulkQuote.extensions,
         ...override
     };
 
@@ -157,7 +160,8 @@ export function createBulkQuotePendingReceivedEvtPayload(
 		destinationFspId: "randomDestinationFspId",
         bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         expiration: mockedBulkQuote.expiration,
-        individualQuoteResults: mockedBulkQuote.individualQuotes as any,
+        individualQuoteResults: mockedBulkQuote.individualQuotes,
+        extensions: mockedBulkQuote.extensions,
         ...override
     };
 
