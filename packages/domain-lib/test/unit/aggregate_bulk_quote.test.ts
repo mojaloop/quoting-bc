@@ -423,6 +423,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             geoCode: mockedBulkQuote.geoCode,
             expiration: mockedBulkQuote.expiration,
             individualQuotes: mockedBulkQuote.individualQuotes,
+            extensions: [],
         };
 
         jest.spyOn(
@@ -636,7 +637,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         const quoteResponsePayload: BulkQuoteAcceptedEvtPayload = {
             expiration: mockedQuote.expiration as string,
             bulkQuoteId: mockedQuote.bulkQuoteId,
-            individualQuoteResults: mockedQuote.individualQuotes as any,
+            individualQuoteResults: mockedQuote.individualQuotes,
+            extensions: [],
         };
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -712,6 +714,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
             individualQuoteResults: [mockedQuote1, mockedQuote2],
             expiration: mockedBulkQuote.expiration,
+            extensions: [],
         };
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -756,6 +759,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             errorInformation: {
                 errorCode: "3200",
                 errorDescription: "Bulk quote error",
+                extensions: [],
             },
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
@@ -782,6 +786,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             errorInformation: {
                 errorCode: "3200",
                 errorDescription: "Bulk quote error",
+                extensions: [],
             },
             bulkQuoteId: mockedBulkQuote.bulkQuoteId,
         };

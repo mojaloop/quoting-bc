@@ -238,6 +238,7 @@ export class MongoBulkQuotesRepo implements IBulkQuoteRepo {
             individualQuotes: bulkQuote.individualQuotes ?? [],
             quotesNotProcessedIds: bulkQuote.quotesNotProcessedIds ?? [],
             status: bulkQuote.status ?? null,
+            extensions: bulkQuote.extensions ?? null,
             // Protocol Specific
             inboundProtocolType: bulkQuote.inboundProtocolType ?? null,
             inboundProtocolOpaqueState: bulkQuote.inboundProtocolOpaqueState ?? null,

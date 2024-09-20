@@ -118,6 +118,10 @@ export type RequestReceivedQuoteCmdPayload = {
     } | null;
     note: string | null;
     expiration: string | null;
+    extensions: {
+        key: string;
+        value: string;
+    }[];
 }
 
 export class RequestReceivedQuoteCmd extends CommandMsg {
@@ -166,6 +170,10 @@ export type ResponseReceivedQuoteCmdPayload = {
         latitude: string;
         longitude: string;
     } | null;
+    extensions: {
+        key: string;
+        value: string;
+    }[];
 }
 
 
@@ -227,6 +235,10 @@ export type RejectedQuoteCmdPayload = {
     errorInformation: {
         errorCode: string;
         errorDescription: string;
+        extensions: {
+            key: string;
+            value: string;
+        }[];
     };
 }
 
@@ -326,6 +338,10 @@ export type RequestReceivedBulkQuoteCmdPayload = {
         };
         note: string | null;
     }[];
+    extensions: {
+		key: string;
+		value: string;
+	}[];
 }
 
 export class RequestReceivedBulkQuoteCmd extends CommandMsg {
@@ -390,12 +406,24 @@ export type ResponseReceivedBulkQuoteCmdPayload = {
             currency: string;
             amount: string;
         } | null;
+        extensions: {
+            key: string;
+            value: string;
+        }[];
         errorInformation: {
             errorCode: string;
             errorDescription: string;
+            extensions: {
+                key: string;
+                value: string;
+            }[];
         } | null;
     }[];
     expiration: string | null;
+    extensions: {
+		key: string;
+		value: string;
+	}[];
 }
 
 
@@ -457,6 +485,10 @@ export type RejectedBulkQuoteCmdPayload = {
     errorInformation: {
         errorCode: string;
         errorDescription: string;
+        extensions: {
+            key: string;
+            value: string;
+        }[];
     };
 }
 

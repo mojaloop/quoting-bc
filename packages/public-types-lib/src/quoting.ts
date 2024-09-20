@@ -93,6 +93,10 @@ export interface IGeoCode {
 export interface IErrorInformation {
     errorCode: string;
     errorDescription: string;
+    extensions: {
+        key: string;
+        value: string;
+    }[];
 }
 
 export interface IParticipant {
@@ -127,6 +131,10 @@ export interface IQuote {
     payeeFspFee: IMoney | null;
     payeeFspCommission: IMoney | null;
     transferAmount : IMoney | null;
+    extensions: {
+        key: string;
+        value: string;
+    }[];
     // Protocol Specific
     inboundProtocolType: string;
     inboundProtocolOpaqueState: any | null;
@@ -141,6 +149,10 @@ export interface IBulkQuote {
     individualQuotes: IQuote[];
     quotesNotProcessedIds: string[];
     status: QuoteState | null;
+    extensions: {
+        key: string;
+        value: string;
+    }[];
     // Protocol Specific
     inboundProtocolType: string;
     inboundProtocolOpaqueState: any | null;

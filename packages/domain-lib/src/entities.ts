@@ -63,6 +63,10 @@ export class Quote implements IQuote {
     payeeFspFee: IMoney | null;
     payeeFspCommission: IMoney | null;
     transferAmount : IMoney | null;
+    extensions: {
+        key: string;
+        value: string;
+    }[];
     // Protocol Specific
     inboundProtocolType: string;
     inboundProtocolOpaqueState: any | null;
@@ -80,6 +84,10 @@ export class BulkQuote implements IBulkQuote {
     individualQuotes: IQuote[];
     quotesNotProcessedIds: string[];
     status: QuoteState | null;
+    extensions: {
+        key: string;
+        value: string;
+    }[];
     // Protocol Specific
     inboundProtocolType: string;
     inboundProtocolOpaqueState: any | null;

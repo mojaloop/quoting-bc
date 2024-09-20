@@ -41,7 +41,7 @@ import {
     QuoteRequestAcceptedEvt,
     QuoteRequestAcceptedEvtPayload,
     QuoteRequestReceivedEvtPayload,
-    QuoteResponseAccepted,
+    QuoteResponseAcceptedEvt,
     QuoteResponseAcceptedEvtPayload,
     QuoteResponseReceivedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -202,7 +202,8 @@ describe("Domain - Unit Tests for Quote Events", () => {
             note: mockedQuote.note,
             expiration: mockedQuote.expiration,
             converter: null,
-            currencyConversion: null
+            currencyConversion: null,
+            extensions: [],
         };
 
         jest.spyOn(
@@ -386,7 +387,8 @@ describe("Domain - Unit Tests for Quote Events", () => {
             note: mockedQuote.note,
             expiration: mockedQuote.expiration,
             converter: null,
-            currencyConversion: null
+            currencyConversion: null,
+            extensions: [],
         };
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -466,6 +468,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             transferAmount: payload.transferAmount,
             payeeFspCommission: payload.payeeFspCommission,
             payeeFspFee: payload.payeeFspFee,
+            extensions: payload.extensions,
         };
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
@@ -494,7 +497,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith([
             expect.objectContaining({
-                "msgName": QuoteResponseAccepted.name,
+                "msgName": QuoteResponseAcceptedEvt.name,
                 "payload": payloadResponse
             }),
         ]);
@@ -576,6 +579,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             payeeFspCommission: mockedQuote.payeeFspCommission as IMoney,
             payeeFspFee: mockedQuote.payeeFspFee as IMoney,
             payeeReceiveAmount: mockedQuote.payeeReceiveAmount as IMoney,
+            extensions: [],
         };
 
         jest.spyOn(participantService, "getParticipantInfo")
@@ -605,7 +609,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
                 payload: quoteResponsePayload,
-                msgName: QuoteResponseAccepted.name,
+                msgName: QuoteResponseAcceptedEvt.name,
                 inboundProtocolType: "FSPIOP_v1_1",
                 inboundProtocolOpaqueState,
             })]
@@ -647,6 +651,7 @@ describe("Domain - Unit Tests for Quote Events", () => {
             payeeFspCommission: mockedQuoteResponse.payeeFspCommission,
             payeeFspFee: mockedQuoteResponse.payeeFspFee,
             payeeReceiveAmount: mockedQuoteResponse.payeeReceiveAmount,
+            extensions: [],
         };
 
         jest.spyOn(participantService, "getParticipantInfo")

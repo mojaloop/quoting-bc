@@ -85,7 +85,7 @@ import {
     QuoteBCUnableToStoreQuotesInDatabasePayload,
     QuoteBCUnableToStoreQuotesInDatabaseEvent,
     QuoteRequestAcceptedEvt,
-    QuoteResponseAccepted,
+    QuoteResponseAcceptedEvt,
     QuoteBCUnableToGetQuoteFromDatabaseErrorEvent,
     QuoteBCUnableToGetQuoteFromDatabaseErrorPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -1406,7 +1406,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         // Assert
         expect(messageProducer.send).toHaveBeenCalledWith(
             [expect.objectContaining({
-                msgName: QuoteResponseAccepted.name,
+                msgName: QuoteResponseAcceptedEvt.name,
             }),expect.objectContaining({
                 payload: responsePayload,
                 msgName: QuoteBCUnableToStoreQuotesInDatabaseEvent.name,
