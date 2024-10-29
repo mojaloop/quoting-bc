@@ -531,6 +531,53 @@ describe("Quoting Admin Routes - Unit tests", () => {
             msg: errorMessage,
         });
     });
+
+    test("GET - should return filtered quotes with multiple search parameters", async () => {
+        // Arrange
+        const searchParams = {
+            amountType: "RECEIVE",
+            transactionType: "TRANSFER",
+            payerId: "123",
+            status: "ACCEPTED",
+            pageIndex: "0",
+            pageSize: "10"
+        };
+        
+        const searchResult = {
+            pageSize: 10,
+            totalPages: 1,
+            pageIndex: 0,
+            items: [mockedQuote1],
+        };
+    
+        jest.spyOn(mockedQuoteRepository, "searchQuotes")
+            .mockResolvedValueOnce(searchResult);
+    
+        jest.spyOn(mockedTokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
+    
+        // Act
+        const response = await request(server)
+            .get('/quotes')
+            .query(searchParams)
+            .set(`Authorization`, `Bearer ${accessToken}`);
+    
+        // Assert
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(searchResult);
+        expect(mockedQuoteRepository.searchQuotes).toHaveBeenCalledWith(
+            searchParams.amountType,
+            searchParams.transactionType,
+            null, // quoteId
+            null, // transactionId
+            null, // bulkQuoteId
+            searchParams.payerId,
+            undefined, // payeeId
+            searchParams.status,
+            parseInt(searchParams.pageIndex),
+            parseInt(searchParams.pageSize)
+        );
+    });
 });
 
 
