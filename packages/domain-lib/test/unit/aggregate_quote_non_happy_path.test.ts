@@ -88,6 +88,7 @@ import {
     QuoteResponseAcceptedEvt,
     QuoteBCUnableToGetQuoteFromDatabaseErrorEvent,
     QuoteBCUnableToGetQuoteFromDatabaseErrorPayload,
+    QuoteBCInvalidMessageTypeErrorEvent,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import { QuoteState } from "@mojaloop/quoting-bc-public-types-lib";
@@ -1784,6 +1785,186 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                 msgName: QuoteBCInvalidDestinationFspIdErrorEvent.name,
             })]
         );
+    });
+
+    test("should send an error event if an unknown event is encountered", async () => {
+        // Arrange
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote1);
+        const command: CommandMsg = createCommand(
+            payload,
+            "UnknownCmd",
+            null,
+            MessageTypes.COMMAND
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+        await aggregate.processCommandBatch([command]);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith([expect.objectContaining({
+            "msgName": QuoteBCInvalidMessageTypeErrorEvent.name,
+            "payload": expect.objectContaining({
+                "errorCode": QuotingErrorCodeNames.COMMAND_TYPE_UNKNOWN
+            })
+        })]);
+    });
+
+    test("ResponseReceivedQuoteCmd - should send an error event if _getQuote throws an error", async () => {
+        // Arrange
+        const requesterFspId = mockedQuote1.payee.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote1.payer.partyIdInfo.fspId;
+        const payload = createQuoteResponseReceivedEvtPayload(mockedQuote1, {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+        });
+        const command: CommandMsg = createCommand(
+            payload,
+            ResponseReceivedQuoteCmd.name,
+            null,
+            MessageTypes.COMMAND
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockImplementationOnce(() => {
+            throw new Error();
+        });
+
+        // Act
+        await aggregate.processCommandBatch([command]);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith([expect.objectContaining({
+            "msgName": QuoteBCUnableToGetQuoteFromDatabaseErrorEvent.name,
+            "payload": expect.objectContaining({
+                "errorCode": QuotingErrorCodeNames.UNABLE_TO_GET_QUOTE,
+                "quoteId": command.payload.quoteId,
+            })
+        })]);
+    });
+
+    test("ResponseReceivedQuoteCmd - should send an error event if _getQuote cannot find the quote to process", async () => {
+        // Arrange
+        const requesterFspId = mockedQuote1.payee.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote1.payer.partyIdInfo.fspId;
+        const payload = createQuoteResponseReceivedEvtPayload(mockedQuote1, {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+        });
+        const command: CommandMsg = createCommand(
+            payload,
+            ResponseReceivedQuoteCmd.name,
+            null,
+            MessageTypes.COMMAND
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        // Act
+        await aggregate.processCommandBatch([command]);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith([expect.objectContaining({
+            "msgName": QuoteBCQuoteNotFoundErrorEvent.name,
+            "payload": expect.objectContaining({
+                "errorCode": QuotingErrorCodeNames.QUOTE_NOT_FOUND,
+                "quoteId": command.payload.quoteId,
+            })
+        })]);
+    });
+
+    test("RejectedQuoteCmd - should send an error event if _getQuote throws an error", async () => {
+        // Arrange
+        const requesterFspId = mockedQuote1.payee.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote1.payer.partyIdInfo.fspId;
+        const payload = createQuoteResponseReceivedEvtPayload(mockedQuote1, {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+        });
+        const command: CommandMsg = createCommand(
+            payload,
+            RejectedQuoteCmd.name,
+            null,
+            MessageTypes.COMMAND
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(participantService, "getParticipantInfo").mockResolvedValueOnce({
+            id: requesterFspId,
+            type: "DFSP",
+            isActive: true,
+            approved: true,
+        } as IParticipant);
+
+        jest.spyOn(participantService, "getParticipantInfo").mockResolvedValueOnce({
+            id: destinationFspId,
+            type: "DFSP",
+            isActive: true,
+            approved: true,
+        } as IParticipant);
+
+        jest.spyOn(quoteRepo, "getQuoteById").mockImplementationOnce(() => {
+            throw new Error();
+        });
+
+        // Act
+        await aggregate.processCommandBatch([command]);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith([expect.objectContaining({
+            "msgName": QuoteBCUnableToGetQuoteFromDatabaseErrorEvent.name,
+            "payload": expect.objectContaining({
+                "errorCode": QuotingErrorCodeNames.UNABLE_TO_GET_QUOTE,
+                "quoteId": command.payload.quoteId,
+            })
+        })]);
+    });
+
+    test("RejectedQuoteCmd - should send an error event if _getQuote cannot find the quote to process", async () => {
+        // Arrange
+        const requesterFspId = mockedQuote1.payee.partyIdInfo.fspId;
+        const destinationFspId = mockedQuote1.payer.partyIdInfo.fspId;
+        const payload = createQuoteResponseReceivedEvtPayload(mockedQuote1, {
+            requesterFspId: requesterFspId,
+            destinationFspId: destinationFspId,
+        });
+        const command: CommandMsg = createCommand(
+            payload,
+            RejectedQuoteCmd.name,
+            null,
+            MessageTypes.COMMAND
+        );
+
+        jest.spyOn(messageProducer, "send");
+
+        jest.spyOn(participantService, "getParticipantInfo").mockResolvedValueOnce({
+            id: requesterFspId,
+            type: "DFSP",
+            isActive: true,
+            approved: true,
+        } as IParticipant);
+
+        jest.spyOn(participantService, "getParticipantInfo").mockResolvedValueOnce({
+            id: destinationFspId,
+            type: "DFSP",
+            isActive: true,
+            approved: true,
+        } as IParticipant);
+
+        // Act
+        await aggregate.processCommandBatch([command]);
+
+        // Assert
+        expect(messageProducer.send).toHaveBeenCalledWith([expect.objectContaining({
+            "msgName": QuoteBCQuoteNotFoundErrorEvent.name,
+            "payload": expect.objectContaining({
+                "errorCode": QuotingErrorCodeNames.QUOTE_NOT_FOUND,
+                "quoteId": command.payload.quoteId,
+            })
+        })]);
     });
 
     //#endregion
