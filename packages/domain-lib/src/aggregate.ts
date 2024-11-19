@@ -342,7 +342,7 @@ export class QuotingAggregate {
         } else if (cmd.msgName === RejectedBulkQuoteCmd.name) {
             await this._handleBulkQuoteRejected(cmd as RejectedBulkQuoteCmd);
         } else {
-            parentSpan.setStatus({ code: SpanStatusCode.ERROR });
+            // parentSpan.setStatus({ code: SpanStatusCode.ERROR });
 			const errorMessage = `Command type is unknown: ${cmd.msgName}`;
             this._logger.error(errorMessage);
 
