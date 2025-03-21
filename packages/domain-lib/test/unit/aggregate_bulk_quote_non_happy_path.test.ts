@@ -1,27 +1,26 @@
 /**
  License
  --------------
- Copyright © 2021 Mojaloop Foundation
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
- The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License.
-
- You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
  Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
  Contributors
  --------------
- This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+ This is the official list of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
- should be listed with a '' in the first column. People who have
+ should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
+ Mojaloop Foundation for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
@@ -114,15 +113,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const payload = createBulkQuoteRequestedEvtPayload({
             ...mockedBulkQuote,
             individualQuotes: [] as IQuote[],
-        }, { 
+        }, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -150,15 +149,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -188,15 +187,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -236,15 +235,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -284,15 +283,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -333,15 +332,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
             ...mockedBulkQuote,
             expiration: surpassedExpiration,
         },
-        { 
+        {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -383,15 +382,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -450,15 +449,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteRequestedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -485,7 +484,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(bulkQuoteRepo, "addBulkQuote").mockResolvedValueOnce(
             "inserted bulk quote"
         );
-  
+
         jest.spyOn(messageProducer, "send");
 
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
@@ -521,15 +520,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
         const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -573,15 +572,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const destinationFspId = "destinationFspId";
 
         const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -658,15 +657,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
         const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -715,15 +714,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
         const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -740,7 +739,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById").mockResolvedValueOnce(
             mockedBulkQuote
         );
-                
+
         jest.spyOn(bulkQuoteRepo, "getBulkQuoteById").mockRejectedValue(error);
 
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
@@ -775,15 +774,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
         const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -837,7 +836,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
         const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             });
@@ -849,9 +848,9 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         );
 
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -903,7 +902,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
         const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             });
@@ -916,9 +915,9 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         );
 
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -979,17 +978,17 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
 
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        
+
         const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1087,16 +1086,16 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const destinationFspId = "destinationFspId";
 
         const payload =
-            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, { 
+            createBulkQuotePendingReceivedEvtPayload(mockedBulkQuote, {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             });
 
 
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1133,7 +1132,7 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(
             responseQuotes[1]
         );
-        
+
         const aggregateWithoutPassthroughMode = new QuotingAggregate(
             logger,
             quoteRepo,
@@ -1172,15 +1171,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            QueryReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            QueryReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1229,15 +1228,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = null as any;
         const destinationFspId = "destinationFspId";
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            QueryReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            QueryReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1267,15 +1266,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null as any;
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            QueryReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            QueryReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1311,15 +1310,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            QueryReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            QueryReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1361,16 +1360,16 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
 
         const command: CommandMsg = createCommand(
-            payload, 
-            QueryReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            QueryReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1427,16 +1426,16 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
 
         const command: CommandMsg = createCommand(
-            payload, 
+            payload,
             QueryReceivedBulkQuoteCmd.name,
-            null, 
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1490,15 +1489,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote,{ 
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote,{
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            QueryReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            QueryReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1559,15 +1558,15 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const mockedBulkQuote = mockedBulkQuote1;
         const requesterFspId = mockedBulkQuote.payer.partyIdInfo.fspId;
         const destinationFspId = "destinationFspId";
-        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, { 
+        const payload = createBulkQuoteQueryReceivedEvtPayload(mockedBulkQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         const command: CommandMsg = createCommand(
-            payload, 
-            QueryReceivedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            QueryReceivedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1640,16 +1639,16 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const payload = createBulkQuoteQueryRejectedEvtPayload(
             mockedBulkQuote,
             errorInformation,
-            { 
+            {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             }
         );
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RejectedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            RejectedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 
@@ -1687,16 +1686,16 @@ describe("Domain - Unit Tests for Bulk Quote Events, Non Happy Path", () => {
         const payload = createBulkQuoteQueryRejectedEvtPayload(
             mockedBulkQuote,
             errorInformation,
-            { 
+            {
                 requesterFspId: requesterFspId,
                 destinationFspId: destinationFspId
             }
         );
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RejectedBulkQuoteCmd.name, 
-            null, 
+            payload,
+            RejectedBulkQuoteCmd.name,
+            null,
             MessageTypes.COMMAND
         );
 

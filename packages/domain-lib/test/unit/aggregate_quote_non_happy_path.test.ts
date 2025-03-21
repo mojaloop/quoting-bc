@@ -1,27 +1,26 @@
 /**
  License
  --------------
- Copyright © 2021 Mojaloop Foundation
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
- The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License.
-
- You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
  Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
  Contributors
  --------------
- This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+ This is the official list of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
- should be listed with a '' in the first column. People who have
+ should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
+ Mojaloop Foundation for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
@@ -140,9 +139,9 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            RequestReceivedQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
         const responsePayload: QuoteBCInvalidMessagePayloadErrorPayload = {
@@ -163,7 +162,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-   
+
     it("should publish error event if message validation fails for message name", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
@@ -175,9 +174,9 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             destinationFspId,
         };
         const command: CommandMsg = createCommand(
-            payload, 
-            undefined as any, 
-            inboundProtocolOpaqueState, 
+            payload,
+            undefined as any,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
         const responsePayload: QuoteBCMissingMessageNameErrorEventPayload = {
@@ -197,7 +196,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             })]
         );
     });
-    
+
 
     //#region handleQuoteRequestReceivedEvt
     test("handleQuoteRequestReceivedEvent - should send error event if requesterFspId is null or undefined", async () => {
@@ -663,7 +662,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             })]
         );
     });
- 
+
     test("handleQuoteRequestReceivedEvent - should send error event if destination fspId not found on participant service due to an error", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
@@ -711,7 +710,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             })]
         );
     });
-   
+
     test("handleQuoteRequestReceivedEvent - should send error event if destination fspId not found on participant service", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
@@ -1130,7 +1129,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                     fspId: null as any,
                 },
             },
-        }, { 
+        }, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
@@ -1200,7 +1199,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
                     fspId: null as any,
                 },
             },
-        }, { 
+        }, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
@@ -1233,7 +1232,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(mockedQuote);
-        
+
         jest.spyOn(messageProducer, "send");
 
         jest.spyOn(
@@ -1274,7 +1273,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const payload = createQuoteResponseReceivedEvtPayload({
             ...mockedQuote,
             expiration: surpassedExpiration,
-        }, { 
+        }, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
@@ -1342,13 +1341,13 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
     });
 
-  
+
     test("handleQuoteResponseReceivedEvent - should send error event if cant update the quote status", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteResponseReceivedEvtPayload(mockedQuote, { 
+        const payload = createQuoteResponseReceivedEvtPayload(mockedQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
@@ -1378,7 +1377,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         );
 
         jest.spyOn(quoteRepo, "getQuoteById").mockResolvedValueOnce(mockedQuote);
-        
+
         jest.spyOn(messageProducer, "send");
 
         //jest.spyOn(quoteRepo, "updateQuote").mockRejectedValueOnce(new Error());
@@ -1400,7 +1399,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         jest.spyOn(quoteRepo, "storeQuotes").mockRejectedValueOnce(
             new Error("Error")
         );
-        
+
         // Act
         await aggregateWithoutPassthroughMode.processCommandBatch([command]);
 
@@ -1422,7 +1421,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = null;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, { 
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
@@ -1462,7 +1461,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, { 
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
@@ -1513,7 +1512,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, { 
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
@@ -1561,13 +1560,13 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
             })]
         );
     });
-  
+
     test("handleQuoteQueryReceivedEvent - should send error event if quote is not found on database and passthrough mode is disabled", async () => {
         // Arrange
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, { 
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
@@ -1633,7 +1632,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, { 
+        const payload = createQuoteQueryReceivedEvtPayload(mockedQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
@@ -1703,7 +1702,7 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = null;
         const destinationFspId = mockedQuote.payee.partyIdInfo.fspId;
-        const payload = createQuoteQueryRejectedEvtPayload(mockedQuote, { 
+        const payload = createQuoteQueryRejectedEvtPayload(mockedQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
@@ -1741,13 +1740,13 @@ describe("Domain - Unit Tests for Quote Events, Non Happy Path", () => {
         const mockedQuote = mockedQuote1;
         const requesterFspId = mockedQuote.payer.partyIdInfo.fspId;
         const destinationFspId = null;
-        const payload = createQuoteQueryRejectedEvtPayload(mockedQuote, { 
+        const payload = createQuoteQueryRejectedEvtPayload(mockedQuote, {
             requesterFspId: requesterFspId,
             destinationFspId: destinationFspId
         });
 
         payload.destinationFspId = null;
-        
+
         const command: CommandMsg = createCommand(
             payload,
             RejectedQuoteCmd.name,
