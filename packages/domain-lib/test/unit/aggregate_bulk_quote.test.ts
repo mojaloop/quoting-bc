@@ -1,27 +1,48 @@
 /**
  License
  --------------
- Copyright © 2021 Mojaloop Foundation
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
- The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License.
-
- You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
  Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
  Contributors
  --------------
- This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
+ This is the official list of the Mojaloop project contributors for this file.
  Names of the original copyright holders (individuals or organizations)
- should be listed with a '' in the first column. People who have
+ should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
+ Mojaloop Foundation for an example). Those individuals should have
+ their names indented and be marked with a '-'. Email address can be added
+ optionally within square brackets <email>./*****
+ License
+ --------------
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+ Contributors
+ --------------
+ This is the official list of the Mojaloop project contributors for this file.
+ Names of the original copyright holders (individuals or organizations)
+ should be listed with a '*' in the first column. People who have
+ contributed from an organization can be listed under the organization
+ that actually holds the copyright for their contributions (see the
+ Mojaloop Foundation for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
+
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
 
  * Arg Software
  - José Antunes <jose.antunes@arg.software>
@@ -94,7 +115,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             tracingMock
         );
     });
-    
+
     afterEach(async () => {
         jest.restoreAllMocks();
     });
@@ -125,9 +146,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         };
 
         const command: CommandMsg = createCommand(
-            payload, 
+            payload,
             RequestReceivedBulkQuoteCmd.name,
-            inboundProtocolOpaqueState, 
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
@@ -176,9 +197,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
 
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
@@ -224,9 +245,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         };
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
@@ -264,7 +285,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         );
     });
 
- 
+
     test("handleBulkQuoteRequestedEvent - should add quotes to quote repo that belong to bulkQuote without passthrough mode", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
@@ -281,15 +302,15 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         };
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
         const payloadResponse =
             createBulkQuoteRequestedEvtPayload(mockedQuote, {}, ["requesterFspId", "destinationFspId"]);
-            
+
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
                 id: "payer",
@@ -309,7 +330,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         );
 
         jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValue();
-        
+
         jest.spyOn(messageProducer, "send");
 
         // Act
@@ -324,7 +345,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             })]
         );
     });
-   
+
     test("handleBulkQuoteRequestedEvent - should not add bulkQuote to bulkQuote repo with passthrough mode", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
@@ -342,9 +363,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
 
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
@@ -368,7 +389,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         jest.spyOn(messageProducer, "send");
 
         jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValueOnce();
-        
+
         const aggregateWithPassThrough = new QuotingAggregate(
             logger,
             quoteRepo,
@@ -411,9 +432,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         };
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RequestReceivedBulkQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            RequestReceivedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
@@ -477,17 +498,17 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
-        
+
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
         const payloadResponse =
             createBulkQuotePendingReceivedEvtPayload(mockedQuote, {}, ["requesterFspId", "destinationFspId"]);
-        
+
         jest.spyOn(participantService, "getParticipantInfo")
             .mockResolvedValueOnce({
                 id: "payer",
@@ -526,8 +547,8 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
             })]
         );
     });
-     
-   
+
+
     test("handleBulkQuotePendingReceivedEvent - should update quotes that belong to bulkQuote on quotes repository", async () => {
         // Arrange
         const mockedQuote = mockedBulkQuote1;
@@ -547,11 +568,11 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         const inboundProtocolOpaqueState = {
             exampleProperty: "randomValue"
         };
-        
+
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
@@ -583,7 +604,7 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValue();
 
         jest.spyOn(messageProducer, "send");
-        
+
         jest.spyOn(bulkQuoteRepo, "updateBulkQuote").mockResolvedValue();
 
         // Act
@@ -627,9 +648,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         };
 
         const command: CommandMsg = createCommand(
-            payload, 
-            ResponseReceivedBulkQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            ResponseReceivedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
@@ -695,9 +716,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         };
 
         const command: CommandMsg = createCommand(
-            payload, 
-            QueryReceivedBulkQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            QueryReceivedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
@@ -771,9 +792,9 @@ describe("Domain - Unit Tests for Bulk Quote Events", () => {
         };
 
         const command: CommandMsg = createCommand(
-            payload, 
-            RejectedBulkQuoteCmd.name, 
-            inboundProtocolOpaqueState, 
+            payload,
+            RejectedBulkQuoteCmd.name,
+            inboundProtocolOpaqueState,
             MessageTypes.COMMAND
         );
 
