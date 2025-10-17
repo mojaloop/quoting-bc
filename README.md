@@ -1,4 +1,12 @@
-# quoting-bc
+# [DEPRECATED] quoting-bc
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+**Deprecation Notice**: This repo was deprecated as of October 2025. It is no longer maintained, and is no longer referenced by any releases of Mojaloop.
+
+For a list of active Mojaloop repos, please refer to Mojaloop documentation or Mojaloop GitHub Org.
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+
 **EXPERIMENTAL** vNext Quoting (Agreements) Bounded Context
 
 [![Git Commit](https://img.shields.io/github/last-commit/mojaloop/quoting-bc.svg?style=flat)](https://github.com/mojaloop/quoting-bc/commits/master)
